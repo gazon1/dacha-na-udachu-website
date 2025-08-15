@@ -1,0 +1,134 @@
+[tool.poetry]
+name = "Web site"
+version = "1.0.0"
+description = "Web site for dacha"
+authors = ["Max Drobin"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "~3.11"
+pre-commit = "3.8.0"
+ruff = "0.5.7"
+flask = "^2.3.2"
+flask-login = "^0.6.2"
+flask-migrate = "4.1.0"
+flask-sqlalchemy = "3.1.1"
+sqlalchemy = "~2.0.16"
+psycopg2-binary = "^2.9.6"
+wtforms = "^3.0.1"
+email-validator = "^1.3.1"
+gunicorn = "^20.1.0"
+marshmallow = "^3.19.0"
+flask-security = "^3.0.0"
+bcrypt = "^3.2.2"
+flask-caching = "^1.10.1"
+flask-bootstrap = "^3.3.7.1"
+jinja2 = "^3.1.2"
+markupsafe = "^2.1.1"
+simplejson = "^3.18.3"
+python-dateutil = "^2.8.2"
+pytz = "^2022.7.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+# --------- RUFF ---------------
+[tool.ruff]
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".env",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "env",
+    "node_modules",
+    "site-packages",
+    "venv",
+    "templates"
+] # recommended list
+
+# Ruff supports a top-level `src` option in lieu of isort's `src_paths` setting.
+# All paths are relative to the project root, which is the directory containing the pyproject.toml.
+src = ["src"]
+
+line-length = 120
+target-version = "py310" # python version
+respect-gitignore = true # avoid gitignore files
+
+[tool.ruff.lint]
+exclude = ["*.ipynb"] # don't use linters for notebooks, only formatter
+
+# Ruff lint rules are here: https://docs.astral.sh/ruff/rules
+# flake8-builtins - A
+# flake8-bugbear - B
+# pycodestyle - E
+# Pyflakes - F
+# isort - I
+# pandas-vet - PD
+# Pylint - PL
+# flake8-quotes Q
+# flake8-simplify SIM
+# Pylint Warning - W
+
+select = ["A", "B", "C", "E", "F", "I", "PD", "PL", "Q", "SIM", "W"] 
+
+# PLR0913 - too many arguments in function definition (5 by default)
+# recommended to ignore in docs:
+ignore = ['PLR0913']
+
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.isort]
+# known-first-party - A list of modules to consider first-party.
+# Example: 'import model' instead of 'import src.model'
+known-first-party = ["src"]
+
+# Order the import sections.
+section-order = ["future", "standard-library", "third-party",  "first-party", "local-folder"]
+
+[tool.ruff.lint.pydocstyle]
+# convention - Style of documentation
+convention = "google"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false # Like Black
+line-ending = "auto" # Like Black
+docstring-code-format = true # format docstring or not
+docstring-code-line-length = "dynamic"
+
+# --------- MYPY ---------------
+[tool.mypy]
+python_version = "3.10"
+
+#files = "src,dags"  # List of files or folders to check types
+
+ignore_missing_imports = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+warn_redundant_casts = true
+no_implicit_optional = true
+strict_optional = true

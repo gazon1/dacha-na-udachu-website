@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Дом в аренду</title>
+    <script>
+        // Добавляем JavaScript для ограничения дат
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkIn = document.getElementById('check-in');
+            const checkOut = document.getElementById('check-out');
+            
+            checkIn.addEventListener('change', function() {
+                checkOut.min = checkIn.value;
+            });
+            
+            checkOut.addEventListener('change', function() {
+                checkIn.max = checkOut.value;
+            });
+        });
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        
+        header {
+            background: #fff;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .property-image {
+            width: 100%;
+            height: auto;
+            margin: 20px 0;
+        }
+        
+        .property-details {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .property-features {
+            margin-top: 20px;
+        }
+        
+        .feature-item {
+            margin-bottom: 10px;
+        }
+        
+        .price {
+            font-size: 24px;
+            color: #e74c3c;
+            margin: 20px 0;
+        }
+        
+        footer {
+            background: #333;
+            color: #fff;
+            text-align: center;
+            padding: 15px 0;
+            margin-top: 40px;
+        }
+
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .calendar-wrapper {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f8f8;
+            border-radius: 5px;
+        }
+        
+        input[type="date"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+
+
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Уютный дом для аренды</h1>
+    </header>
+    
+    <div class="container">
+        <div class="property-image">
+            <img src="https://via.placeholder.com/800x600" alt="Внешний вид дома">
+        </div>
+        
+        <div class="property-details">
+            <div class="price">
+                <strong>Стоимость:</strong> 35 000 руб/месяц
+            </div>
+            
+            <h2>Описание объекта</h2>
+            <p>
+                Представляем вашему вниманию прекрасный загородный дом в тихом районе. Идеально подходит для семейного проживания.
+            </p>
+            
+            <div class="property-features">
+                <h3>Основные характеристики:</h3>
+                <div class="feature-item">
+                    <strong>Площадь:</strong> 120 м²
+                </div>
+                <div class="feature-item">
+                    <strong>Количество этажей:</strong> 2
+                </div>
+                <div class="feature-item">
+                    <strong>Спальни:</strong> 4
+                </div>
+                <div class="feature-item">
+                    <strong>Ванные комнаты:</strong> 2
+                </div>
+                <div class="feature-item">
+                    <strong>Парковка:</strong> На 2 автомобиля
+                </div>
+            </div>
+            
+            <h3>Удобства и инфраструктура:</h3>
+            <ul>
+                <li>Полностью оборудованная кухня</li>
+                <li>Сауна</li>
+                <li>Сад с зоной отдыха</li>
+                <li>Wi-Fi</li>
+                <li>Центральное отопление</li>
+                <li>Кондиционеры</li>
+            </ul>
+            
+            <h3>Расположение</h3>
+            <p>
+                Дом расположен в 15 минутах от центра города. В пешей доступности магазины, школа, детский сад. Отличная транспортная доступность.
+            </p>
+        </div>
+    </div>
+    <div class="container">
+        <h2>Выберите дату бронирования</h2>
+        
+        <div class="calendar-wrapper">
+            <form action="#" method="post">
+                <label for="check-in">Дата заезда:</label><br>
+                <input type="date" id="check-in" name="check-in" required><br><br>
+                
+                <label for="check-out">Дата выезда:</label><br>
+                <input type="date" id="check-out" name="check-out" required><br><br>
+                
+                <button type="submit">Забронировать</button>
+            </form>
+        </div>
+        
+        <p>
+            <strong>Примечание:</strong> Минимальное время бронирования — 1 сутки.
+        </p>
+    </div>
+    <footer>
+        <p>
+            Контакты для связи: <br>
+            Телефон: +7 (999) 123-45-67 <br>
+            Email: rent@example.com
+        </p>
+</footer>
+</body>
+</html>

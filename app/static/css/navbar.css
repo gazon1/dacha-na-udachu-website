@@ -1,0 +1,54 @@
+/* Сброс отступов */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Контейнер навигации */
+.navbar {
+    background-color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 15px 0;
+}
+
+/* Список элементов */
+.navbar ul {
+    list-style: none;
+    display: flex;
+    gap: 30px;
+}
+
+/* Стили для ссылок */
+.navbar li {
+    position: relative;
+}
+
+.navbar a {
+    color: white;
+    text-decoration: none;
+    padding: 10px 20px;
+    display: block;
+    transition: all 0.3s ease;
+}
+
+/* Эффект при наведении */
+.navbar a:hover {
+    background-color: #555;
+    border-radius: 5px;
+}
+
+/* Активное состояние */
+.navbar .active {
+    background-color: #555;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .navbar ul {
+        flex-direction: column;
+        gap: 10px;
+    }
+}

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аренда летних домиков</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f8f8;
+            color: #333;
+        }
+
+        .header {
+            background: url('https://via.placeholder.com/1920x400') no-repeat center;
+            background-size: cover;
+            height: 400px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        .house-card {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .house-card img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .house-details {
+            margin-top: 15px;
+        }
+
+        .price {
+            color: #e74c3c;
+            font-size: 24px;
+            margin: 10px 0;
+        }
+
+        .footer {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 20px 0;
+            margin-top: 40px;
+        }
+    </style>
+    <link rel="stylesheet" type="text/css" href="../static/css/navbar.css">
+</head>
+
+<body>
+    <div class="navbar">
+        <ul>
+            <li><a href="#">Развлечение</a></li>
+            <li><a href="booking.html" class="active">Проживание</a></li>
+            <li><a href="events.html">Мероприятия</a></li>
+            <li><a href="#">Новости</a></li>
+            <li><a href="{{  url_for('about') }}">Контакты</a></li>
+        </ul>
+    </div>
+    <div class="header">
+        <h1>Уютные летние домики в аренду</h1>
+    </div>
+
+    <div class="container">
+        <h2>Доступные домики</h2>
+
+        <div class="house-card">
+            <img src="https://via.placeholder.com/800x600" alt="Домик основной">
+            <div class="house-details">
+                <h3>Домик основной</h3>
+                <p>Вместимость: до 4 человек. 3 кровати, 1 раскладушка</p>
+                <div class="comfort">
+                    <p>Удобства:</p>
+                    <ul>
+                        <li>Кухня</li>
+                        <li>Wi-Fi</li>
+                        <li>Терраса</li>
+                        <li>Парковка</li>
+                        <li>Барбекю</li>
+                        <li>Сауна</li>
+                    </ul>
+                </div>
+                <div class="price">От 3000 руб/сутки</div>
+                <a href="{{  url_for('about_apartment', apartment_id='main_house') }}" class="btn">Подробнее</a>
+            </div>
+        </div>
+
+        <div class="house-card">
+            <img src="https://via.placeholder.com/800x600" alt="Винтажный домик деда">
+            <div class="house-details">
+                <h3>Винтажный домик деда</h3>
+                <p>Вместимость: до 4 человек. 4 кровати</p>
+                <div class="comfort">
+                    <p>Удобства:</p>
+                    <ul>
+                        <li>Wi-Fi</li>
+                        <li>Парковка</li>
+                        <li>Барбекю</li>
+                        <li>Сауна</li>
+                    </ul>
+                </div>
+                <div class="price">От 3000 руб/сутки</div>
+                <a href="{{  url_for('about_apartment', apartment_id='ded_house') }}" class="btn">Подробнее</a>
+            </div>
+        </div>
+
+        <div class="house-card">
+            <img src="https://via.placeholder.com/800x600" alt="Секретный домик сестры">
+            <div class="house-details">
+                <h3>Секретный домик сестры</h3>
+                <p>Вместимость: до 4 человек. 3 кровати, 1 раскладушка</p>
+                <div class="comfort">
+                    <p>Удобства:</p>
+                    <ul>
+                        <li>Парковка</li>
+                        <li>Сауна</li>
+                    </ul>
+                </div>
+                <div class="price">От 4500 руб/сутки</div>
+                <a href="{{  url_for('about_apartment', apartment_id='sister_house') }}" class="btn">Подробнее</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© 2025 ООО "Дача на удачу". Все права защищены.</p>
+    </div>
+</body>
+
+</html>
