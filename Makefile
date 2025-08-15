@@ -11,7 +11,11 @@ update:
 	poetry update
 
 req:
-	poetry export --without-hashes --format=requirements.txt > requirements.txt
+# 	rm requirements.txt
+	poetry export --without-hashes --without-urls | awk '{ print $1 }' FS=';' > requirements.txt
+
+install_req:
+	pip install -r requirements.txt
 
 db_migrate:
 	flask db migrate
