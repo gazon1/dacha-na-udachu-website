@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="../static/css/main.css">
-    <script src="../static/js/rent-form.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.14/css/intlTelInput.css" rel="stylesheet">
 </head>
 
 <body>
@@ -128,17 +128,11 @@
                         <h3>Опции и стоимость</h3>
 
                         <div class="row">
-                            <label for="guests">Гостей (до 8)</label>
-                            <select id="guests" name="guests" required>
-                                <option>1</option>
-                                <option>2</option>
-                                <option>3</option>
-                                <option>4</option>
-                                <option>5</option>
-                                <option>6</option>
-                                <option>7</option>
-                                <option selected>8</option>
-                            </select>
+                            {{ form.guest_num.label }}<br>
+                            {{ form.guest_num(id="guests") }}<br>
+                            {% for error in form.guest_num.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                            {% endfor %}
                         </div>
 
                         <div class="row">
@@ -262,6 +256,19 @@
             </div>
         </div>
     </div>
+    <script src="../static/js/rent-form.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.14/js/intlTelInput.min.js"></script>
+
+    <script>
+        var input = document.querySelector("#phone");
+        window.intlTelInput(input, {
+            utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.14/js/utils.js",
+            onlyCountries: ["ru"],
+            allowDropdown: false,
+            separateDialCode: true,
+            nationalMode: true,
+        });
+    </script>
 </body>
 
 </html>
