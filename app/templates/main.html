@@ -10,384 +10,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #0b1020;
-            --card: rgba(255, 255, 255, 0.06);
-            --stroke: rgba(255, 255, 255, 0.12);
-            --text: #e9eefb;
-            --muted: #bfc7e0;
-            --brand: #7dd3fc;
-            /* sky-300 */
-            --brand-2: #a78bfa;
-            /* violet-400 */
-            --accent: #34d399;
-            /* emerald-400 */
-            --danger: #fb7185;
-            /* rose-400 */
-            --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-            --radius: 20px;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        html,
-        body {
-            height: 100%;
-        }
-
-        body {
-            margin: 0;
-            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-            color: var(--text);
-            background: radial-gradient(1200px 600px at 10% -10%, rgba(79, 70, 229, 0.3), transparent 70%),
-                radial-gradient(900px 500px at 90% 10%, rgba(14, 165, 233, 0.25), transparent 65%),
-                linear-gradient(180deg, #0b1020 0%, #0b1328 100%);
-            background-attachment: fixed;
-        }
-
-        .container {
-            width: min(1200px, 92vw);
-            margin: 0 auto;
-        }
-
-        header {
-            position: sticky;
-            top: 0;
-            z-index: 50;
-            backdrop-filter: saturate(140%) blur(14px);
-            background: rgba(11, 16, 32, 0.6);
-            border-bottom: 1px solid var(--stroke);
-        }
-
-        .nav {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 14px 0;
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            text-decoration: none;
-            color: var(--text);
-        }
-
-        .brand .logo {
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            background: linear-gradient(225deg, var(--brand), var(--brand-2));
-            display: grid;
-            place-items: center;
-            color: #0b1020;
-            font-weight: 800;
-            box-shadow: var(--shadow);
-        }
-
-        .brand span {
-            font-weight: 800;
-            letter-spacing: 0.2px;
-            font-size: 18px;
-        }
-
-        .nav a {
-            color: var(--muted);
-            text-decoration: none;
-            margin-left: 18px;
-            font-weight: 600;
-        }
-
-        .nav a:hover {
-            color: var(--text);
-        }
-
-        .hero {
-            display: grid;
-            grid-template-columns: 1.2fr 0.8fr;
-            gap: 28px;
-            align-items: stretch;
-            padding: 40px 0 10px;
-        }
-
-        .hero-card {
-            background: var(--card);
-            border: 1px solid var(--stroke);
-            border-radius: var(--radius);
-            overflow: hidden;
-            box-shadow: var(--shadow);
-        }
-
-        .hero-media {
-            position: relative;
-            height: 100%;
-            min-height: 380px;
-        }
-
-        .hero-media img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-
-        .hero-badge {
-            position: absolute;
-            top: 14px;
-            left: 14px;
-            backdrop-filter: blur(8px);
-            background: rgba(11, 16, 32, 0.5);
-            border: 1px solid var(--stroke);
-            padding: 6px 10px;
-            border-radius: 999px;
-            font-weight: 700;
-        }
-
-        .hero-content {
-            padding: 24px;
-            display: grid;
-            gap: 12px;
-        }
-
-        .title {
-            font-size: clamp(28px, 4vw, 44px);
-            line-height: 1.05;
-            margin: 0;
-        }
-
-        .subtitle {
-            color: var(--muted);
-            margin: 0;
-        }
-
-        .booking {
-            background: var(--card);
-            border: 1px solid var(--stroke);
-            border-radius: var(--radius);
-            padding: 18px;
-            box-shadow: var(--shadow);
-            display: grid;
-            gap: 14px;
-            align-content: start;
-        }
-
-        .booking h3 {
-            margin: 0 0 6px;
-        }
-
-        .grid {
-            display: grid;
-            gap: 12px;
-        }
-
-        .grid.cols-2 {
-            grid-template-columns: repeat(2, 1fr);
-        }
-
-        .grid.cols-3 {
-            grid-template-columns: repeat(3, 1fr);
-        }
-
-        .input,
-        select,
-        button,
-        .option,
-        .bed {
-            border-radius: 12px;
-            border: 1px solid var(--stroke);
-            background: rgba(255, 255, 255, 0.04);
-            color: var(--text);
-            padding: 12px 14px;
-            width: 100%;
-        }
-
-        label {
-            font-size: 13px;
-            color: var(--muted);
-            display: block;
-            margin-bottom: 6px;
-        }
-
-        .row {
-            display: grid;
-            gap: 10px;
-        }
-
-        .price-line {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .price-line small {
-            color: var(--muted);
-        }
-
-        .total {
-            font-size: 22px;
-            font-weight: 800;
-        }
-
-        .beds {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-        }
-
-        .bed {
-            position: relative;
-            padding: 14px;
-            text-align: center;
-            cursor: pointer;
-            user-select: none;
-            transition: transform .15s ease, border-color .15s ease, background .15s ease;
-        }
-
-        .bed .cap {
-            font-size: 12px;
-            color: var(--muted);
-        }
-
-        .bed.selected {
-            border-color: var(--accent);
-            box-shadow: inset 0 0 0 1px var(--accent);
-            background: rgba(52, 211, 153, 0.08);
-        }
-
-        .bed .tick {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            font-size: 14px;
-            opacity: 0.9;
-            display: none;
-        }
-
-        .bed.selected .tick {
-            display: inline;
-        }
-
-        .option {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            cursor: pointer;
-            transition: background .15s ease, border-color .15s ease;
-        }
-
-        .option:hover {
-            background: rgba(255, 255, 255, 0.06);
-        }
-
-        .option input {
-            margin-right: 10px;
-        }
-
-        .chips {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .chip {
-            padding: 6px 10px;
-            border-radius: 999px;
-            border: 1px solid var(--stroke);
-            background: rgba(255, 255, 255, 0.04);
-            font-size: 12px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--brand), var(--brand-2));
-            border: none;
-            font-weight: 800;
-            letter-spacing: .2px;
-            cursor: pointer;
-        }
-
-        .btn-primary:hover {
-            filter: brightness(1.05);
-            transform: translateY(-1px);
-        }
-
-        .section {
-            margin: 40px 0;
-        }
-
-        .cards {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 18px;
-        }
-
-        .card {
-            background: var(--card);
-            border: 1px solid var(--stroke);
-            border-radius: var(--radius);
-            padding: 18px;
-            box-shadow: var(--shadow);
-        }
-
-        footer {
-            margin: 40px 0 60px;
-            color: var(--muted);
-        }
-
-        /* Modal */
-        .modal-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(3, 6, 23, 0.7);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
-        }
-
-        .modal {
-            width: min(560px, 92vw);
-            background: var(--card);
-            border: 1px solid var(--stroke);
-            border-radius: 16px;
-            padding: 18px;
-            box-shadow: var(--shadow);
-        }
-
-        .modal h3 {
-            margin-top: 0;
-        }
-
-        /* Responsive */
-        @media (max-width: 980px) {
-            .hero {
-                grid-template-columns: 1fr;
-            }
-
-            .beds {
-                grid-template-columns: repeat(4, 1fr);
-            }
-
-            .cards {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (max-width: 560px) {
-
-            .grid.cols-2,
-            .grid.cols-3 {
-                grid-template-columns: 1fr;
-            }
-
-            .beds {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-    </style>
+    <link rel="stylesheet" type="text/css" href="../static/css/main.css">
+    <script src="../static/js/rent-form.js"></script>
 </head>
 
 <body>
@@ -430,18 +54,33 @@
         </section>
 
         <section id="booking" class="section" aria-label="Бронирование">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
             <form method="post">
+                {{ form.hidden_tag() }}
+                {{ form.csrf_token() }}
                 <div class="grid cols-3">
                     <div class="booking" style="grid-column: span 2;">
                         <h3>Выбор дат</h3>
                         <div class="grid cols-2">
                             <div class="row">
-                                <label for="checkin">Дата заезда</label>
-                                <input class="input" id="checkin" type="date" />
+                                {{ form.check_in.label }}<br>
+                                {{ form.check_in(size=32, class="input") }}<br>
+                                {% for error in form.check_in.errors %}
+                                <span style="color: red;">{{ error }}</span>
+                                {% endfor %}
                             </div>
                             <div class="row">
-                                <label for="checkout">Дата выезда</label>
-                                <input class="input" id="checkout" type="date" />
+                                {{ form.check_out.label }}<br>
+                                {{ form.check_out(size=32, class="input") }}<br>
+                                {% for error in form.check_out.errors %}
+                                <span style="color: red;">{{ error }}</span>
+                                {% endfor %}
                             </div>
                         </div>
 
@@ -460,18 +99,27 @@
 
                         <h3 style="margin-top: 6px;">Ваши контакты для бронирования</h3>
                         <div>
-                            <label for="name">Ваше имя</label>
-                            <input type="text" id="name" name="name" class="input" required>
+                            {{ form.name.label }}<br>
+                            {{ form.name(size=32, id="name", class="input") }}<br>
+                            {% for error in form.name.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                            {% endfor %}
                         </div>
 
                         <div>
-                            <label for="phone">Телефон</label>
-                            <input type="tel" id="phone" name="phone" class="input" required>
+                            {{ form.phone.label }}<br>
+                            {{ form.phone(id="phone", class="input") }}<br>
+                            {% for error in form.phone.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                            {% endfor %}
                         </div>
 
                         <div>
-                            <label for="telegram">Telegram</label>
-                            <input type="text" id="telegram" name="telegram" class="input" placeholder="@username">
+                            {{ form.telegram.label }}<br>
+                            {{ form.telegram(id="telegram", class="input", placeholder="@username") }}<br>
+                            {% for error in form.telegram.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                            {% endfor %}
                         </div>
 
                     </div>
@@ -481,7 +129,7 @@
 
                         <div class="row">
                             <label for="guests">Гостей (до 8)</label>
-                            <select id="guests" name="guests">
+                            <select id="guests" name="guests" required>
                                 <option>1</option>
                                 <option>2</option>
                                 <option>3</option>
@@ -530,7 +178,8 @@
                             <div class="price-line total"><span>Итого</span><span id="total">0 ₽</span></div>
                         </div>
 
-                        <button id="bookBtn" class="btn-primary" style="padding: 12px 14px;">Забронировать</button>
+
+                        {{ form.submit(class="btn-primary input", id="bookBtn") }}
                         <small class="subtitle">Нажимая «Забронировать», вы подтверждаете согласие с условиями аренды и
                             обработкой персональных данных.</small>
 
@@ -538,7 +187,6 @@
                 </div>
             </form>
         </section>
-
         <section id="about" class="section">
             <h2 style="margin-top:0">О даче</h2>
             <div class="cards">
@@ -566,6 +214,36 @@
             </div>
         </section>
 
+        <section id="place" class="section card">
+            <h2>Как добраться 📍</h2>
+
+            <h3>Адрес</h3>
+            <p>Россия, Московская обл., городской округ Щёлково, СНТ Заря-2, д. 177</p>
+            <script type="text/javascript" charset="utf-8" async
+                src="https://api-maps.yandex.ru/services/constructor/1.0/js/?um=constructor%3Aa8a1d59ed9ad6a54beb707555ed3b7d9182acc54f0515cd4b61f52cdf21bfb84&amp;width=1033&amp;height=427&amp;lang=ru_RU&amp;scroll=true"></script>
+            <h3>На личном транспорте</h3>
+            <ol>
+                <li>По Щелковскому шоссе до г. Фрязино</li>
+                <li>В городе по проспекту Мира до поворота на ул. Фабричная</li>
+                <li>Далее по ул. Фабричная до усадьбы Гребнево</li>
+            </ol>
+
+            <h3>На каршеринге</h3>
+            <ol>
+                <li>Так же как и на личном транспорте. Близжайшая остановка каршенгша Делимобиль - возле усадьбы
+                    Гребнево
+                    (см. карту)</li>
+            </ol>
+
+            <h3>Общественным транспортом</h3>
+            <ol>
+                <li>Метро ст. Щелковская (автовокзал), маршрут №361 до автостанции г. Фрязино</li>
+                <li>Далее местный маршрут №43 или №23 до остановки «Усадьба Гребнево»</li>
+                <li>Электричкой с Ярославского железнодорожного вокзала до станции Фрязино пассажирская</li>
+                <li>Далее автобус №43 до остановки «Усадьба Гребнево»</li>
+            </ol>
+        </section>
+
         <footer>
             <div class="container">
                 © <span id="year"></span> Дача на удачу — все права защищены
@@ -584,160 +262,6 @@
             </div>
         </div>
     </div>
-
-    <script>
-        // ===== CONFIG (редактируйте под себя) =====
-        const BASE_PRICE_PER_NIGHT = 6500; // базовая цена за дом/ночь
-        const EXTRA_GUEST_FEE = 400;       // доплата за гостя сверх 4‑х (пример)
-
-        // ===== UTILS =====
-        const fmt = (n) => new Intl.NumberFormat('ru-RU').format(n) + ' ₽';
-        const byId = (id) => document.getElementById(id);
-
-        // ===== INIT YEARS =====
-        byId('year').textContent = new Date().getFullYear();
-
-        // ===== BEDS RENDER =====
-        const bedTemplate = (house, idx) => `
-      <div class="bed" role="checkbox" aria-checked="false" tabindex="0" data-house="${house}" data-bed="${idx}">
-        <div class="tick">✓</div>
-        <div><strong>Кровать ${idx + 1}</strong></div>
-        <div class="cap">Дом ${house}</div>
-      </div>`;
-
-        const renderBeds = (containerId, houseLabel) => {
-            const el = byId(containerId);
-            el.innerHTML = Array.from({ length: 4 }, (_, i) => bedTemplate(houseLabel, i)).join('');
-        };
-
-        renderBeds('houseA', 'А');
-        renderBeds('houseB', 'Б');
-
-        const selectedBeds = new Set();
-
-        const updateBedsOut = () => {
-            byId('bedsOut').textContent = selectedBeds.size + '/8';
-        };
-
-        const toggleBed = (bedEl) => {
-            const key = bedEl.dataset.house + '-' + bedEl.dataset.bed;
-            if (selectedBeds.has(key)) {
-                selectedBeds.delete(key);
-                bedEl.classList.remove('selected');
-                bedEl.setAttribute('aria-checked', 'false');
-            } else if (selectedBeds.size < 8) {
-                selectedBeds.add(key);
-                bedEl.classList.add('selected');
-                bedEl.setAttribute('aria-checked', 'true');
-            }
-            updateBedsOut();
-            recalc();
-        };
-
-        document.querySelectorAll('.beds').forEach(group => {
-            group.addEventListener('click', (e) => {
-                const bed = e.target.closest('.bed');
-                if (bed) toggleBed(bed);
-            });
-            group.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    const bed = e.target.closest('.bed');
-                    if (bed) { e.preventDefault(); toggleBed(bed); }
-                }
-            });
-        });
-
-        // ===== DATES =====
-        const checkin = byId('checkin');
-        const checkout = byId('checkout');
-
-        const todayISO = new Date().toISOString().split('T')[0];
-        checkin.min = todayISO;
-        checkout.min = todayISO;
-
-        const nightsBetween = () => {
-            const a = new Date(checkin.value);
-            const b = new Date(checkout.value);
-            if (!checkin.value || !checkout.value) return 0;
-            const ms = b - a;
-            return ms > 0 ? Math.round(ms / (1000 * 60 * 60 * 24)) : 0;
-        };
-
-        // ===== OPTIONS =====
-        const extrasInputs = Array.from(document.querySelectorAll('.option input[type="checkbox"]'));
-
-        const extrasSum = () => extrasInputs
-            .filter(i => i.checked)
-            .map(i => Number(i.dataset.price))
-            .reduce((a, b) => a + b, 0);
-
-        extrasInputs.forEach(i => i.a
-ddEventListener('change', () => {
-            byId('extrasOut').textContent = fmt(extrasSum());
-            recalc();
-        }));
-
-        byId('guests').addEventListener('change', (e) => {
-            byId('guestsOut').textContent = e.target.value;
-            recalc();
-        });
-
-        [checkin, checkout].forEach(el => el.addEventListener('change', () => {
-            const n = nightsBetween();
-            byId('nights').textContent = n;
-            recalc();
-        }));
-
-        // ===== PRICE LOGIC =====
-        const recalc = () => {
-            const n = nightsBetween();
-            const guests = Number(byId('guests').value);
-
-            // базовая логика: цена за дом/ночь * число ночей.
-            // Если выбрано >4 мест, введём небольшую доплату за гостя (пример модели).
-            const extraGuests = Math.max(0, guests - 4);
-            const base = BASE_PRICE_PER_NIGHT * n;
-            const guestFee = extraGuests * EXTRA_GUEST_FEE * n;
-
-            const total = base + guestFee + extrasSum();
-
-            byId('basePerNight').textContent = fmt(BASE_PRICE_PER_NIGHT);
-            byId('extrasOut').textContent = fmt(extrasSum());
-            byId('total').textContent = fmt(total);
-        };
-
-        recalc();
-
-        // ===== MODAL =====
-        const modal = byId('modal');
-        const openModal = (text) => {
-            byId('mBody').textContent = text;
-            modal.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-        };
-        const closeModal = () => { modal.style.display = 'none'; document.body.style.overflow = ''; };
-
-        byId('bookBtn').addEventListener('click', () => {
-            const n = nightsBetween();
-            if (!checkin.value!checkout.value  n <= 0) {
-            openModal('Проверьте даты заезда и выезда (минимум 1 ночь).');
-            return;
-        }
-        if (selectedBeds.size === 0) {
-            openModal('Выберите хотя бы одно спальное место.');
-            return;
-        }
-
-        const text = `Вы забронировали: ${n} ноч. • Гостей: ${byId('guests').value} • Мест: ${selectedBeds.size}\n` +
-            `Заезд: ${checkin.value} → Выезд: ${checkout.value}\n` +
-            Итого к оплате: ${ byId('total').textContent};
-        openModal(text);
-    });
-
-        byId('closeModal').addEventListener('click', closeModal);
-        byId('confirmModal').addEventListener('click', closeModal);
-
-    </script>
 </body>
 
 </html>

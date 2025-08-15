@@ -7,6 +7,8 @@ from flask_sqlalchemy import SQLAlchemy
 from forms import BookingForm
 
 app = Flask(__name__)
+application = app
+
 app.config.from_object(Config)
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -44,31 +46,31 @@ class Booking(db.Model):
         return f"<Booking {self.name}>"
 
 
-@app.route("/about.html")
-def about():
-    return render_template("about.html")
+# @app.route("/about.html")
+# def about():
+#     return render_template("about.html")
 
 
-@app.route("/booking.html")
-def booking():
-    return render_template("booking.html")
+# @app.route("/booking.html")
+# def booking():
+#     return render_template("booking.html")
 
 
 @app.route("/")
 @app.route("/index")
-# @app.route("/events.html")
-def events():
-    return render_template("main.html")
+def main():
+    booking_form = BookingForm()
+    return render_template("main.html", form=booking_form)
 
 
-@app.route("/post/<post_id>")
-def get_post(post_id: str):
-    return render_template(f"events/{post_id}.html")
+# @app.route("/post/<post_id>")
+# def get_post(post_id: str):
+#     return render_template(f"events/{post_id}.html")
 
 
-@app.route("/about_apartment/<apartment_id>")
-def about_apartment(apartment_id: str):
-    return render_template(f"booking/{apartment_id}.html")
+# @app.route("/about_apartment/<apartment_id>")
+# def about_apartment(apartment_id: str):
+#     return render_template(f"booking/{apartment_id}.html")
 
 
 # @app.route("/bookings", methods=["POST"])
@@ -119,15 +121,24 @@ def about_apartment(apartment_id: str):
 @app.route("/", methods=["POST"])
 def booking_form():
     """Забронировать дачу на выбранные даты и оформить услуги"""
-    data = request.get_json()
-    new_booking = Booking(
-        name=data["name"],
-        telegram=data["telegram"],
-        checkin_date=data["checkin"],
-        checkout_date=data["checkout"],
-        house_id=data["house_id"],
-        bed_id=data["bed_id"],
-    )
-    db.session.add(new_booking)
-    db.session.commit()
+    # data = request.form
+    print(request.data)
+    print(request.form)
+    print(request.form.get("checkin"))
+    # new_booking = Booking(
+    #     name=data["name"],
+    #     telegram=data["telegram"],
+    #     phone=data["phone"],
+    #     guests_num=data["guests"],
+    #     checkin_date=data["checkin"],
+    #     checkout_date=data["checkout"],
+    #     house_id=data["house_id"],
+    #     # bed_id=data["bed_id"],
+    # )
+    # db.session.add(new_booking)
+    # db.session.commit()
     return jsonify({"message": "Дача успешно забронирована!"}), 201
+
+
+if __name__ == "__main__":
+    application.run(host="0.0.0.0")
