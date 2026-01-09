@@ -96,7 +96,7 @@ unfixable = []
 
 [tool.ruff.lint.isort]
 # Адаптировано: считаем текущий проект first-party
-known-first-party = ["mysite", "my_cms_project"] 
+known-first-party = ["dacha", "my_cms_project"] 
 section-order = ["future", "standard-library", "third-party",  "first-party", "local-folder"]
 
 [tool.ruff.lint.pydocstyle]
