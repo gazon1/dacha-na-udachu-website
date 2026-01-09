@@ -28,13 +28,10 @@ RUN uv pip install --system -r pyproject.toml
 
 # Копируем код проекта
 COPY . /app/
+RUN chmod +x /app/justfile
 
 # Открываем порт
 EXPOSE 8000
-
-# Копируем Justfile
-COPY justfile /app/
-RUN chmod +x /app/justfile
 
 # Запускаем через just
 CMD ["just", "entrypoint"]

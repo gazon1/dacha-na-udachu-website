@@ -21,7 +21,11 @@
 
   // Установка зависимостей Python после создания
   // Используем system, так как uv в Dockerfile ставил пакеты глобально
-  "postCreateCommand": "uv sync",
+  "postCreateCommand": "uv sync --extra dev",
+
+    // Эта команда выполняется каждый раз при старте контейнера.
+  // Гарантируем, что зависимости на месте, даже если вы их удалили.
+  "postStartCommand": "uv sync && source .venv/bin/activate",
 
   "customizations": {
     "vscode": {
@@ -30,8 +34,8 @@
         // Python & Django Core
         "ms-python.python",
         "ms-python.vscode-pylance",
-        "charliermarsh.ruff",
-        "matangover.mypy",
+        "astral-sh.ruff",
+        "ms-python.mypy-type-checker",
         "batisteo.vscode-django",
         
         // Utils
@@ -66,13 +70,12 @@
         },
         // Путь к ruff (системный, так как ставили глобально)
         "ruff.path": ["/app/.venv/bin/ruff"],
-        "ruff.format.args": ["--config=/app/pyproject.toml"],
+        "ruff.configuration": "/app/pyproject.toml",
         "ruff.trace.server": "verbose",
 
         // --- MYPY ---
-        "mypy.dmypyExecutable": "/app/.venv/bin/dmypy",
-        "mypy.runUsingActiveInterpreter": true,
-        "mypy.configFile": "pyproject.toml",
+        "mypy-type-checker.args": ["--config-file=/app/pyproject.toml"],
+        "mypy-type-checker.interpreter": ["/app/.venv/bin/python"],
 
         // --- TERMINAL (Zsh & Fonts) ---
         "terminal.integrated.defaultProfile.linux": "zsh",
@@ -84,6 +87,5 @@
 
       }
     }
-  },
-  "updateContentCommand": "source .venv/bin/activate"
+  }
 }

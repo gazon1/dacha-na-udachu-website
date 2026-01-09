@@ -125,4 +125,4 @@ no_implicit_optional = true
 strict_optional = true
 
 [tool.django-stubs]
-django_settings_module = "mysite.settings"
+django_settings_module = "dacha.settings"
