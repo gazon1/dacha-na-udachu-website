@@ -5,7 +5,7 @@
     "docker-compose.dev.yml"
   ],
   "service": "web",
-  // "remoteUser": "max",
+  "remoteUser": "max",
 
   // --- FEATURES (Zsh, Git) ---
   "features": {
