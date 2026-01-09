@@ -51,13 +51,13 @@ RUN git config --global user.name "${GIT_NAME}" \
 # --- ЭТАП 3: Production (Финальный образ) ---
 FROM base AS production
 
-WORKDIR /workspace
+WORKDIR /app
 
 # Важно: Сначала копируем файл зависимостей и устанавливаем их,
 # чтобы использовать кэш Docker
-COPY pyproject.toml uv.lock* /workspace/
+COPY pyproject.toml uv.lock* /app/
 
 # Теперь копируем код проекта
-COPY --chown=${USERNAME}:${USERNAME} . /workspace/
+COPY --chown=${USERNAME}:${USERNAME} . /app/
 
 USER ${USERNAME}

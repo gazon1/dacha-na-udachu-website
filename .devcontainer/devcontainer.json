@@ -6,6 +6,7 @@
   ],
   "service": "web",
   "remoteUser": "max",
+  "workspaceFolder": "/app",
 
   // --- FEATURES (Zsh, Git) ---
   "features": {
@@ -13,7 +14,7 @@
       "installZsh": true,
       "configureZshAsDefaultShell": true,
       "installOhMyZsh": true,
-      "upgradePackages": false,
+      "upgradePackages": false
       // "username": "max"
     },
     "ghcr.io/devcontainers/features/git:1": {}
