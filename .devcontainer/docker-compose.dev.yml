@@ -1,0 +1,20 @@
+services:
+  web:
+    # Переопределяем команду, чтобы контейнер не закрывался,
+    # и мы могли управлять запуском сервера через терминал VS Code
+    command: sleep infinity
+    
+    # Включаем интерактивный режим
+    tty: true
+    stdin_open: true
+    
+    # Монтируем volume для кэша vscode, чтобы расширения не переустанавливались каждый раз
+    # volumes:
+      # - vscode-server:/home/vscode/.vscode-server/extensions
+    volumes:
+      - ~/.ssh:/home/${DEVELOPER_USERNAME}/.ssh:ro
+      - .:/app
+      # - /var/run/docker.sock:/var/run/docker.sock  # Для управления докером из контейнера
+
+# volumes:
+  # vscode-server:

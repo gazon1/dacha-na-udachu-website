@@ -1,0 +1,235 @@
+{% load cms_tags sekizai_tags static %}
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% page_attribute "page_title" %} — Дача на удачу</title>
+    <meta name="description" content="{% page_attribute 'meta_description' %}" />
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Используем static тег для Django -->
+    <link rel="stylesheet" type="text/css" href="{% static 'css/main.css' %}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.14/css/intlTelInput.css" rel="stylesheet">
+    
+    <!-- Дополнительные стили для иконок в кружочках -->
+    <style>
+        .chip {
+            display: flex !important;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            line-height: 1.2;
+            padding: 10px !important; 
+            /* Если круги фиксированного размера в main.css, 
+               flex центрирует контент внутри */
+        }
+        .chip-icon {
+            font-size: 24px; /* Размер иконки */
+            margin-bottom: 4px;
+        }
+        .chip-text {
+            font-size: 12px; /* Размер текста */
+            font-weight: 600;
+        }
+    </style>
+
+    {% render_block "css" %}
+</head>
+
+<body>
+    <!-- Обязательный тулбар CMS -->
+    {% cms_toolbar %}
+
+    <header>
+        <div class="container nav">
+            <a class="brand" href="#top" aria-label="Дача на удачу — главная">
+                <div class="logo">Д</div>
+                <span>Дача на удачу</span>
+            </a>
+            <nav>
+                <a href="#booking">Бронирование</a>
+                <a href="#options">Опции</a>
+                <a href="#about">О даче</a>
+                <a href="#contacts">Контакты</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="hero" id="top">
+            <div class="hero-card hero-media">
+                <!-- Пример использования djangocms-picture или просто статика -->
+                {% placeholder "hero_image" or %}
+                    <img src="https://images.unsplash.com/photo-1601918774946-25832a4be0d6?q=80&w=1974&auto=format&fit=crop"
+                        alt="Фото загородной дачи" />
+                {% endplaceholder %}
+                <div class="hero-badge">Уютная дача у леса • 8 спальных мест</div>
+            </div>
+            <div class="hero-card hero-content">
+                <h1 class="title">{% placeholder "hero_title" or %}Дача на удачу{% endplaceholder %}</h1>
+                <div class="subtitle">
+                    {% placeholder "hero_text" or %}
+                    <p>Идеальный отдых за городом: чистый воздух, баня, мангал и тёплая атмосфера. Выберите
+                    даты, спальные места и доп. опции — и поехали!</p>
+                    {% endplaceholder %}
+                </div>
+                
+                <!-- ОБНОВЛЕННЫЕ ЧИПСЫ С ИКОНКАМИ -->
+                <div class="chips">
+                    <div class="chip">
+                        <span class="chip-icon">🅿️</span>
+                        <span class="chip-text">Парковка</span>
+                    </div>
+                    <div class="chip">
+                        <span class="chip-icon">📶</span>
+                        <span class="chip-text">Wi‑Fi</span>
+                    </div>
+                    <div class="chip">
+                        <span class="chip-icon">🔥</span>
+                        <span class="chip-text">Мангал</span>
+                    </div>
+                    <div class="chip">
+                        <span class="chip-icon">🌲</span>
+                        <span class="chip-text">У леса</span>
+                    </div>
+                    <div class="chip">
+                        <span class="chip-icon">🏡</span>
+                        <span class="chip-text">Две избы</span>
+                    </div>
+                </div>
+
+                <a href="#booking"><button class="btn-primary" style="padding:14px 16px; margin-top: 8px;">Забронировать
+                        сейчас</button></a>
+            </div>
+        </section>
+
+        <section id="booking" class="section">
+            <!-- Вывод сообщений (Успех/Ошибки) -->
+            {% if messages %}
+                <div class="messages">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}" style="padding: 10px; margin-bottom: 10px; border-radius: 4px; 
+                        {% if message.tags == 'success' %}background-color: #d4edda; color: #155724;{% endif %}
+                        {% if message.tags == 'error' %}background-color: #f8d7da; color: #721c24;{% endif %}">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <form method="post" action="{% url 'submit_booking' %}">
+                {% csrf_token %}
+                
+                <div class="grid cols-3">
+                    <div class="booking" style="grid-column: span 2;">
+                        <h3>Выбор дат</h3>
+                        <div class="grid cols-2">
+                            <div class="row">
+                                <label>{{ booking_form.check_in.label }}</label><br>
+                                {{ booking_form.check_in }}
+                            </div>
+                            <div class="row">
+                                <label>{{ booking_form.check_out.label }}</label><br>
+                                {{ booking_form.check_out }}
+                            </div>
+                        </div>
+
+                        <h3 style="margin-top: 6px;">Ваши контакты</h3>
+                        <div>
+                            <label>{{ booking_form.name.label }}</label><br>
+                            {{ booking_form.name }}
+                        </div>
+
+                        <div>
+                            <label>{{ booking_form.phone.label }}</label><br>
+                            {{ booking_form.phone }}
+                        </div>
+
+                        <div>
+                            <label>{{ booking_form.telegram.label }}</label><br>
+                            {{ booking_form.telegram }}
+                        </div>
+                    </div>
+
+                    <aside class="booking">
+                        <h3>Опции</h3>
+                        <div class="row">
+                            <label>{{ booking_form.guest_num.label }}</label><br>
+                            {{ booking_form.guest_num }}
+                        </div>
+                        
+                        <!-- Ваши чекбоксы опций можно оставить статикой или тоже добавить в модель -->
+                        
+                        <button type="submit" class="btn-primary input" style="margin-top: 20px;">Забронировать</button>
+                    </aside>
+                </div>
+            </form>
+        </section>
+        
+        <section id="about" class="section">
+            <h2 style="margin-top:0">О даче</h2>
+            <!-- Placeholders для редактирования контента -->
+            {% placeholder "about_content" %}
+        </section>
+
+        <section id="contacts" class="section">
+            <h2 style="margin-top:0">Контакты</h2>
+            {% placeholder "contacts_content" %}
+        </section>
+
+        <section id="place" class="section card">
+            <h2>Как добраться 📍</h2>
+            {% placeholder "map_content" or %}
+                <h3>Адрес</h3>
+                <p>Россия, Московская обл., городской округ Щёлково, СНТ Заря-2, д. 177</p>
+                <script type="text/javascript" charset="utf-8" async
+                    src="https://api-maps.yandex.ru/services/constructor/1.0/js/?um=constructor%3Aa8a1d59ed9ad6a54beb707555ed3b7d9182acc54f0515cd4b61f52cdf21bfb84&amp;width=1033&amp;height=427&amp;lang=ru_RU&amp;scroll=true"></script>
+            {% endplaceholder %}
+        </section>
+
+        <footer>
+            <div class="container">
+                © <span id="year"></span> Дача на удачу — все права защищены
+            </div>
+        </footer>
+    </main>
+
+    <!-- Modal -->
+    <div class="modal-backdrop" id="modal">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+            <h3 id="mTitle">Заявка на бронирование отправлена</h3>
+            <p class="subtitle" id="mBody">Мы свяжемся с вами в ближайшее время для подтверждения.</p>
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px;">
+                <button id="closeModal" class="input">Закрыть</button>
+                <button id="confirmModal" class="btn-primary">Отлично!</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- JS Скрипты -->
+    <script src="{% static 'js/rent-form.js' %}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.14/js/intlTelInput.min.js"></script>
+
+    <script>
+        var input = document.querySelector("#phone");
+        if (input) {
+            window.intlTelInput(input, {
+                utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.14/js/utils.js",
+                onlyCountries: ["ru"],
+                allowDropdown: false,
+                separateDialCode: true,
+                nationalMode: true,
+            });
+        }
+        document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
+    
+    {% render_block "js" %}
+</body>
+</html>

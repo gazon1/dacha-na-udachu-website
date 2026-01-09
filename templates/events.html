@@ -1,0 +1,149 @@
+{% load cms_tags sekizai_tags static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% page_attribute "page_title" %} — Event Hub</title>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f8f8;
+        }
+
+        header.event-header {
+            background: #333;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        nav.event-nav {
+            background: #2c3e50;
+            padding: 15px;
+        }
+
+        nav.event-nav ul {
+            list-style: none;
+            padding: 0;
+            text-align: center; /* Центрируем меню */
+        }
+
+        nav.event-nav ul li {
+            display: inline;
+            margin: 0 15px;
+        }
+
+        nav.event-nav ul li a {
+            color: white;
+            text-decoration: none;
+        }
+
+        main {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            color: #2c3e50;
+        }
+
+        article {
+            background: white;
+            padding: 20px;
+            border: 1px solid #ddd;
+            margin-bottom: 15px;
+            border-radius: 8px; /* Скругление углов */
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .read-more {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 10px 0;
+            color: white;
+            background-color: #2c3e50;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+
+        .read-more:hover {
+            background-color: #34495e;
+        }
+    </style>
+    
+    <!-- Подключаем внешние стили через static -->
+    <link rel="stylesheet" type="text/css" href="{% static 'css/navbar.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/main.css' %}">
+    
+    {% render_block "css" %}
+</head>
+<body>
+    {% cms_toolbar %}
+
+    <!-- Ваше верхнее меню -->
+    <div class="navbar">
+        <ul>
+            <!-- Ссылки лучше делать через CMS Menu, но пока оставим статикой -->
+            <li><a href="#">Развлечение</a></li>
+            <li><a href="/booking/">Проживание</a></li>
+            <li><a href="/events/" class="active">Мероприятия</a></li>
+            <li><a href="#">Новости</a></li>
+            <li><a href="/contacts/">Контакты</a></li>
+        </ul>
+    </div>
+
+    <header class="event-header">
+        <h1>Мероприятия на даче</h1>
+        <nav class="event-nav">
+            <ul>
+                <li><a href="#upcoming-events">Будущие мероприятия</a></li>
+                <li><a href="#past-events">Прошедшие мероприятия</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="upcoming-events">
+            <h2>Будущие мероприятия</h2>
+            
+            <!-- Placeholder позволяет добавлять статьи через админку -->
+            {% placeholder "upcoming_events" or %}
+                <!-- Дефолтный контент, если ничего не добавлено в CMS -->
+                <article>
+                    <h3>Днюха Андрюхи (Пример)</h3>
+                    <p>9-10 августа</p>
+                    <a href="#" class="read-more">Читать дальше &rarr;</a>
+                </article>
+            {% endplaceholder %}
+            
+        </section>
+
+        <section id="past-events">
+            <h2>Прошедшие мероприятия</h2>
+            {% placeholder "past_events" %}
+        </section>
+    </main>
+
+    <div class="footer" style="text-align: center; padding: 20px; background: #333; color: white; margin-top: 20px;">
+        <p>© {% now "Y" %} ООО "Дача на удачу". Все права защищены.</p>
+    </div>
+
+    {% render_block "js" %}
+</body>
+</html>

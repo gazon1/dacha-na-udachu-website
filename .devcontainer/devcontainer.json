@@ -1,0 +1,89 @@
+{
+  "name": "Django CMS Dev",
+  "dockerComposeFile": [
+    "../docker-compose.yml",
+    "docker-compose.dev.yml"
+  ],
+  "service": "web",
+  // "remoteUser": "max",
+
+  // --- FEATURES (Zsh, Git) ---
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "configureZshAsDefaultShell": true,
+      "installOhMyZsh": true,
+      "upgradePackages": false,
+      // "username": "max"
+    },
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+
+  // Установка зависимостей Python после создания
+  // Используем system, так как uv в Dockerfile ставил пакеты глобально
+  "postCreateCommand": "uv sync",
+
+  "customizations": {
+    "vscode": {
+      // --- РАСШИРЕНИЯ (Объединенный список) ---
+      "extensions": [
+        // Python & Django Core
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "matangover.mypy",
+        "batisteo.vscode-django",
+        
+        // Utils
+        "tamasfe.even-better-toml",
+        "ms-azuretools.vscode-docker",
+        "IronGeek.vscode-env",
+        "donjayamanne.git-extension-pack",
+        "redhat.vscode-yaml",
+        "njpwerner.autodocstring",
+        "ms-vscode.makefile-tools",
+        "usernamehw.errorlens",
+        "nefrob.vscode-just-syntax",
+        
+        // Database
+        "yy0931.vscode-sqlite3-editor",
+        "dbcode.dbcode",
+        "arniu.sql-formatter-vscode"
+      ],
+      
+      "settings": {
+        // --- PYTHON & ИНТЕРПРЕТАТОР ---
+        "python.defaultInterpreterPath": "/app/.venv/bin/python",
+        
+        // --- RUFF (Линтер/Форматтер) ---
+        "[python]": {
+          "editor.formatOnSave": true,
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit",
+            "source.organizeImports": "explicit"
+          }
+        },
+        // Путь к ruff (системный, так как ставили глобально)
+        "ruff.path": ["/app/.venv/bin/ruff"],
+        "ruff.format.args": ["--config=/app/pyproject.toml"],
+        "ruff.trace.server": "verbose",
+
+        // --- MYPY ---
+        "mypy.dmypyExecutable": "/app/.venv/bin/dmypy",
+        "mypy.runUsingActiveInterpreter": true,
+        "mypy.configFile": "pyproject.toml",
+
+        // --- TERMINAL (Zsh & Fonts) ---
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.fontFamily": "MesloLGS NF, 'Droid Sans Mono', 'monospace', monospace",
+
+        // --- ПРОЧЕЕ ---
+        "makefile.configureOnOpen": false,
+        "chat.agent.enabled": true,
+
+      }
+    }
+  },
+  "updateContentCommand": "source .venv/bin/activate"
+}
