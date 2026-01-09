@@ -25,9 +25,7 @@ WORKDIR /app
 
 # Копируем файлы зависимостей
 COPY pyproject.toml uv.lock* /app/
-
-# Устанавливаем зависимости СИСТЕМНО (в Docker это ок и проще для Gunicorn)
-RUN uv pip install --system --verbose -r pyproject.toml
+RUN uv sync --no-dev --no-install-project
 
 # Копируем код проекта
 COPY . /app/
