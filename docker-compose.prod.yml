@@ -19,7 +19,7 @@ services:
       - POSTGRES_PORT=5432
       # Данные для авто-создания админа
       - DJANGO_SUPERUSER_USERNAME=admin
-      - DJANGO_SUPERUSER_EMAIL=admin@example.com
+      - DJANGO_SUPERUSER_EMAIL=admin@dacha.maxdrobin.ru
       - DJANGO_SUPERUSER_PASSWORD=${ADMIN_PASSWORD}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
