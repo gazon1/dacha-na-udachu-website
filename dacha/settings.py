@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # Секретный ключ берем из переменной, иначе падаем с ошибкой (безопасно)
-SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-prod")
+SECRET_KEY = os.environ["SECRET_KEY"]
 
 # Debug режим: True только если переменная явно установлена в "1"
 DEBUG = os.environ.get("DEBUG", "0") == "1"
