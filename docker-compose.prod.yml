@@ -20,8 +20,6 @@ services:
       # Формат: SERVICE_URL_<ИМЯСЕРВИСА>_<ПОРТ>
       # В данном примере Coolify привяжет HTTPS домен https://dacha.maxdrobin.ru к порту 8000 вашего контейнера
       - SERVICE_URL_WEB_8000=https://dacha.maxdrobin.ru
-      - ALLOWED_HOSTS=dacha.maxdrobin.ru
-      - CSRF_TRUSTED_ORIGINS=https://dacha.maxdrobin.ru
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
       interval: 30s
