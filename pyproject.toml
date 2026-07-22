@@ -20,6 +20,7 @@ dependencies = [
     "djangocms-file>=3.0",
     "phonenumbers",
     "whitenoise>=6.11.0",
+    "djangocms_admin_style>=3.0",
 ]
 
 # Группа dev-зависимостей для uv
