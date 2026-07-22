@@ -1,0 +1,101 @@
+# Git
+.git/
+.gitattributes
+
+# Build outputs
+bin/
+obj/
+out/
+publish/
+
+# IDE
+.vscode/
+.vscode-server/
+.idea/
+.vs/
+*.suo
+*.user
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+Dockerfile*
+docker-compose*.yml
+docker-compose*.yaml
+
+# Beads (issue tracking)
+.beads/
+
+# Logs
+logs/
+*.log
+
+# Backup
+Crawler.backup
+*.backup
+
+# Test results
+TestResults/
+coverage/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
+
+# Documentation
+README.md
+docs/
+*.md
+
+# Large cache directories (can be GB each)
+.npm/
+.nuget/
+.cache/
+.claude/
+.clj-kondo/
+.omnisharp/
+.aspnet/
+.bun/
+.dolt/
+.doltcfg/
+.lein/
+.local/
+.lsp/
+.microsoft/
+.mongodb/
+.python/
+.ssh/
+.templateengine/
+.zgenom/
+.angeldoc/
+.github/
+
+# Temporary / clone directories (workspace/tmp can be 20GB+)
+tmp/
+_site/
+
+# Admin UI (not needed for worker image)
+WebCrawler.Admin/bin/
+WebCrawler.Admin/obj/
+WebCrawler.Tests/
+
+# Generated files
+**/WebCrawler.Generators/bin/
+**/WebCrawler.Generators/obj/
+
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/.git/
+**/node_modules/

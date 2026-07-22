@@ -1,0 +1,174 @@
+{
+    "python.analysis.autoImportCompletions": true,
+    "search.exclude": {
+        "**/poetry.lock": true,
+        "**/package-lock.json": true,
+        "**/.git": true,
+        "**/.DS_Store": true,
+        "**/__pycache__": true,
+        "**/.venv": true,
+        "**/*.min.js": true,
+        "**/.gradle": true,
+        "**/build": true,
+        "**/out": true,
+        "**/.idea": true,
+        "**/.vscode": true,
+        "**/.vscode-server/*": true,
+        "**/bin": true,
+        "**/obj": true,
+        "**/.cpcache": true, // Кэш зависимостей Clojure CLI
+        "**/.calva": true, // Системные логи REPL Calva
+        "**/shadow-cljs": true // Кэш сборщика фронтенда (если будет)
+    },
+    "files.exclude": {
+        // "**/poetry.lock": true,
+        "**/package-lock.json": true,
+        "**/.git": true,
+        "**/.DS_Store": true,
+        "**/__pycache__": true,
+        "**/.venv": true,
+        "**/*.min.js": true,
+        ".mypy_cache": true,
+        ".pytest_cache": true,
+        ".ruff_cache": true,
+        // "**/.git*": true,
+        ".beads": true,
+        ".templateengine": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/Thumbs.db": true,
+        "**/.classpath": true,
+        "**/.project": true,
+        "**/.settings": true,
+        "**/.factorypath": true,
+        "**/.gradle": true,
+        "**/build": true,
+        "**/bin": true,
+        // Скрываем мусор из корня (как на скриншоте)
+        ".cache": true,
+        ".config": true,
+        ".dotnet": true,
+        ".gnupg": true,
+        ".local": true,
+        ".nuget": true,
+        ".omnisharp": true,
+        ".ServiceHub": true,
+        ".ssh": true,
+        ".vscode-server": true,
+        ".zgenom": true,
+        ".zcompdump*": true,
+        ".devcontainer/.*Marker": true,
+        // ".zshrc": true,
+        // ".editorconfig": true,
+        "Crawler/obj": true,
+        "kotlin-try.sln": true,
+        "Crawler/Crawler.csproj": true,
+        ".zsh_history": true,
+        ".less*": true,
+        ".vim*": true,
+        ".wget*": true,
+        ".npm": true,
+        ".bun": true,
+        "**/.cpcache": true,
+        "**/.calva": true,
+        "**/.lein-failures": true,
+        "**/.pico-cljc": true
+    },
+    "files.associations": {
+        "**/*.html": "html",
+        "**/templates/**/*.html": "django-html",
+        "**/templates/**/*": "django-txt",
+        "**/requirements{/**,*}.{txt,in}": "pip-requirements",
+        "Justfile": "just"
+    },
+    // Главная настройка: указываем шрифт (в кавычках, так как в названии есть пробел)
+    "terminal.integrated.fontFamily": "'JetBrainsMono Nerd Font', 'JetBrains Mono', 'Fira Code', Consolas",
+    "editor.fontFamily": "'JetBrainsMono Nerd Font', 'JetBrains Mono', 'Fira Code', Consolas",
+    "editor.rulers": [
+        100
+    ],
+    "editor.wordWrap": "off",
+    "editor.renderWhitespace": "selection",
+    // Рекомендуемый размер и высота строки для этого шрифта
+    "editor.lineHeight": 1.5,
+    // (Опционально) Делаем шрифт чуть жирнее, как в Rider
+    "editor.fontWeight": "normal",
+    "editor.semanticHighlighting.enabled": true,
+    "editor.showUnused": false,
+    "editor.fontSize": 16,
+    "editor.fontLigatures": true, // ">=" to "≥" etc
+    "editor.foldingStrategy": "indentation",
+    "terminal.integrated.fontSize": 16,
+    // Делаем боковую панель справа (как в новом UI IntelliJ по умолчанию, опционально)
+    "workbench.sideBar.location": "right",
+    // Убираем мини-карту (в IntelliJ её по умолчанию нет)
+    "editor.minimap.enabled": false,
+    // Убираем "хлебные крошки" (строка пути сверху)
+    "breadcrumbs.enabled": false,
+    "workbench.tree.indent": 15,
+    "workbench.tree.renderIndentGuides": "always",
+    "workbench.colorCustomizations": {
+        "tree.indentGuidesStroke": "#05ef3c"
+    },
+    // Когда вы листаете длинный файл, название класса или метода «прилипает» к верху, и вы всегда видите, в какой функции находитесь.
+    "editor.stickyScroll.enabled": true,
+    "editor.stickyScroll.maxLineCount": 5,
+    // Отключаем встроенный чат
+    "chat.editor.enabled": false,
+    "interactiveEditor.enabled": false, // Отключает Ctrl+I меню
+    "copilot.chat.enabled": false, // Если стоит Github Copilot Chat
+    // (Опционально) Убираем "лампочку" с AI-подсказками
+    "editor.inlineSuggest.enabled": false,
+    "errorLens.enabledDiagnosticLevels": [
+        "error"
+    ],
+    // Курсор. Более плавный скролл
+    "editor.cursorBlinking": "smooth",
+    "editor.cursorSmoothCaretAnimation": "on",
+    "editor.smoothScrolling": true,
+    "workbench.list.smoothScrolling": true,
+    // Убрать подсказки/советы
+    "workbench.tips.enabled": false,
+    "workbench.startupEditor": "none",
+    "workbench.editor.decorations.badges": false,
+    "workbench.editor.decorations.colors": false,
+    "window.clickThroughInactive": false,
+    "window.newWindowDimensions": "maximized",
+    "window.commandCenter": false,
+    "workbench.statusBar.visible": false,
+    "gitlens.currentLine.enabled": false, // убирает blame-аннотацию в конце строки
+    "gitlens.codeLens.enabled": false, // убирает "X authors, Y changes" над функциями
+    // "editor.defaultFormatter": "ms-dotnettools.csharp",
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit",
+        "source.fixAll": "explicit"
+    },
+    // Formatting: CSharpier only
+    "editor.formatOnSave": true,
+    "editor.formatOnType": false, // Avoid conflicts with CSharpier
+    "terminal.integrated.commandsToSkipShell": [
+        "-workbench.action.quickOpen"
+    ],
+    // --- 5. Файловый менеджер ---
+    // File watcher warning в dev-контейнере
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/**": true,
+        "**/bin/**": true,
+        "**/obj/**": true
+    },
+    // Уведомление про forwarded ports — не выскакивать автоматически
+    "remote.autoForwardPortsSource": "hybrid",
+    "remote.otherPortsAttributes": {
+        "onAutoForward": "silent"
+    },
+    // --- 6. Терминал ---
+    // Чтобы терминал открывался в Bash (Linux/Mac) или PowerShell (Windows)
+    // "terminal.integrated.defaultProfile.linux": "bash",
+    // --- 7. Кодировка (на всякий случай) ---
+    "files.encoding": "utf8",
+    "files.autoGuessEncoding": true,
+    "chat.disableAIFeatures": false
+}

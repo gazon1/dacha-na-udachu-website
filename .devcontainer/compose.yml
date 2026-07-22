@@ -1,0 +1,52 @@
+services:
+
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  web:
+    depends_on:
+      db:
+        condition: service_healthy
+    build:
+      context: ..            # Контекст сборки - корень проекта (на уровень выше)
+      dockerfile: .devcontainer/Dockerfile
+      args:
+        - USERNAME=${DEVELOPER_USERNAME}
+        - USER_UID=${DEVELOPER_USER_UID}
+        - USER_GID=${DEVELOPER_USER_GID}
+        - GIT_EMAIL=${GIT_EMAIL}
+        - GIT_NAME=${GIT_NAME}
+    env_file:
+      - .env
+    working_dir: /workspace
+
+    # Переопределяем команду, чтобы контейнер не закрывался,
+    # и мы могли управлять запуском сервера через терминал VS Code
+    command: sleep infinity
+    ports:
+    - "8100:8000"
+    
+    # Включаем интерактивный режим
+    tty: true
+    stdin_open: true
+    
+    # Монтируем volume для кэша vscode, чтобы расширения не переустанавливались каждый раз
+    # volumes:
+      # - vscode-server:/home/vscode/.vscode-server/extensions
+    volumes:
+      - ~/.ssh:/home/${DEVELOPER_USERNAME}/.ssh:ro
+      - ..:/workspace:cached
+
+
+volumes:
+  postgres_data:

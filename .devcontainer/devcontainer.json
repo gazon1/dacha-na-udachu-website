@@ -1,45 +1,27 @@
 {
   "name": "Django CMS Dev",
   "dockerComposeFile": [
-    "../docker-compose.yml",
-    "docker-compose.dev.yml"
+    "compose.yml"
   ],
   "service": "web",
   "remoteUser": "max",
-  "workspaceFolder": "/app",
-
-  // --- FEATURES (Zsh, Git) ---
-  "features": {
-    "ghcr.io/devcontainers/features/common-utils:2": {
-      "installZsh": true,
-      "configureZshAsDefaultShell": true,
-      "installOhMyZsh": true,
-      "upgradePackages": false
-      // "username": "max"
-    },
-    "ghcr.io/devcontainers/features/git:1": {}
-  },
-
+  "workspaceFolder": "/workspace",
   // Установка зависимостей Python после создания
   // Используем system, так как uv в Dockerfile ставил пакеты глобально
-  "postCreateCommand": "uv sync --extra dev",
-
-    // Эта команда выполняется каждый раз при старте контейнера.
+  "postCreateCommand": "just init",
+  // "postCreateCommand": "uv sync --extra dev",
+  // Эта команда выполняется каждый раз при старте контейнера.
   // Гарантируем, что зависимости на месте, даже если вы их удалили.
-  "postStartCommand": "uv sync && source .venv/bin/activate",
-
+  "postStartCommand": "just activate-python-env",
   "customizations": {
     "vscode": {
       // --- РАСШИРЕНИЯ (Объединенный список) ---
       "extensions": [
-        // Python & Django Core
         "ms-python.python",
         "ms-python.vscode-pylance",
         "astral-sh.ruff",
         "ms-python.mypy-type-checker",
         "batisteo.vscode-django",
-        
-        // Utils
         "tamasfe.even-better-toml",
         "ms-azuretools.vscode-docker",
         "IronGeek.vscode-env",
@@ -49,17 +31,19 @@
         "ms-vscode.makefile-tools",
         "usernamehw.errorlens",
         "nefrob.vscode-just-syntax",
-        
-        // Database
         "yy0931.vscode-sqlite3-editor",
         "dbcode.dbcode",
-        "arniu.sql-formatter-vscode"
+        "arniu.sql-formatter-vscode",
+        "fogio.jetbrains-file-icon-theme",
+        "miguelsolorio.fluent-icons",
+        "PKief.material-icon-theme",
+        "zhuangtongfa.material-theme",
+        "gitpocalypse.angeldoc-vscode",
+        "Anthropic.claude-code"
       ],
-      
       "settings": {
         // --- PYTHON & ИНТЕРПРЕТАТОР ---
-        "python.defaultInterpreterPath": "/app/.venv/bin/python",
-        
+        "python.defaultInterpreterPath": "/workspace/.venv/bin/python",
         // --- RUFF (Линтер/Форматтер) ---
         "[python]": {
           "editor.formatOnSave": true,
@@ -70,22 +54,23 @@
           }
         },
         // Путь к ruff (системный, так как ставили глобально)
-        "ruff.path": ["/app/.venv/bin/ruff"],
-        "ruff.configuration": "/app/pyproject.toml",
+        "ruff.path": [
+          "/workspace/.venv/bin/ruff"
+        ],
+        "ruff.configuration": "/workspace/pyproject.toml",
         "ruff.trace.server": "verbose",
-
         // --- MYPY ---
-        "mypy-type-checker.args": ["--config-file=/app/pyproject.toml"],
-        "mypy-type-checker.interpreter": ["/app/.venv/bin/python"],
-
+        "mypy-type-checker.args": [
+          "--config-file=/workspace/pyproject.toml"
+        ],
+        "mypy-type-checker.interpreter": [
+          "/workspace/.venv/bin/python"
+        ],
         // --- TERMINAL (Zsh & Fonts) ---
         "terminal.integrated.defaultProfile.linux": "zsh",
         "terminal.integrated.fontFamily": "MesloLGS NF, 'Droid Sans Mono', 'monospace', monospace",
-
         // --- ПРОЧЕЕ ---
         "makefile.configureOnOpen": false,
-        "chat.agent.enabled": true,
-
       }
     }
   }

@@ -1,0 +1,85 @@
+# --- PATH Settings ---
+export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.cargo/bin:$PATH"
+
+# --- Настройки Zgenom ---
+source "$HOME/.zgenom/zgenom.zsh"
+alias zgen=zgenom
+
+# Проверяем, существует ли файл инициализации
+if ! zgen saved; then
+    echo "⚡ Инициализация плагинов zgenom..."
+
+    # EZA (Modern ls)
+    zgenom bin eza-community/eza
+
+    # FZF (Fuzzy Finder)
+    zgenom bin junegunn/fzf
+
+    # ast-grep (Smart Search)
+    zgenom bin ast-grep/ast-grep
+
+    # --- 3. ПОДСКАЗКИ И АВТОДОПОЛНЕНИЕ
+    zgenom load zsh-users/zsh-autosuggestions
+    zgenom load zsh-users/zsh-completions
+    zgenom load zsh-users/zsh-syntax-highlighting
+    zgenom load zsh-users/zsh-history-substring-search
+
+    # --- 2. ПЛАГИНЫ ZSH ---
+    zgenom oh-my-zsh
+    zgenom load zsh-users/zsh-syntax-highlighting
+    zgenom load zsh-users/zsh-autosuggestions
+
+    zgenom oh-my-zsh plugins/git
+    zgenom oh-my-zsh plugins/sudo
+    zgenom oh-my-zsh plugins/docker
+    zgenom oh-my-zsh plugins/zoxide
+    zgenom oh-my-zsh plugins/fzf
+
+    # --- 3. ТЕМА ---
+    zgenom load spaceship-prompt/spaceship-prompt spaceship
+
+    zgenom save
+fi
+
+# --- Настройки Spaceship ---
+SPACESHIP_TIME_SHOW=true
+SPACESHIP_USER_SHOW=always
+
+# --- Настройки подсказок ---
+bindkey '^ ' autosuggest-accept
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=242'
+
+# Поиск по истории стрелками вверх/вниз
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
+
+# Отключаем привязку PgUp/PgDown к истории
+bindkey -r "^[[5~" # PageUp
+bindkey -r "^[[6~" # PageDown
+
+# --- SUPER ALIASES (Eza, Bat, Ripgrep) ---
+alias ls='eza --icons --group-directories-first'
+alias ll='eza --icons -l --group-directories-first'
+alias lst='eza --icons -l --sort=modified --group-directories-first'
+alias tree='eza --icons --tree'
+
+alias cat='bat -p'
+alias grep='rg'
+alias find='fd'
+
+# --- Пользовательские алиасы ---
+alias check_wifi="ping 8.8.8.8"
+alias show_ip="curl -s https://ipinfo.io/ip"
+
+# --- Настройки истории ---
+HISTSIZE=10000
+SAVEHIST=10000
+setopt APPEND_HISTORY
+setopt SHARE_HISTORY
+
+# Инструменты
+export PATH="$HOME/.bun/bin:$PATH"
+
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+eval "$(zoxide init zsh)"

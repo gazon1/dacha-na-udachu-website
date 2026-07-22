@@ -1,4 +1,31 @@
-set shell := ["bash", "-c"]
+# ==============================================================================
+# 📋 GLOBAL SETTINGS
+# ==============================================================================
+set dotenv-load := true
+set shell := ["bash", "-euo", "pipefail", "-c"]
+set export
+set positional-arguments
+set quiet
+
+# ==============================================================================
+# 📦 MODULE IMPORTS
+# ==============================================================================
+import '.just/config.just'
+import '.just/ai.just'
+import '.just/bd.just'
+import '.just/devcontainer.just'
+import '.just/docker.just'
+import '.just/prod.just'
+import '.just/test.just'
+
+# ==============================================================================
+# 🎯 DEFAULT
+# ==============================================================================
+[doc('Show available commands')]
+default:
+    @just --list --list-heading $'🎯 Available Commands:\n' --list-prefix '  • '
+
+
 
 # --- PRODUCTION COMMANDS ---
 
