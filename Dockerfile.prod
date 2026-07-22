@@ -26,16 +26,16 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash 
 # uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
-WORKDIR /app
+WORKDIR /workspace
 
 # Зависимости
-COPY pyproject.toml uv.lock* /app/
+COPY pyproject.toml uv.lock* /workspace/
 RUN uv pip install --system --only-binary :all: -r pyproject.toml || \
     uv pip install --system -r pyproject.toml
 
 # Код
-COPY . /app/
-RUN chmod +x /app/Justfile /app/justfile 2>/dev/null || true
+COPY . /workspace/
+RUN chmod +x /workspace/Justfile /workspace/justfile 2>/dev/null || true
 
 EXPOSE 8000
 
