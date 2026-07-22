@@ -1,38 +1,42 @@
 FROM python:3.12-slim-bookworm
 
-# Установка системных зависимостей
-RUN apt-get update && apt-get install -y \
-    curl \
-    gettext \
-    libpq-dev \
-    gcc \
-    git \
-    libjpeg-dev \
-    zlib1g-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
-
-# Установка uv
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
-
-ENV PYTHONDONTWRITEBYTECODE=1 \
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy
 
+# Runtime зависимости: libjpeg-dev zlib1g-dev — для Pillow/Pillow-simd
+# libpq-dev — для psycopg (бинарный wheel)
+# gettext — для django management commands (i18n)
+# curl — для healthcheck
+# gcc — для компиляции C-расширений если нет wheel
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    gettext \
+    libpq-dev \
+    gcc \
+    libjpeg-dev \
+    zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# just — runtime launcher
+RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+
+# uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+
 WORKDIR /app
 
-# Копируем файлы зависимостей
+# Зависимости
 COPY pyproject.toml uv.lock* /app/
-RUN uv pip install --system --verbose -r pyproject.toml
+RUN uv pip install --system --only-binary :all: -r pyproject.toml || \
+    uv pip install --system -r pyproject.toml
 
-# Копируем код проекта
+# Код
 COPY . /app/
-RUN chmod +x /app/Justfile || chmod +x /app/justfile || echo "Justfile not found to chmod"
+RUN chmod +x /app/Justfile /app/justfile 2>/dev/null || true
 
-# Открываем порт
 EXPOSE 8000
 
-# Запускаем через just
 CMD ["just", "entrypoint"]

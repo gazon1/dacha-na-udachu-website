@@ -1,6 +1,8 @@
 from django.shortcuts import redirect
 from django.contrib import messages
 from django.views.decorators.http import require_POST
+from django.http import JsonResponse
+from django.db import connection
 from .forms import BookingForm
 
 @require_POST
@@ -18,3 +20,12 @@ def submit_booking(request):
     
     # Возвращаем пользователя на ту же страницу, откуда он пришел
     return redirect(request.META.get('HTTP_REFERER', '/'))
+
+
+def health_check(request):
+    """Health check endpoint with DB connection verification."""
+    try:
+        connection.ensure_connection()
+        return JsonResponse({"status": "ok"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "detail": str(e)}, status=503)

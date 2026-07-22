@@ -7,11 +7,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Копируем бинарник uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
-# 1. Системные пакеты (стабильный слой) + ДОБАВЛЕН OpenJDK 21
+# 1. Системные пакеты (стабильный слой)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     sudo libpq-dev gettext git jq netcat-openbsd ca-certificates unzip tmux htop curl vim procps \
     gcc libatomic1 fzf zoxide ripgrep bat fd-find build-essential \
-    zsh wget  \
+    zsh wget \
     pkg-config \
     clang \
     make cmake \
@@ -34,7 +34,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fuse \
     lsof \
     file \
-    iproute2
+    iproute2 \
+    libjpeg-dev zlib1g-dev
 
 # 3. Node.js и Bun (стабильный слой)
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
