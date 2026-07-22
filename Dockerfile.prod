@@ -37,6 +37,4 @@ RUN uv pip install --system --only-binary :all: -r pyproject.toml || \
 COPY . /workspace/
 RUN chmod +x /workspace/Justfile /workspace/justfile 2>/dev/null || true
 
-EXPOSE 8000
-
 CMD ["just", "entrypoint"]

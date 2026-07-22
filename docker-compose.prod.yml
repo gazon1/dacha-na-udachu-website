@@ -4,8 +4,6 @@ services:
       context: .
       dockerfile: Dockerfile.prod
     restart: always
-    ports:
-      - "8000:8000"
     environment:
       - SECRET_KEY=${SECRET_KEY}
       - DEBUG=0
@@ -19,6 +17,11 @@ services:
       - DJANGO_SUPERUSER_USERNAME=${ADMIN_USERNAME}
       - DJANGO_SUPERUSER_EMAIL=${ADMIN_EMAIL}
       - DJANGO_SUPERUSER_PASSWORD=${ADMIN_PASSWORD}
+      # Формат: SERVICE_URL_<ИМЯСЕРВИСА>_<ПОРТ>
+      # В данном примере Coolify привяжет HTTPS домен https://dacha.maxdrobin.ru к порту 8000 вашего контейнера
+      - SERVICE_URL_WEB_8000=https://dacha.maxdrobin.ru
+      - ALLOWED_HOSTS=dacha.maxdrobin.ru
+      - CSRF_TRUSTED_ORIGINS=https://dacha.maxdrobin.ru
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
       interval: 30s
