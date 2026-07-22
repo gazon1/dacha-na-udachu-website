@@ -25,6 +25,9 @@ SECRET_KEY = os.environ["SECRET_KEY"]
 # Debug режим: True только если переменная явно установлена в "1"
 DEBUG = os.environ.get("DEBUG", "0") == "1"
 
+# Чтобы Django правильно определял HTTPS протокол от Caddy/Traefik
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 # Разрешенные хосты (домен вашего VPS)
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost").split(",")
 
