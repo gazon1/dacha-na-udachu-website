@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ page.title }}</h1>
+    {% if page.intro %}
+        {% for block in page.intro %}
+            {% include_block block %}
+        {% endfor %}
+    {% endif %}
+
+    <div class="houses-grid">
+        {% for house in houses %}
+        <div class="house-card">
+            <h2><a href="{{ house.url }}">{{ house.title }}</a></h2>
+            {% if house.summary %}<p>{{ house.summary }}</p>{% endif %}
+            {% if house.capacity %}<p>Capacity: {{ house.capacity }}</p>{% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

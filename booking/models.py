@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class Booking(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата заявки")
     check_in = models.DateField(verbose_name="Дата заезда")

@@ -356,6 +356,8 @@ ClientBin/
 *.publishsettings
 node_modules/
 bower_components/
+# Vite build output
+frontend/dist/
 orleans.codegen.cs
 
 # RIA/Silverlight projects

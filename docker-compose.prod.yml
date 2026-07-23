@@ -4,7 +4,9 @@ services:
       context: .
       dockerfile: Dockerfile.prod
     restart: always
+    user: "1000:1000"
     environment:
+      - DJANGO_SETTINGS_MODULE=dacha.settings.production
       - SECRET_KEY=${SECRET_KEY}
       - DEBUG=0
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
@@ -17,12 +19,21 @@ services:
       - DJANGO_SUPERUSER_USERNAME=${ADMIN_USERNAME}
       - DJANGO_SUPERUSER_EMAIL=${ADMIN_EMAIL}
       - DJANGO_SUPERUSER_PASSWORD=${ADMIN_PASSWORD}
-      # Формат: SERVICE_URL_<ИМЯСЕРВИСА>_<ПОРТ>
-      # В данном примере Coolify привяжет HTTPS домен https://dacha.maxdrobin.ru к порту 8000 вашего контейнера
-      - SERVICE_URL_WEB_8000=https://dacha.maxdrobin.ru
+      - WAGTAILADMIN_BASE_URL=https://dacha.maxdrobin.ru
+      # Optional email (V1.1)
+      # - EMAIL_HOST=${EMAIL_HOST}
+      # - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+    volumes:
+      # Named volume: survives container restart, survives rebuild
+      # V1.1 will replace this with S3-compatible storage
+      - media_data:/workspace/media
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
 
+volumes:
+  media_data:
+    name: dacha_media_v1

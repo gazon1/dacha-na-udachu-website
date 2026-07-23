@@ -1,0 +1,37 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+      - id: detect-secrets
+        # Requires: pip install pre-commit-detect-secrets
+        # Or use: rev: v1.0.0 with `pip install detect-secrets`
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.4
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/Riverside-Healthcare/djlint
+    rev: v1.36.3
+    hooks:
+      - id: djlint
+        args: [--check, --reformat, templates/]
+
+  - repo: https://github.com/jbergstroem/mirrors-nodejs
+    rev: v22.13.1
+    hooks:
+      - id: node-version
+
+  - repo: local
+    name: "Check no new requirements in templates"
+    entry: python -c "import sys; [print(f) for f in sys.argv[1:] if 'import' in open(f).read() and f.endswith('.html')]"
+    language: system
+    files: templates/.*\.html$
+    pass_filenames: true

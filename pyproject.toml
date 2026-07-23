@@ -1,107 +1,71 @@
 [project]
-name = "my-cms-project"
+name = "dacha-wagtail"
 version = "0.1.0"
-description = "A Django CMS 5 Project running on Docker with uv"
+description = "dacha.maxdrobin.ru — Wagtail 7 CMS site"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "django>=5.0",
-    "django-cms>=5.0.0",
-    "psycopg[binary]",
-    "gunicorn>=21.2.0",
-    "django-classy-tags>=3.0",
-    "django-sekizai>=3.0",
-    "django-filer>=3.0",
-    "easy-thumbnails>=2.8",
-    "djangocms-frontend>=1.0",
-    "djangocms-text-ckeditor>=5.0",
-    "djangocms-link>=3.0",
-    "djangocms-picture>=3.0",
-    "djangocms-file>=3.0",
-    "phonenumbers",
+    # Django 5.2 LTS — compatible with Wagtail 7.x
+    "django>=5.2,<6.0",
+    # Wagtail 7.x LTS
+    "wagtail>=7.0,<8.0",
+    # Database
+    "psycopg[binary]>=3.1",
+    # Forms
+    "django-crispy-forms>=2.0",
+    "crispy-tailwind>=0.5",
+    # Phone validation (preserved from existing booking app)
+    "phonenumbers>=8.13",
+    # Static files
     "whitenoise>=6.11.0",
-    "djangocms_admin_style>=3.0",
 ]
 
-# Группа dev-зависимостей для uv
 [project.optional-dependencies]
 dev = [
-    "ruff",
-    "mypy",
-    "django-stubs",   # Типизация для Django
-    "types-psycopg2", # Типизация для драйвера БД
+    # Testing
+    "pytest>=8.3.0",
+    "pytest-django>=4.9.0",
+    "pytest-cov>=6.0.0",
+    "factory-boy>=3.3.0",
+    # Linting
+    "ruff>=0.9.0",
+    "djlint>=1.36.0",
+    # Type checking
+    "mypy>=1.14.0",
+    "django-stubs>=5.0.0",
+    "types-psycopg2>=2.9.0",
 ]
 
-# --------- BUILD SYSTEM (Ваш запрос) ---------------
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-# --------- UV CONFIG ---------------
 [tool.uv]
 package = false
 
-# --------- RUFF (Ваш запрос) ---------------
+# --- Ruff ---
 [tool.ruff]
 exclude = [
-    ".bzr",
-    ".direnv",
-    ".eggs",
-    ".env",
-    ".git",
-    ".git-rewrite",
-    ".hg",
-    ".ipynb_checkpoints",
-    ".mypy_cache",
-    ".nox",
-    ".pants.d",
-    ".pyenv",
-    ".pytest_cache",
-    ".pytype",
-    ".ruff_cache",
-    ".svn",
-    ".tox",
-    ".venv",
-    ".vscode",
-    "__pypackages__",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-    "env",
-    "node_modules",
-    "site-packages",
-    "venv",
-    "templates",
-    "**/migrations/*.py" # Рекомендуется исключать миграции Django из линтинга
+    ".bzr", ".direnv", ".eggs", ".env", ".git", ".git-rewrite",
+    ".hg", ".ipynb_checkpoints", ".mypy_cache", ".nox", ".pants.d",
+    ".pyenv", ".pytest_cache", ".pytype", ".ruff_cache", ".svn",
+    ".tox", ".venv", ".vscode", "__pypackages__", "_build", "buck-out",
+    "build", "dist", "env", "node_modules", "site-packages", "static",
+    "frontend", "templates",
 ]
-
-# Адаптировано под структуру Django (обычно код лежит в корне, а не в src)
 src = ["."]
-
 line-length = 120
-target-version = "py312" # Обновлено до 3.12 под Dockerfile
+target-version = "py312"
 respect-gitignore = true
 
 [tool.ruff.lint]
-exclude = ["*.ipynb"]
-
-# Правила линтера
-select = ["A", "B", "C", "E", "F", "I", "PD", "PL", "Q", "SIM", "W"] 
-
-# Игнорируемые правила
-ignore = ['PLR0913']
-
+select = ["A", "B", "C", "E", "F", "I", "PD", "PL", "Q", "SIM", "W"]
+ignore = ["PLR0913"]
 fixable = ["ALL"]
-unfixable = []
 
 [tool.ruff.lint.isort]
-# Адаптировано: считаем текущий проект first-party
-known-first-party = ["dacha", "my_cms_project"] 
-section-order = ["future", "standard-library", "third-party",  "first-party", "local-folder"]
-
-[tool.ruff.lint.pydocstyle]
-convention = "google"
+known-first-party = ["apps", "dacha"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -111,13 +75,10 @@ line-ending = "auto"
 docstring-code-format = true
 docstring-code-line-length = "dynamic"
 
-# --------- MYPY (Ваш запрос) ---------------
+# --- MyPy ---
 [tool.mypy]
-python_version = "3.12" # Обновлено до 3.12
-
-# Добавлен плагин для Django, чтобы mypy понимал ORM
+python_version = "3.12"
 plugins = ["mypy_django_plugin.main"]
-
 ignore_missing_imports = true
 disallow_untyped_defs = true
 check_untyped_defs = true
@@ -126,4 +87,23 @@ no_implicit_optional = true
 strict_optional = true
 
 [tool.django-stubs]
-django_settings_module = "dacha.settings"
+django_settings_module = "dacha.settings.test"
+
+# --- Pytest / Coverage ---
+[tool.coverage.run]
+source = ["apps"]
+omit = ["*/migrations/*", "*/tests/*", "*/__init__.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+fail_under = 70
+
+# --- DJLint ---
+[tool.djlint]
+profile = "django"
+indent = 2

@@ -1,4 +1,23 @@
-FROM python:3.12-slim-bookworm
+# =============================================================================
+# Multi-stage production Dockerfile for dacha.maxdrobin.ru
+# Stage 1 — node: build frontend assets
+# Stage 2 — python: install dependencies
+# Stage 3 — runtime: non-root, no node, minimal image
+# =============================================================================
+
+# ---- Stage 1: Node / Vite build ----
+FROM node:22-alpine AS node-stage
+
+WORKDIR /frontend
+
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+COPY frontend/ ./frontend/
+RUN npm run build
+
+# ---- Stage 2: Python dependencies ----
+FROM python:3.12-slim-bookworm AS python-stage
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -6,11 +25,6 @@ ENV DEBIAN_FRONTEND=noninteractive \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy
 
-# Runtime зависимости: libjpeg-dev zlib1g-dev — для Pillow/Pillow-simd
-# libpq-dev — для psycopg (бинарный wheel)
-# gettext — для django management commands (i18n)
-# curl — для healthcheck
-# gcc — для компиляции C-расширений если нет wheel
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     gettext \
@@ -20,21 +34,60 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# just — runtime launcher
-RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
-
-# uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
 WORKDIR /workspace
 
-# Зависимости
-COPY pyproject.toml uv.lock* /workspace/
-RUN uv pip install --system --only-binary :all: -r pyproject.toml || \
-    uv pip install --system -r pyproject.toml
+COPY pyproject.toml uv.lock* ./
+RUN uv sync --frozen --no-dev --no-install-project --no-editable \
+    && uv pip install --system --no-deps \
+    $(find .venv/lib -name "*.py" -path "*/site-packages/wagtail*" | sed 's|/site-packages/||' | sed 's|\.py$||' | sort -u | tr '/' '.' | sed 's|\.$||') || true
 
-# Код
+# Install all deps for production (no dev)
+RUN uv sync --frozen --no-dev
+
+# ---- Stage 3: Runtime (non-root, no node) ----
+FROM python:3.12-slim-bookworm AS runtime
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# Runtime-only packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    gettext \
+    libpq5 \
+    libjpeg62-turbo \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd --gid 1000 appgroup \
+    && useradd --uid 1000 --gid 1000 --shell /bin/bash appuser
+
+WORKDIR /workspace
+
+# Copy installed Python packages from stage 2
+COPY --from=python-stage /workspace/.venv /workspace/.venv
+ENV PATH="/workspace/.venv/bin:$PATH"
+
+# Copy built frontend assets
+COPY --from=node-stage /frontend/frontend/dist /workspace/frontend/dist
+
+# Copy project source
 COPY . /workspace/
-RUN chmod +x /workspace/Justfile /workspace/justfile 2>/dev/null || true
 
-CMD ["just", "entrypoint"]
+# Collect static files
+RUN python manage.py collectstatic --noinput
+
+# Switch to non-root
+RUN chown -R appuser:appgroup /workspace
+
+USER appuser
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8000/health/ || exit 1
+
+CMD ["gunicorn", "dacha.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--access-logfile", "-", "--error-logfile", "-"]

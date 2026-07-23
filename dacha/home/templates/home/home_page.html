@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% block body_class %}template-homepage{% endblock %}
+
+{% block content %}
+    {% if page.body %}
+        {% for block in page.body %}
+            {% include_block block %}
+        {% endfor %}
+    {% else %}
+        <div class="container">
+            <h1>{{ page.title }}</h1>
+        </div>
+    {% endif %}
+{% endblock %}
