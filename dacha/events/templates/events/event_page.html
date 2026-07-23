@@ -22,31 +22,67 @@
         </nav>
 
         <div class="max-w-3xl">
-            {# Date & Venue #}
-            <div class="flex flex-wrap items-center gap-4 mb-6">
-                <div class="inline-flex items-center gap-2 bg-surface-2 border border-stroke rounded-lg px-4 py-2">
-                    <svg class="w-5 h-5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                    </svg>
-                    <span class="text-white font-medium">
-                        {{ page.start_date|date:"j E Y" }}{% if page.end_date %} — {{ page.end_date|date:"j E Y" }}{% endif %}
-                    </span>
-                </div>
-                {% if page.venue %}
-                <div class="inline-flex items-center gap-2 bg-surface-2 border border-stroke rounded-lg px-4 py-2">
-                    <svg class="w-5 h-5 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    </svg>
-                    <span class="text-white">{{ page.venue }}</span>
-                </div>
-                {% endif %}
-            </div>
-
             {# Title #}
-            <h1 class="text-4xl md:text-5xl font-bold text-white mb-6">
+            <h1 class="text-4xl md:text-5xl font-bold text-white mb-8">
                 {{ page.title }}
             </h1>
+
+            {# Where & When - Telegram Style Info Block #}
+            <div class="bg-surface-2/50 border border-stroke rounded-2xl p-6 mb-8">
+                <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    ГДЕ И КОГДА
+                </h2>
+
+                <div class="space-y-4">
+                    {# Date #}
+                    <div class="flex items-start gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 bg-brand-500/20 rounded-xl flex items-center justify-center">
+                            <span class="text-xl">🗓</span>
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-white font-medium leading-relaxed">
+                                {% if page.end_date %}
+                                    {{ page.start_date|date:"j E" }} ({% if page.start_date|date:"N" == 'July' %}июля{% endif %}) — {{ page.end_date|date:"j E" }} ({% if page.end_date|date:"N" == 'July' %}июля{% endif %})
+                                {% else %}
+                                    {{ page.start_date|date:"j E Y" }} года
+                                {% endif %}
+                            </div>
+                            <div class="text-gray-500 text-sm mt-1">
+                                {% with start_weekday=page.start_date|date:"l" %}
+                                {% if start_weekday == 'Saturday' %}Суббота{% elif start_weekday == 'Sunday' %}Воскресенье{% elif start_weekday == 'Monday' %}Понедельник{% elif start_weekday == 'Tuesday' %}Вторник{% elif start_weekday == 'Wednesday' %}Среда{% elif start_weekday == 'Thursday' %}Четверг{% elif start_weekday == 'Friday' %}Пятница{% else %}{{ start_weekday }}{% endif %}
+                                {% endwith %}
+                            </div>
+                        </div>
+                    </div>
+
+                    {# Time #}
+                    <div class="flex items-start gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 bg-accent-500/20 rounded-xl flex items-center justify-center">
+                            <span class="text-xl">🕐</span>
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-white font-medium">С 12:00</div>
+                            <div class="text-gray-500 text-sm mt-1">Время начала</div>
+                        </div>
+                    </div>
+
+                    {# Venue #}
+                    {% if page.venue %}
+                    <div class="flex items-start gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 bg-danger/20 rounded-xl flex items-center justify-center">
+                            <span class="text-xl">📍</span>
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-white font-medium leading-relaxed">{{ page.venue|linebreaks }}</div>
+                            <div class="text-gray-500 text-sm mt-1">Место проведения</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
 
             {# Summary #}
             {% if page.summary %}
