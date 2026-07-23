@@ -6,6 +6,8 @@
 @import "tailwindcss";
 @import "@fontsource-variable/inter";
 
+@source "../../../dacha/dacha/**/*.html";
+
 @theme {
   /* Brand colours — seed from existing main.css :root tokens */
   --color-brand-50:  #f0f9ff;
