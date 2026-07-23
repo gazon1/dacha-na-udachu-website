@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "django.contrib.humanize",
     "home",
     "search",
+    "dacha",
     "wagtail.contrib.forms",
     "wagtail.contrib.sitemaps",
     "wagtail.contrib.redirects",
@@ -148,6 +149,27 @@ LANGUAGES = [
 ]
 
 WAGTAILADMIN_PERMITTED_LANGUAGES = ["ru", "en"]
+
+WAGTAILADMIN_RICH_TEXT_EDITORS = {
+    "default": {
+        "WIDGET": "wagtail.admin.rich_text.DraftailRichTextArea",
+        "OPTIONS": {
+            "features": [
+                "h2",
+                "h3",
+                "bold",
+                "italic",
+                "underline",
+                "strikethrough",
+                "link",
+                "ul",
+                "ol",
+                "hr",
+                "blockquote",
+            ],
+        },
+    },
+}
 
 
 # Static files (CSS, JavaScript, Images)
