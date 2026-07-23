@@ -9,14 +9,13 @@ class Booking(models.Model):
     phone = models.CharField(max_length=50, verbose_name="Телефон")
     telegram = models.CharField(max_length=255, verbose_name="Telegram", blank=True)
     guest_num = models.IntegerField(verbose_name="Количество гостей", default=1)
-    
-    # Дополнительные поля для статуса
+
     is_confirmed = models.BooleanField(default=False, verbose_name="Подтверждено")
 
     class Meta:
         verbose_name = "Бронирование"
         verbose_name_plural = "Бронирования"
-        ordering = ['-created_at']
+        ordering = ["-created_at"]
 
     def __str__(self):
         return f"{self.name} ({self.check_in} - {self.check_out})"
