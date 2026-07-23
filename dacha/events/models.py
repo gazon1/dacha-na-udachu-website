@@ -18,6 +18,7 @@ class EventPage(Page):
         related_name="+",
     )
     summary = models.TextField(blank=True)
+    show_countdown = models.BooleanField(default=True, verbose_name="Показывать обратный отсчёт")
 
     body = fields.StreamField([
         ("heading", blocks.CharBlock(form_classname="title")),
@@ -31,8 +32,16 @@ class EventPage(Page):
         FieldPanel("venue"),
         FieldPanel("hero_image"),
         FieldPanel("summary"),
+        FieldPanel("show_countdown"),
         FieldPanel("body"),
     ]
+
+    @property
+    def countdown_target(self):
+        """Return ISO date string for JS countdown."""
+        if self.start_date:
+            return self.start_date.isoformat()
+        return None
 
 
 class EventsIndexPage(Page):

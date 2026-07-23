@@ -1,0 +1,11 @@
+<section class="cta-block">
+    {% if value.title %}
+    <h2>{{ value.title }}</h2>
+    {% endif %}
+    {% if value.description %}
+    <p>{{ value.description }}</p>
+    {% endif %}
+    {% if value.button_text and value.button_url %}
+    <a href="{{ value.button_url }}" class="btn btn-primary">{{ value.button_text }}</a>
+    {% endif %}
+</section>

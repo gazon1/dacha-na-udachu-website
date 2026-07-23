@@ -1,15 +1,23 @@
 from django.db import models
-from wagtail import blocks
 from wagtail.models import Page
 from wagtail import fields
 from wagtail.admin.panels import FieldPanel
+from .blocks import HeroBlock, FeaturesBlock, TextBlock, ImageBlock, CTABlock, NewsletterBlock
 
 
 class HomePage(Page):
-    body = fields.StreamField([
-        ("heading", blocks.CharBlock(form_classname="title")),
-        ("paragraph", blocks.RichTextBlock()),
-    ], use_json_field=True, blank=True)
+    body = fields.StreamField(
+        [
+            ("hero", HeroBlock()),
+            ("features", FeaturesBlock()),
+            ("text", TextBlock()),
+            ("image", ImageBlock()),
+            ("cta", CTABlock()),
+            ("newsletter", NewsletterBlock()),
+        ],
+        use_json_field=True,
+        blank=True,
+    )
 
     content_panels = Page.content_panels + [
         FieldPanel("body"),

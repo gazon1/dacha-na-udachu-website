@@ -1,0 +1,15 @@
+<section class="features">
+    {% if value.title %}
+    <h2>{{ value.title }}</h2>
+    {% endif %}
+    <div class="features-grid">
+        {% for feature in value.features %}
+        <div class="feature-item">
+            {% if feature.icon %}
+            <span class="feature-icon">{{ feature.icon }}</span>
+            {% endif %}
+            <span class="feature-text">{{ feature.text }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</section>

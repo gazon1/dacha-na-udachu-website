@@ -14,6 +14,15 @@ from search import views as search_views
 import booking.urls as booking_urls
 
 
+def newsletter(request):
+    """Simple newsletter signup - stores email in session for now."""
+    email = request.POST.get("email")
+    if email:
+        request.session["newsletter_email"] = email
+        return HttpResponse("Спасибо за подписку!")
+    return HttpResponse("Укажите email", status=400)
+
+
 def health_check(request):
     """Health check endpoint with DB connection verification."""
     try:
@@ -39,6 +48,7 @@ urlpatterns = [
     path("health/", health_check, name="health_check"),
     path("robots.txt", robots_txt, name="robots_txt"),
     path("sitemap.xml", sitemap, name="sitemap"),
+    path("newsletter/", newsletter, name="newsletter"),
 ]
 
 
