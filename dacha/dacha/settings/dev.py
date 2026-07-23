@@ -1,4 +1,5 @@
 from .base import *
+from pathlib import Path
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -10,6 +11,12 @@ SECRET_KEY = "django-insecure-lbv@cc)c*yssw0^wa@n*hauzik_50&302l5*-w9q)*@cbo8k8x
 ALLOWED_HOSTS = ["*"]
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+# Add static assets from frontend build
+STATICFILES_DIRS = [
+    *STATICFILES_DIRS,
+    BASE_DIR.parent / "static",
+]
 
 
 try:
