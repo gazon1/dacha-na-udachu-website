@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% block content %}
+<div class="container">
+    <article class="news-article">
+        <header>
+            <p class="news-date">{{ page.formatted_date }}</p>
+            <h1>{{ page.title }}</h1>
+        </header>
+
+        {% if page.main_image %}
+        <img src="{{ page.main_image.url }}" alt="{{ page.main_image.title }}" class="news-image">
+        {% endif %}
+
+        {% if page.summary %}<p class="summary">{{ page.summary }}</p>{% endif %}
+
+        {% if page.body %}
+            {% for block in page.body %}
+                {% include_block block %}
+            {% endfor %}
+        {% endif %}
+    </article>
+</div>
+{% endblock %}

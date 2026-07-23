@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ page.title }}</h1>
+
+    {% if page.intro %}
+        {% for block in page.intro %}
+            {% include_block block %}
+        {% endfor %}
+    {% endif %}
+
+    <div class="news-list">
+        {% for news in news_pages %}
+        <article class="news-item">
+            <h2><a href="{{ news.url }}">{{ news.title }}</a></h2>
+            <p class="news-date">{{ news.formatted_date }}</p>
+            {% if news.summary %}
+            <p>{{ news.summary }}</p>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </div>
+
+    {% if news_pages.has_other_pages %}
+    <div class="pagination">
+        {% if news_pages.has_previous %}
+        <a href="?page={{ news_pages.previous_page_number }}">← Назад</a>
+        {% endif %}
+        <span>Страница {{ news_pages.number }} из {{ news_pages.paginator.num_pages }}</span>
+        {% if news_pages.has_next %}
+        <a href="?page={{ news_pages.next_page_number }}">Вперед →</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
