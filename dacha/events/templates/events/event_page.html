@@ -1,43 +1,122 @@
 {% extends "base.html" %}
-{% load wagtailcore_tags %}
+{% load wagtailcore_tags wagtailimages_tags %}
 
 {% block content %}
-<div class="container">
-    <h1>{{ page.title }}</h1>
-    <p class="event-meta">
-        {{ page.start_date }}{% if page.end_date %} — {{ page.end_date }}{% endif %}
-        {% if page.venue %} — {{ page.venue }}{% endif %}
-    </p>
+{# Hero Section #}
+<section class="relative bg-surface overflow-hidden">
+    {% if page.hero_image %}
+    {% image page.hero_image fill-1920x600 class="absolute inset-0 w-full h-full object-cover opacity-30" %}
+    <div class="absolute inset-0 bg-gradient-to-t from-bg via-bg/80 to-bg/40"></div>
+    {% endif %}
 
-    {% if page.show_countdown and page.countdown_target %}
-    <div class="countdown" x-data="countdown('{{ page.countdown_target }}')">
-        <div class="countdown-grid">
-            <div class="countdown-item">
-                <span class="countdown-value" x-text="days">0</span>
-                <span class="countdown-label">дней</span>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+        {# Breadcrumb #}
+        <nav class="mb-8">
+            <ol class="flex items-center gap-2 text-sm">
+                <li><a href="/" class="text-gray-400 hover:text-white transition-colors">Главная</a></li>
+                <li class="text-gray-600">/</li>
+                <li><a href="/events/" class="text-gray-400 hover:text-white transition-colors">События</a></li>
+                <li class="text-gray-600">/</li>
+                <li class="text-brand-400">{{ page.title }}</li>
+            </ol>
+        </nav>
+
+        <div class="max-w-3xl">
+            {# Date & Venue #}
+            <div class="flex flex-wrap items-center gap-4 mb-6">
+                <div class="inline-flex items-center gap-2 bg-surface-2 border border-stroke rounded-lg px-4 py-2">
+                    <svg class="w-5 h-5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <span class="text-white font-medium">
+                        {{ page.start_date|date:"j E Y" }}{% if page.end_date %} — {{ page.end_date|date:"j E Y" }}{% endif %}
+                    </span>
+                </div>
+                {% if page.venue %}
+                <div class="inline-flex items-center gap-2 bg-surface-2 border border-stroke rounded-lg px-4 py-2">
+                    <svg class="w-5 h-5 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    <span class="text-white">{{ page.venue }}</span>
+                </div>
+                {% endif %}
             </div>
-            <div class="countdown-item">
-                <span class="countdown-value" x-text="hours">0</span>
-                <span class="countdown-label">часов</span>
+
+            {# Title #}
+            <h1 class="text-4xl md:text-5xl font-bold text-white mb-6">
+                {{ page.title }}
+            </h1>
+
+            {# Summary #}
+            {% if page.summary %}
+            <p class="text-xl text-gray-300 leading-relaxed">
+                {{ page.summary }}
+            </p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+{# Countdown #}
+{% if page.show_countdown and page.countdown_target %}
+<section class="py-12 bg-surface border-y border-border" x-data="countdown('{{ page.countdown_target }}')">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-8">
+            <h2 class="text-lg font-medium text-gray-400 uppercase tracking-wider">До события осталось</h2>
+        </div>
+        <div class="flex justify-center gap-4 md:gap-8">
+            <div class="text-center">
+                <div class="w-20 h-20 md:w-24 md:h-24 bg-surface-2 border border-stroke rounded-2xl flex items-center justify-center mb-2">
+                    <span class="text-3xl md:text-4xl font-bold text-brand-400" x-text="days">0</span>
+                </div>
+                <span class="text-sm text-gray-500 uppercase tracking-wider">дней</span>
             </div>
-            <div class="countdown-item">
-                <span class="countdown-value" x-text="minutes">0</span>
-                <span class="countdown-label">минут</span>
+            <div class="text-center">
+                <div class="w-20 h-20 md:w-24 md:h-24 bg-surface-2 border border-stroke rounded-2xl flex items-center justify-center mb-2">
+                    <span class="text-3xl md:text-4xl font-bold text-brand-400" x-text="hours">0</span>
+                </div>
+                <span class="text-sm text-gray-500 uppercase tracking-wider">часов</span>
             </div>
-            <div class="countdown-item">
-                <span class="countdown-value" x-text="seconds">0</span>
-                <span class="countdown-label">секунд</span>
+            <div class="text-center">
+                <div class="w-20 h-20 md:w-24 md:h-24 bg-surface-2 border border-stroke rounded-2xl flex items-center justify-center mb-2">
+                    <span class="text-3xl md:text-4xl font-bold text-brand-400" x-text="minutes">0</span>
+                </div>
+                <span class="text-sm text-gray-500 uppercase tracking-wider">минут</span>
+            </div>
+            <div class="text-center">
+                <div class="w-20 h-20 md:w-24 md:h-24 bg-surface-2 border border-stroke rounded-2xl flex items-center justify-center mb-2">
+                    <span class="text-3xl md:text-4xl font-bold text-brand-400" x-text="seconds">0</span>
+                </div>
+                <span class="text-sm text-gray-500 uppercase tracking-wider">секунд</span>
             </div>
         </div>
     </div>
-    {% endif %}
+</section>
+{% endif %}
 
-    {% if page.summary %}<p class="summary">{{ page.summary }}</p>{% endif %}
+{# Body Content #}
+{% if page.body %}
+<section class="py-12 md:py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-3xl prose prose-invert prose-lg prose-brand">
+            {% for block in page.body %}
+                {% include_block block %}
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
 
-    {% if page.body %}
-        {% for block in page.body %}
-            {% include_block block %}
-        {% endfor %}
-    {% endif %}
-</div>
+{# Back Link #}
+<section class="py-8 border-t border-border">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <a href="/events/" class="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Все события
+        </a>
+    </div>
+</section>
 {% endblock %}
