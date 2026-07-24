@@ -139,13 +139,6 @@ class AmenityItemBlock(blocks.StructBlock):
         template = "includes/blocks/amenity_item.html"
 
 
-class AmenitiesBlock(blocks.ListBlock):
-    """List of amenity cards — rendered as responsive icon grid."""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(AmenityItemBlock(), *args, **kwargs)
-
-
 class CtaCardBlock(blocks.StructBlock):
     """Accent card — highlighted call-to-action block."""
 

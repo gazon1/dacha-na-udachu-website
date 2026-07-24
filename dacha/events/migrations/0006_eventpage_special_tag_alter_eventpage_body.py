@@ -19,6 +19,40 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='eventpage',
             name='body',
-            field=wagtail.fields.StreamField([('heading', 0), ('paragraph', 1), ('image', 2), ('info_card', 6), ('faq', 8), ('cta', 10), ('amenity_list', 11)], blank=True, block_lookup={0: ('wagtail.blocks.CharBlock', (), {'form_classname': 'title'}), 1: ('dacha.blocks.RichTextBlock', (), {}), 2: ('wagtail.images.blocks.ImageChooserBlock', (), {}), 3: ('wagtail.blocks.CharBlock', (), {'default': 'info', 'help_text': "Material Symbol name e.g. 'checkroom', 'local_cafe', 'chair'", 'max_length': 50, 'required': False}), 4: ('wagtail.blocks.CharBlock', (), {'max_length': 100}), 5: ('wagtail.blocks.RichTextBlock', (), {}), 6: ('wagtail.blocks.StructBlock', [[('icon', 3), ('title', 4), ('content', 5)]], {}), 7: ('wagtail.blocks.CharBlock', (), {'max_length': 200}), 8: ('wagtail.blocks.StructBlock', [[('question', 7), ('answer', 5)]], {}), 9: ('wagtail.blocks.BooleanBlock', (), {'default': True, 'help_text': 'Apply glow effect and gradient border', 'required': False}), 10: ('wagtail.blocks.StructBlock', [[('title', 4), ('text', 5), ('highlighted', 9)]], {}), 11: ('dacha.blocks.AmenitiesBlock', (), {})}),
+            field=wagtail.fields.StreamField(
+                [
+                    ('heading', 0),
+                    ('paragraph', 1),
+                    ('image', 2),
+                    ('info_card', 6),
+                    ('faq', 8),
+                    ('cta', 10),
+                    ('amenity_list', 11),
+                ],
+                blank=True,
+                block_lookup={
+                    0: ('wagtail.blocks.CharBlock', (), {'form_classname': 'title'}),
+                    1: ('dacha.blocks.RichTextBlock', (), {}),
+                    2: ('wagtail.images.blocks.ImageChooserBlock', (), {}),
+                    3: ('wagtail.blocks.CharBlock', (), {
+                        'default': 'info',
+                        'help_text': "Material Symbol name e.g. 'checkroom', 'local_cafe', 'chair'",
+                        'max_length': 50,
+                        'required': False,
+                    }),
+                    4: ('wagtail.blocks.CharBlock', (), {'max_length': 100}),
+                    5: ('wagtail.blocks.RichTextBlock', (), {}),
+                    6: ('wagtail.blocks.StructBlock', ([[('icon', 3), ('title', 4), ('content', 5)]],), {}),
+                    7: ('wagtail.blocks.CharBlock', (), {'max_length': 200}),
+                    8: ('wagtail.blocks.StructBlock', ([[('question', 7), ('answer', 5)]],), {}),
+                    9: ('wagtail.blocks.BooleanBlock', (), {
+                        'default': True,
+                        'help_text': 'Apply glow effect and gradient border',
+                        'required': False,
+                    }),
+                    10: ('wagtail.blocks.StructBlock', ([[('title', 4), ('text', 5), ('highlighted', 9)]],), {}),
+                    11: ('wagtail.blocks.ListBlock', (), {'child_block': ('dacha.blocks.AmenityItemBlock', (), {})}),
+                },
+            ),
         ),
     ]

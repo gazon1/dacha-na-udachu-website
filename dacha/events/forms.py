@@ -1,0 +1,137 @@
+import json
+from django import forms
+from .models import EventRSVP, EventDriver, RidePassenger, CarpoolRequest, TaxiPool, TaxiPassenger
+
+
+class RSVPForm(forms.ModelForm):
+    class Meta:
+        model = EventRSVP
+        fields = ["name", "status", "guests_count"]
+
+    name = forms.CharField(max_length=100)
+    status = forms.ChoiceField(choices=EventRSVP.STATUS_CHOICES, required=False)
+    guests_count = forms.IntegerField(min_value=0, required=False, initial=0)
+
+    def clean_name(self):
+        return self.cleaned_data["name"].strip()[:100]
+
+    def clean_status(self):
+        status = self.cleaned_data.get("status")
+        if status not in dict(EventRSVP.STATUS_CHOICES):
+            return EventRSVP.GOING
+        return status
+
+
+class DriverForm(forms.ModelForm):
+    class Meta:
+        model = EventDriver
+        fields = [
+            "name", "telegram", "phone", "car_model", "car_type",
+            "seats_total", "departure_date", "departure_time",
+            "departure_location", "return_date", "return_time",
+            "notes", "contact_preference",
+        ]
+
+    name = forms.CharField(max_length=100)
+    departure_location = forms.CharField(max_length=200)
+    departure_date = forms.DateField(required=False)
+    departure_time = forms.TimeField(required=False)
+    return_date = forms.DateField(required=False)
+    return_time = forms.TimeField(required=False)
+    seats_total = forms.IntegerField(min_value=1, max_value=20, initial=4)
+
+    def clean_name(self):
+        return self.cleaned_data["name"].strip()[:100]
+
+    def clean_telegram(self):
+        return self.cleaned_data.get("telegram", "").strip().lstrip("@")
+
+
+class PassengerForm(forms.ModelForm):
+    class Meta:
+        model = RidePassenger
+        fields = ["name", "telegram", "phone", "pickup_location", "seats", "notes"]
+
+    name = forms.CharField(max_length=100)
+    pickup_location = forms.CharField(max_length=200, required=False)
+    seats = forms.IntegerField(min_value=1, initial=1)
+
+    def clean_name(self):
+        return self.cleaned_data["name"].strip()[:100]
+
+    def clean_telegram(self):
+        return self.cleaned_data.get("telegram", "").strip().lstrip("@")
+
+
+class CarpoolRequestForm(forms.ModelForm):
+    class Meta:
+        model = CarpoolRequest
+        fields = [
+            "name", "telegram", "phone", "pickup_location",
+            "seats_needed", "can_share_gas", "flexible_time", "notes",
+        ]
+
+    name = forms.CharField(max_length=100)
+    pickup_location = forms.CharField(max_length=200)
+    seats_needed = forms.IntegerField(min_value=1, initial=1)
+    can_share_gas = forms.BooleanField(required=False)
+    flexible_time = forms.BooleanField(required=False)
+
+    def clean_name(self):
+        return self.cleaned_data["name"].strip()[:100]
+
+    def clean_telegram(self):
+        return self.cleaned_data.get("telegram", "").strip().lstrip("@")
+
+
+class TaxiPoolForm(forms.ModelForm):
+    class Meta:
+        model = TaxiPool
+        fields = [
+            "organizer", "telegram", "pickup_location",
+            "departure_date", "departure_time", "max_passengers",
+            "estimated_price", "service", "notes",
+        ]
+
+    organizer = forms.CharField(max_length=100)
+    pickup_location = forms.CharField(max_length=200)
+    departure_date = forms.DateField()
+    departure_time = forms.TimeField()
+    max_passengers = forms.IntegerField(min_value=1, max_value=20, initial=4)
+    estimated_price = forms.IntegerField(min_value=0, required=False, initial=0)
+
+    def clean_organizer(self):
+        return self.cleaned_data["organizer"].strip()[:100]
+
+    def clean_telegram(self):
+        return self.cleaned_data.get("telegram", "").strip().lstrip("@")
+
+
+class TaxiPassengerForm(forms.ModelForm):
+    class Meta:
+        model = TaxiPassenger
+        fields = ["name", "telegram", "phone", "seats", "notes"]
+
+    name = forms.CharField(max_length=100)
+    seats = forms.IntegerField(min_value=1, initial=1)
+
+    def clean_name(self):
+        return self.cleaned_data["name"].strip()[:100]
+
+    def clean_telegram(self):
+        return self.cleaned_data.get("telegram", "").strip().lstrip("@")
+
+
+# ─── HTMX error helper ───────────────────────────────────────────────────────
+
+def htmx_error(message: str, status: int = 400):
+    """
+    Return an HttpResponse with an HX-Trigger header that fires the toast system.
+    Works with Alpine.store('toast') in app.js.
+    """
+    from django.http import HttpResponse
+    response = HttpResponse(message, status=status)
+    response["HX-Trigger"] = json.dumps({
+        "showToast": {"message": message, "type": "error"}
+    })
+    return response

@@ -34,6 +34,7 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body class="flex flex-col min-h-screen bg-[#0b1326] text-[#dae2fd] antialiased selection:bg-brand-500 selection:text-white transition-colors duration-300 {% block body_class %}{% endblock %}">
+    {% csrf_token %}
 
     {# Accessibility: Skip link (Styled to appear on focus) #}
     <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-brand-500 focus:text-white focus:rounded-xl focus:m-4 shadow-2xl transition-all">
@@ -60,6 +61,39 @@
 
     {# Global Toast Notifications (Alpine.js store-driven) #}
     {% include "includes/components/_toast.html" %}
+
+    {# Alpine.js reusable components #}
+    <script>
+        // Cookie helpers
+        function getCookie(name) {
+            let match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+            return match ? match[2] : null;
+        }
+        function setCookie(name, value, days = 365) {
+            document.cookie = name + '=' + value + '; path=/; max-age=' + (days * 24 * 60 * 60);
+        }
+
+        // RSVP Widget component
+        document.addEventListener('alpine:init', function() {
+            Alpine.data('rsvpWidget', function(slug) {
+                return {
+                    voted: false,
+                    showMenu: false,
+                    init() {
+                        this.voted = getCookie('rsvp_voted_' + slug) === 'true';
+                    },
+                    vote() {
+                        this.voted = true;
+                        setCookie('rsvp_voted_' + slug, 'true');
+                    },
+                    resetVote() {
+                        this.voted = false;
+                        this.showMenu = false;
+                    }
+                };
+            });
+        });
+    </script>
 
     {% block extra_js %}{% endblock %}
 </body>

@@ -1,6 +1,14 @@
 from decimal import Decimal
 from datetime import date
 
+# Default extra prices — should eventually live on HousePage as a JSONField
+# or a separate BookingOption model with ForeignKey to HousePage.
+EXTRA_PRICES = {
+    "banya": Decimal("500"),
+    "manhal": Decimal("300"),
+    "fishing": Decimal("200"),
+}
+
 
 def calculate_nights(check_in: date, check_out: date) -> int:
     """Calculate number of nights from check-in to check-out."""
@@ -27,14 +35,9 @@ def calculate_total(price_per_night: Decimal, check_in: date, check_out: date, o
 
     # Add extras if provided
     if options:
-        extra_prices = {
-            "banya": Decimal("500"),
-            "manhal": Decimal("300"),
-            "fishing": Decimal("200"),
-        }
         for option, enabled in options.items():
-            if enabled and option in extra_prices:
-                total += extra_prices[option]
+            if enabled and option in EXTRA_PRICES:
+                total += EXTRA_PRICES[option]
 
     return total
 
@@ -45,34 +48,26 @@ def get_booking_summary(house, check_in: date, check_out: date, options: dict = 
     Returns:
         dict with nights, price_per_night, extras_total, total
     """
-    from houses.models import HousePage
-
     price = Decimal("0")
     if hasattr(house, "base_price"):
         price = house.base_price or Decimal("0")
 
     nights = calculate_nights(check_in, check_out)
+
+    # Build extras breakdown (only for the summary dict)
     extras = {}
-    extras_total = Decimal("0")
+    for option, enabled in (options or {}).items():
+        if enabled and option in EXTRA_PRICES:
+            extras[option] = EXTRA_PRICES[option]
 
-    if options:
-        extra_prices = {
-            "banya": Decimal("500"),
-            "manhal": Decimal("300"),
-            "fishing": Decimal("200"),
-        }
-        for option, enabled in options.items():
-            if enabled and option in extra_prices:
-                extras[option] = extra_prices[option]
-                extras_total += extra_prices[option]
-
-    total = (Decimal(str(price)) * nights) + extras_total
+    # Total via calculate_total (DRY)
+    total = calculate_total(price, check_in, check_out, options)
 
     return {
         "nights": nights,
         "price_per_night": price,
         "extras": extras,
-        "extras_total": extras_total,
+        "extras_total": total - (Decimal(str(price)) * nights),
         "subtotal": Decimal(str(price)) * nights,
         "total": total,
     }

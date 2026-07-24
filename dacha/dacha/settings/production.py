@@ -3,6 +3,9 @@ import os
 
 DEBUG = False
 
+# SECRET_KEY — must be set via environment in production
+SECRET_KEY = os.environ.get("SECRET_KEY")
+
 # Database from environment
 DATABASES = {
     "default": {

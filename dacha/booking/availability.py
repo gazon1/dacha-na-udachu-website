@@ -1,9 +1,10 @@
+from datetime import timedelta
 from django.db.models import Q
 from datetime import date
 
 
 def get_booked_dates(house_id: int):
-    """Return list of booked date ranges for a house."""
+    """Return list of booked date ranges for a house, as [{start, end}] pairs."""
     from .models import Booking
 
     bookings = Booking.objects.filter(
@@ -11,14 +12,11 @@ def get_booked_dates(house_id: int):
         is_confirmed=True,
     ).values_list("check_in", "check_out")
 
-    dates = []
+    ranges = []
     for check_in, check_out in bookings:
         if check_in and check_out:
-            current = check_in
-            while current < check_out:
-                dates.append(current.isoformat())
-                current += __import__("datetime").timedelta(days=1)
-    return dates
+            ranges.append({"start": check_in.isoformat(), "end": check_out.isoformat()})
+    return ranges
 
 
 def is_available(house_id: int, check_in: date, check_out: date) -> bool:
