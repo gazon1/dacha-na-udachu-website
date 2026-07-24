@@ -1,7 +1,8 @@
 from django import forms
-from .models import Booking
-import phonenumbers
 from django.core.exceptions import ValidationError
+
+from core.fields import PhoneNumberField
+from .models import Booking
 
 
 class BookingForm(forms.ModelForm):
@@ -21,16 +22,8 @@ class BookingForm(forms.ModelForm):
         choices=[(i, str(i)) for i in range(1, 9)],
         label="Гостей",
     )
-
-    def clean_phone(self):
-        phone = self.cleaned_data["phone"]
-        try:
-            p = phonenumbers.parse(phone, "RU")
-            if not phonenumbers.is_valid_number(p):
-                raise ValidationError("Некорректный номер телефона")
-            return phonenumbers.format_number(p, phonenumbers.PhoneNumberFormat.E164)
-        except phonenumbers.NumberParseException:
-            raise ValidationError("Некорректный формат номера")
+    phone = PhoneNumberField()
+    telegram = forms.CharField(max_length=100, required=False, label="Telegram")
 
     def clean(self):
         cleaned_data = super().clean()

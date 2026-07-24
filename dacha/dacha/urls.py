@@ -5,6 +5,8 @@ from django.urls import include, path
 from django.contrib import admin
 from django.http import JsonResponse, HttpResponse
 from django.db import connection
+from django.views.decorators.http import require_POST
+from django_ratelimit.decorators import ratelimit
 
 from wagtail.contrib.sitemaps.views import sitemap
 
@@ -17,26 +19,38 @@ import booking.urls as booking_urls
 import events.urls as events_urls
 
 
+def _build_htmx_trigger(trigger: str, data: dict) -> dict:
+    """Build HX-Trigger header dict for HTMX toast system."""
+    return {trigger: data}
+
+
+def _htmx_response(message: str, trigger_type: str = "success", status: int = 200):
+    """Build HTMX-aware response with toast trigger."""
+    response = HttpResponse(message, status=status)
+    trigger_data = {
+        "showToast": {
+            "message": message,
+            "type": trigger_type,
+        }
+    }
+    response["HX-Trigger"] = json.dumps(trigger_data)
+    return response
+
+
 def _htmx_error(message: str, status: int = 400):
     """HTMX error response with toast trigger."""
-    response = HttpResponse(message, status=status)
-    response["HX-Trigger"] = json.dumps({
-        "showToast": {"message": message, "type": "error"}
-    })
-    return response
+    return _htmx_response(message, trigger_type="error", status=status)
 
 
 def _htmx_success(message: str):
     """HTMX success response with toast trigger."""
-    response = HttpResponse(message)
-    response["HX-Trigger"] = json.dumps({
-        "showToast": {"message": message, "type": "success"}
-    })
-    return response
+    return _htmx_response(message, trigger_type="success", status=200)
 
 
+@require_POST
+@ratelimit(key='post:email', rate='10/h', method='POST', block=True)
 def newsletter(request):
-    """Newsletter signup — stores email in session, returns HTMX-aware response."""
+    """Newsletter signup — rate limited, stores email in session."""
     email = request.POST.get("email", "").strip()
     if not email:
         return _htmx_error("Укажите email")

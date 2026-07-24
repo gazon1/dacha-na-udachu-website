@@ -1,6 +1,8 @@
 from decimal import Decimal
 from datetime import date
 
+from django.db import IntegrityError
+
 # Module-level fallback for backwards compatibility (tests, etc.)
 # In production, prices come from SiteSettings.extra_prices via the caller.
 DEFAULT_EXTRA_PRICES = {
@@ -8,6 +10,11 @@ DEFAULT_EXTRA_PRICES = {
     "manhal": Decimal("300"),
     "fishing": Decimal("200"),
 }
+
+
+class BookingServiceError(Exception):
+    """Raised when booking creation fails due to business logic."""
+    pass
 
 
 def calculate_nights(check_in: date, check_out: date) -> int:
@@ -94,3 +101,76 @@ def get_booking_summary(
         "subtotal": Decimal(str(price)) * nights,
         "total": total,
     }
+
+
+def get_extra_prices_from_site():
+    """
+    Fetch extra prices from SiteSettings.
+
+    Returns:
+        dict with extra prices, or DEFAULT_EXTRA_PRICES if unavailable.
+    """
+    try:
+        from core.models import SiteSettings
+        return SiteSettings.objects.get().get_extra_prices()
+    except Exception:
+        return DEFAULT_EXTRA_PRICES
+
+
+# Extra option keys recognized by the booking form
+EXTRA_OPTION_KEYS = ("banya", "manhal", "fishing")
+
+
+def create_booking(
+    form,
+    extra_options_post: dict | None = None,
+) -> "Booking":
+    """
+    Service-layer function to create a booking from a validated form.
+
+    Handles all business logic: price calculation, option parsing,
+    and database persistence. No HTTP concerns here.
+
+    Args:
+        form: Validated BookingForm instance.
+        extra_options_post: Raw POST dict with extra option flags.
+            Keys are option names, values should be "on" for enabled.
+
+    Returns:
+        Created Booking instance.
+
+    Raises:
+        BookingServiceError: If prices cannot be determined.
+    """
+    booking = form.save(commit=False)
+
+    house = booking.house
+    base_price = getattr(house, "base_price", None) or Decimal("0")
+
+    # Parse extra options from POST
+    extra_options = {}
+    if extra_options_post:
+        for key in EXTRA_OPTION_KEYS:
+            extra_options[key] = extra_options_post.get(key) == "on"
+
+    extra_prices = get_extra_prices_from_site()
+
+    total = calculate_total(
+        base_price,
+        booking.check_in,
+        booking.check_out,
+        options=extra_options if any(extra_options.values()) else None,
+        extra_prices=extra_prices,
+    )
+
+    booking.base_price = base_price
+    booking.extras_price = total - (base_price * max(1, (booking.check_out - booking.check_in).days))
+    booking.total_price = total
+    booking.options = extra_options
+
+    try:
+        booking.save()
+    except IntegrityError as e:
+        raise BookingServiceError("Dates already booked") from e
+
+    return booking

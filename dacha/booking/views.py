@@ -1,59 +1,26 @@
-from decimal import Decimal
-
 from django.shortcuts import redirect
 from django.contrib import messages
 from django.views.decorators.http import require_POST
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.db import IntegrityError
-from datetime import date
+from django_ratelimit.decorators import ratelimit
 
 from .forms import BookingForm
 from .availability import is_available, get_booked_dates
-from .services import calculate_total
+from .services import create_booking, BookingServiceError
 
 
 @require_POST
+@ratelimit(key='post:phone', rate='5/h', method='POST', block=True)
+@ratelimit(key='post:house', rate='10/h', method='POST', block=True)
 def submit_booking(request):
+    """Submit a booking request — rate limited to prevent abuse."""
     form = BookingForm(request.POST)
     if form.is_valid():
         try:
-            # Snapshot prices at booking time — do NOT recompute later
-            booking = form.save(commit=False)
-
-            house = booking.house
-            base_price = getattr(house, "base_price", None) or Decimal("0")
-
-            # Selected extras from POST (e.g. banya, manhal, fishing checkboxes)
-            extra_options = {}
-            for key in ["banya", "manhal", "fishing"]:
-                extra_options[key] = request.POST.get(key) == "on"
-
-            # Get extra prices from SiteSettings
-            extra_prices = None
-            try:
-                from core.models import SiteSettings
-                extra_prices = SiteSettings.objects.get().get_extra_prices()
-            except Exception:
-                pass  # fallback to DEFAULT_EXTRA_PRICES in services
-
-            total = calculate_total(
-                base_price,
-                booking.check_in,
-                booking.check_out,
-                options=extra_options if any(extra_options.values()) else None,
-                extra_prices=extra_prices,
-            )
-
-            booking.base_price = base_price
-            booking.extras_price = total - (base_price * max(1, (booking.check_out - booking.check_in).days))
-            booking.total_price = total
-            booking.options = extra_options
-            booking.save()
-
+            create_booking(form, extra_options_post=request.POST)
             messages.success(request, "Ваша заявка успешно отправлена!")
-        except IntegrityError:
-            # Overlapping confirmed booking for same house — DB constraint violation
+        except BookingServiceError:
             messages.error(request, "Эти даты уже заняты. Попробуйте другие.")
     else:
         for field, errors in form.errors.items():
@@ -83,6 +50,7 @@ def availability(request):
 
     if check_in_str and check_out_str:
         try:
+            from datetime import date
             check_in = date.fromisoformat(check_in_str)
             check_out = date.fromisoformat(check_out_str)
             if house_id:

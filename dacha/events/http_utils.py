@@ -2,28 +2,79 @@
 HTMX-aware HTTP response helpers.
 Kept separate from views and models to preserve MVT separation —
 forms and domain models must not know about HttpResponse.
+
+Uses django-htmx middleware (django_htmx.middleware.HtmxMiddleware)
+which is already configured in settings.BASE.MIDDLEWARE.
 """
 import json
 
 from django.http import HttpResponse
 
 
+def htmx_trigger(trigger_name: str, data: dict) -> str:
+    """
+    Build a JSON string for the HX-Trigger header.
+
+    Works with Alpine.store('toast') in app.js.
+    """
+    return json.dumps({trigger_name: data})
+
+
+def htmx_toast(message: str, toast_type: str = "success") -> dict:
+    """
+    Build toast trigger data for the frontend toast system.
+
+    Frontend (Alpine.js) listens for 'showToast' and renders
+    a toast notification of the given type.
+    """
+    return {"message": message, "type": toast_type}
+
+
 def htmx_error(message: str, status: int = 400):
     """
     Return an HttpResponse with an HX-Trigger header that fires the toast system.
-    Works with Alpine.store('toast') in app.js.
+
+    Usage in views:
+        return htmx_error("Something went wrong")
+
+    This is the primary response helper for HTMX errors.
+    For complex cases, use messages framework + htmx_error_from_messages().
     """
     response = HttpResponse(message, status=status)
-    response["HX-Trigger"] = json.dumps({
-        "showToast": {"message": message, "type": "error"}
-    })
+    response["HX-Trigger"] = htmx_trigger("showToast", htmx_toast(message, "error"))
     return response
 
 
 def htmx_success(message: str):
-    """HTMX success response with toast trigger."""
+    """
+    HTMX success response with toast trigger.
+
+    Usage in views:
+        return htmx_success("Action completed")
+    """
     response = HttpResponse(message)
-    response["HX-Trigger"] = json.dumps({
-        "showToast": {"message": message, "type": "success"}
-    })
+    response["HX-Trigger"] = htmx_trigger("showToast", htmx_toast(message, "success"))
     return response
+
+
+def htmx_error_from_messages(request, message: str, status: int = 400):
+    """
+    Add error message via Django messages framework and return HTMX response.
+
+    Requires django.contrib.messages middleware and django-htmx middleware.
+    The frontend can then read messages via HTMX request headers or a dedicated endpoint.
+    """
+    from django.contrib import messages
+    messages.error(request, message)
+    return htmx_error(message, status)
+
+
+def htmx_success_from_messages(request, message: str):
+    """
+    Add success message via Django messages framework and return HTMX response.
+
+    Requires django.contrib.messages middleware and django-htmx middleware.
+    """
+    from django.contrib import messages
+    messages.success(request, message)
+    return htmx_success(message)

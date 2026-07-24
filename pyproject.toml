@@ -24,6 +24,8 @@ dependencies = [
     "django-vite>=3.0",
     # HTMX helpers
     "django-htmx>=1.0",
+    # Rate limiting for spam protection
+    "django-ratelimit>=4.1",
     # New dependencies
     "django-filter>=25.1",
     "django-tables2>=2.7",

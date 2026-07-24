@@ -1,8 +1,6 @@
-import re
-
 from django import forms
-from django.core.exceptions import ValidationError
 
+from core.fields import PhoneNumberField, TelegramUsernameField
 from .models import EventRSVP, EventDriver, RidePassenger, CarpoolRequest, TaxiPool, TaxiPassenger
 
 
@@ -36,6 +34,8 @@ class DriverForm(forms.ModelForm):
         ]
 
     name = forms.CharField(max_length=100)
+    phone = PhoneNumberField()
+    telegram = TelegramUsernameField()
     departure_location = forms.CharField(max_length=200)
     departure_date = forms.DateField(required=False)
     departure_time = forms.TimeField(required=False)
@@ -46,12 +46,6 @@ class DriverForm(forms.ModelForm):
     def clean_name(self):
         return self.cleaned_data["name"].strip()[:100]
 
-    def clean_telegram(self):
-        username = self.cleaned_data.get("telegram", "").strip().lstrip("@")
-        if username and not re.match(r'^[a-zA-Z0-9_]{5,32}$', username):
-            raise ValidationError("Telegram-username должен быть от 5 до 32 символов: латиница, цифры, _")
-        return username
-
 
 class PassengerForm(forms.ModelForm):
     class Meta:
@@ -59,17 +53,13 @@ class PassengerForm(forms.ModelForm):
         fields = ["name", "telegram", "phone", "pickup_location", "seats", "notes"]
 
     name = forms.CharField(max_length=100)
+    phone = PhoneNumberField()
+    telegram = TelegramUsernameField()
     pickup_location = forms.CharField(max_length=200, required=False)
     seats = forms.IntegerField(min_value=1, initial=1)
 
     def clean_name(self):
         return self.cleaned_data["name"].strip()[:100]
-
-    def clean_telegram(self):
-        username = self.cleaned_data.get("telegram", "").strip().lstrip("@")
-        if username and not re.match(r'^[a-zA-Z0-9_]{5,32}$', username):
-            raise ValidationError("Telegram-username должен быть от 5 до 32 символов: латиница, цифры, _")
-        return username
 
 
 class CarpoolRequestForm(forms.ModelForm):
@@ -81,6 +71,8 @@ class CarpoolRequestForm(forms.ModelForm):
         ]
 
     name = forms.CharField(max_length=100)
+    phone = PhoneNumberField()
+    telegram = TelegramUsernameField()
     pickup_location = forms.CharField(max_length=200)
     seats_needed = forms.IntegerField(min_value=1, initial=1)
     can_share_gas = forms.BooleanField(required=False)
@@ -88,12 +80,6 @@ class CarpoolRequestForm(forms.ModelForm):
 
     def clean_name(self):
         return self.cleaned_data["name"].strip()[:100]
-
-    def clean_telegram(self):
-        username = self.cleaned_data.get("telegram", "").strip().lstrip("@")
-        if username and not re.match(r'^[a-zA-Z0-9_]{5,32}$', username):
-            raise ValidationError("Telegram-username должен быть от 5 до 32 символов: латиница, цифры, _")
-        return username
 
 
 class TaxiPoolForm(forms.ModelForm):
@@ -106,6 +92,7 @@ class TaxiPoolForm(forms.ModelForm):
         ]
 
     organizer = forms.CharField(max_length=100)
+    telegram = TelegramUsernameField()
     pickup_location = forms.CharField(max_length=200)
     departure_date = forms.DateField()
     departure_time = forms.TimeField()
@@ -115,12 +102,6 @@ class TaxiPoolForm(forms.ModelForm):
     def clean_organizer(self):
         return self.cleaned_data["organizer"].strip()[:100]
 
-    def clean_telegram(self):
-        username = self.cleaned_data.get("telegram", "").strip().lstrip("@")
-        if username and not re.match(r'^[a-zA-Z0-9_]{5,32}$', username):
-            raise ValidationError("Telegram-username должен быть от 5 до 32 символов: латиница, цифры, _")
-        return username
-
 
 class TaxiPassengerForm(forms.ModelForm):
     class Meta:
@@ -128,13 +109,9 @@ class TaxiPassengerForm(forms.ModelForm):
         fields = ["name", "telegram", "phone", "seats", "notes"]
 
     name = forms.CharField(max_length=100)
+    phone = PhoneNumberField()
+    telegram = TelegramUsernameField()
     seats = forms.IntegerField(min_value=1, initial=1)
 
     def clean_name(self):
         return self.cleaned_data["name"].strip()[:100]
-
-    def clean_telegram(self):
-        username = self.cleaned_data.get("telegram", "").strip().lstrip("@")
-        if username and not re.match(r'^[a-zA-Z0-9_]{5,32}$', username):
-            raise ValidationError("Telegram-username должен быть от 5 до 32 символов: латиница, цифры, _")
-        return username

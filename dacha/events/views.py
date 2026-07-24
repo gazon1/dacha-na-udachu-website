@@ -3,6 +3,7 @@ from django.http import HttpResponse
 from django.views.decorators.http import require_POST
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
+from django.contrib import messages
 
 from events.models import (
     EventDriver, RidePassenger,
@@ -19,6 +20,12 @@ def event_join_ride(request, driver_id):
     """Join a driver's ride."""
     seats = int(request.POST.get("seats", 1) or 1)
 
+    # Validate form BEFORE acquiring lock — avoid holding DB connection
+    # while parsing/validating input
+    form = PassengerForm(request.POST)
+    if not form.is_valid():
+        return htmx_error("Укажите имя")
+
     with transaction.atomic():
         driver = get_object_or_404(EventDriver.objects.select_for_update(), id=driver_id)
 
@@ -27,10 +34,6 @@ def event_join_ride(request, driver_id):
 
         if driver.seats_available < seats:
             return htmx_error("Недостаточно мест")
-
-        form = PassengerForm(request.POST)
-        if not form.is_valid():
-            return htmx_error("Укажите имя")
 
         passenger = form.save(commit=False)
         passenger.driver = driver
@@ -59,6 +62,11 @@ def event_join_taxi(request, pool_id):
     """Join a taxi pool."""
     seats = int(request.POST.get("seats", 1) or 1)
 
+    # Validate form BEFORE acquiring lock
+    form = TaxiPassengerForm(request.POST)
+    if not form.is_valid():
+        return htmx_error("Укажите имя")
+
     with transaction.atomic():
         pool = get_object_or_404(TaxiPool.objects.select_for_update(), id=pool_id)
 
@@ -67,10 +75,6 @@ def event_join_taxi(request, pool_id):
 
         if pool.spots_left < seats:
             return htmx_error("Недостаточно мест")
-
-        form = TaxiPassengerForm(request.POST)
-        if not form.is_valid():
-            return htmx_error("Укажите имя")
 
         passenger = form.save(commit=False)
         passenger.taxi = pool
