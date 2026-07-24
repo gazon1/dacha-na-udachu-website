@@ -25,6 +25,10 @@ class BookingForm(forms.ModelForm):
     phone = PhoneNumberField()
     telegram = forms.CharField(max_length=100, required=False, label="Telegram")
 
+    def clean_guest_num(self):
+        """Cast guest_num from string (ChoiceField) to int for the IntegerField."""
+        return int(self.cleaned_data.get("guest_num", 1))
+
     def clean(self):
         cleaned_data = super().clean()
         check_in = cleaned_data.get("check_in")

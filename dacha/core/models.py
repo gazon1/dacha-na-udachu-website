@@ -52,3 +52,24 @@ class SiteSettings(BaseSiteSetting):
     class Meta:
         verbose_name = "Site Settings"
         verbose_name_plural = "Site Settings"
+
+
+class NewsletterSignup(models.Model):
+    """Newsletter subscription — stores GDPR-consented email signups."""
+    email = models.EmailField("Email", unique=True)
+    subscribed_at = models.DateTimeField("Дата подписки", auto_now_add=True)
+    is_active = models.BooleanField("Активна", default=True)
+    ip_address = models.GenericIPAddressField("IP", null=True, blank=True)
+
+    panels = [
+        FieldPanel("email"),
+        FieldPanel("is_active"),
+    ]
+
+    class Meta:
+        verbose_name = "Подписка на рассылку"
+        verbose_name_plural = "Подписки на рассылку"
+        ordering = ["-subscribed_at"]
+
+    def __str__(self):
+        return self.email

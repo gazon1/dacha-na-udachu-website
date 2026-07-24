@@ -1,10 +1,11 @@
 from .base import *
+from django.core.management.utils import get_random_secret_key
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-lbv@cc)c*yssw0^wa@n*hauzik_50&302l5*-w9q)*@cbo8k8x"
+SECRET_KEY = get_random_secret_key()
 
 # SECURITY WARNING: define the correct hosts in production!
 ALLOWED_HOSTS = ["*"]

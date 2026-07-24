@@ -17,6 +17,16 @@ def submit_booking(request):
     """Submit a booking request — rate limited to prevent abuse."""
     form = BookingForm(request.POST)
     if form.is_valid():
+        house = form.cleaned_data.get("house")
+        check_in = form.cleaned_data.get("check_in")
+        check_out = form.cleaned_data.get("check_out")
+
+        # Check availability before attempting to create the booking
+        if house and check_in and check_out:
+            if not is_available(house.id, check_in, check_out):
+                messages.error(request, "Эти даты уже заняты. Попробуйте другие.")
+                return _redirect_back(request)
+
         try:
             create_booking(form, extra_options_post=request.POST)
             messages.success(request, "Ваша заявка успешно отправлена!")
@@ -32,9 +42,14 @@ def submit_booking(request):
 def _redirect_back(request):
     """Safe redirect — validates HTTP_REFERER against allowed hosts."""
     referer = request.META.get("HTTP_REFERER", "/")
-    if url_has_allowed_host_and_scheme(referer, allowed_hosts={request.get_host()}):
-        return redirect(referer)
-    return redirect("/")
+    if not url_has_allowed_host_and_scheme(referer, allowed_hosts={request.get_host()}):
+        referer = "/"
+
+    if request.htmx:
+        response = HttpResponse()
+        response["HX-Redirect"] = referer
+        return response
+    return redirect(referer)
 
 
 def availability(request):

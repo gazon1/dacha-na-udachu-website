@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "taggit",
     "django_filters",
     "django_tables2",
+    "crispy_forms",
     "widget_tweaks",
     "booking",
     "houses",
@@ -70,7 +71,6 @@ AUTH_USER_MODEL = "core.User"
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -146,8 +146,8 @@ USE_I18N = True
 
 USE_TZ = True
 
-# Wagtail i18n
-WAGTAIL_I18N_ENABLED = True
+# Wagtail i18n — disabled (no translations used yet)
+WAGTAIL_I18N_ENABLED = False
 
 LANGUAGES = [
     ("ru", "Русский"),

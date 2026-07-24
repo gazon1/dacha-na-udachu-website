@@ -25,11 +25,6 @@
     {% for block in page.faq_items %}
         {% include_block block %}
     {% endfor %}
-    {% elif page.body %}
-    {# Fallback: inline FAQ items in body #}
-    {% for block in page.body %}
-        {% include_block block %}
-    {% endfor %}
     {% else %}
     {% include "includes/components/_empty_state.html" with icon="help" title="Вопросов пока нет" subtitle="Скоро здесь появятся ответы на частые вопросы" %}
     {% endif %}

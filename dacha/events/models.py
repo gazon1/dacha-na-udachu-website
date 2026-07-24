@@ -1,6 +1,7 @@
 import datetime
 
 from django.db import models
+from django.db.models import F, Count, Q
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
@@ -16,7 +17,7 @@ from dacha.blocks import (
     InfoCardBlock, FaqBlock, CtaCardBlock, AmenityItemBlock,
     RichTextBlock as DachaRichTextBlock,
 )
-from events.http_utils import htmx_error
+from core.http_utils import htmx_error
 
 
 class EventRSVP(models.Model):
@@ -315,6 +316,15 @@ class EventPage(RoutablePageMixin, Page):
         return sum(rsvp.total_attendees for rsvp in going)
 
     @property
+    def total_attending_db(self):
+        """Annotated total — uses pre-fetched _going_count/_maybe_count if available."""
+        going = getattr(self, "_going_count", None)
+        maybe = getattr(self, "_maybe_count", None)
+        if going is not None and maybe is not None:
+            return going + maybe
+        return self.total_attending
+
+    @property
     def going_count(self):
         return self.rsvps.filter(status="going").count()
 
@@ -362,7 +372,7 @@ class EventPage(RoutablePageMixin, Page):
     @require_POST
     def event_add_driver(self, request):
         """Add a new driver offer."""
-        from events.forms import DriverForm
+        from events.forms import DriverForm, CarpoolRequestForm, TaxiPoolForm
         form = DriverForm(request.POST)
         if not form.is_valid():
             return htmx_error("Заполните обязательные поля")
@@ -374,13 +384,16 @@ class EventPage(RoutablePageMixin, Page):
         return HttpResponse(render_to_string("events/components/_drivers.html", {
             "page": self,
             "success": f"Машина добавлена! {self.url}#driver-{driver.id}",
+            "driver_form": DriverForm(),
+            "carpool_request_form": CarpoolRequestForm(),
+            "taxi_pool_form": TaxiPoolForm(),
         }, request=request))
 
     @route("carpool/add-request/")
     @require_POST
     def event_add_carpool_request(self, request):
         """Add a ride request (looking for a ride)."""
-        from events.forms import CarpoolRequestForm
+        from events.forms import DriverForm, CarpoolRequestForm, TaxiPoolForm
         form = CarpoolRequestForm(request.POST)
         if not form.is_valid():
             return htmx_error("Заполните обязательные поля")
@@ -391,13 +404,16 @@ class EventPage(RoutablePageMixin, Page):
 
         return HttpResponse(render_to_string("events/components/_drivers.html", {
             "page": self,
+            "driver_form": DriverForm(),
+            "carpool_request_form": CarpoolRequestForm(),
+            "taxi_pool_form": TaxiPoolForm(),
         }, request=request))
 
     @route("carpool/add-taxi/")
     @require_POST
     def event_add_taxi_pool(self, request):
         """Create a shared taxi pool."""
-        from events.forms import TaxiPoolForm
+        from events.forms import DriverForm, CarpoolRequestForm, TaxiPoolForm
         form = TaxiPoolForm(request.POST)
         if not form.is_valid():
             return htmx_error("Заполните обязательные поля")
@@ -408,6 +424,9 @@ class EventPage(RoutablePageMixin, Page):
 
         return HttpResponse(render_to_string("events/components/_drivers.html", {
             "page": self,
+            "driver_form": DriverForm(),
+            "carpool_request_form": CarpoolRequestForm(),
+            "taxi_pool_form": TaxiPoolForm(),
         }, request=request))
 
     @route("ical/")
@@ -459,7 +478,10 @@ class EventsIndexPage(Page):
         now = timezone.now().date()
         upcoming = EventPage.objects.filter(
             start_date__gte=now
-        ).live().public().order_by("start_date")
+        ).live().public().order_by("start_date").annotate(
+            _going_count=Count("rsvps", filter=Q(rsvps__status="going")),
+            _maybe_count=Count("rsvps", filter=Q(rsvps__status="maybe")),
+        )
         context["upcoming_events"] = upcoming
         context["featured_event"] = upcoming.first()
         context["grid_events"] = list(upcoming[1:])
@@ -473,10 +495,8 @@ class EventsIndexPage(Page):
         context["past_filter"] = past_filter
         context["past_table"] = past_table
 
-        # Sum all attendees across upcoming events
-        total = 0
-        for e in upcoming:
-            total += e.total_attending
+        # Sum all attendees across upcoming events (uses annotated _going_count/_maybe_count)
+        total = sum(e.total_attending_db for e in upcoming)
         context["total_participants"] = total
 
         return context

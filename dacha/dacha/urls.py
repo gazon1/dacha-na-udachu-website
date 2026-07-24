@@ -1,5 +1,3 @@
-import json
-
 from django.conf import settings
 from django.urls import include, path
 from django.contrib import admin
@@ -17,44 +15,26 @@ from wagtail.documents import urls as wagtaildocs_urls
 from search import views as search_views
 import booking.urls as booking_urls
 import events.urls as events_urls
-
-
-def _build_htmx_trigger(trigger: str, data: dict) -> dict:
-    """Build HX-Trigger header dict for HTMX toast system."""
-    return {trigger: data}
-
-
-def _htmx_response(message: str, trigger_type: str = "success", status: int = 200):
-    """Build HTMX-aware response with toast trigger."""
-    response = HttpResponse(message, status=status)
-    trigger_data = {
-        "showToast": {
-            "message": message,
-            "type": trigger_type,
-        }
-    }
-    response["HX-Trigger"] = json.dumps(trigger_data)
-    return response
-
-
-def _htmx_error(message: str, status: int = 400):
-    """HTMX error response with toast trigger."""
-    return _htmx_response(message, trigger_type="error", status=status)
-
-
-def _htmx_success(message: str):
-    """HTMX success response with toast trigger."""
-    return _htmx_response(message, trigger_type="success", status=200)
+from core.http_utils import htmx_error as _htmx_error, htmx_success as _htmx_success
 
 
 @require_POST
 @ratelimit(key='post:email', rate='10/h', method='POST', block=True)
 def newsletter(request):
-    """Newsletter signup — rate limited, stores email in session."""
+    """Newsletter signup — GDPR-compliant, stores consented email in DB."""
     email = request.POST.get("email", "").strip()
     if not email:
         return _htmx_error("Укажите email")
-    request.session["newsletter_email"] = email
+
+    from core.models import NewsletterSignup
+    signup, created = NewsletterSignup.objects.get_or_create(
+        email=email,
+        defaults={"ip_address": request.META.get("REMOTE_ADDR")},
+    )
+    if not created:
+        signup.is_active = True
+        signup.save(update_fields=["is_active"])
+
     return _htmx_success("Подписка оформлена!")
 
 

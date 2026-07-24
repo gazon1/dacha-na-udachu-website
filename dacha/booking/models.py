@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.postgres.constraints import ExclusionConstraint
 from django.contrib.postgres.fields import DateRangeField
 from django.db.models import Q
+from psycopg2.extras import DateRange
 from django.core.validators import MinValueValidator
 from decimal import Decimal
 
@@ -67,7 +68,7 @@ class Booking(models.Model):
 
     def save(self, *args, **kwargs):
         if self.check_in and self.check_out:
-            self.date_range = (self.check_in, self.check_out)
+            self.date_range = DateRange(self.check_in, self.check_out, bounds="[)")
         super().save(*args, **kwargs)
 
     def __str__(self):
