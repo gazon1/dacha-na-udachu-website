@@ -1,0 +1,38 @@
+{% load wagtailcore_tags %}
+{# When & Where — compact sidebar info block #}
+{% if page.start_date or page.venue %}
+<div class="glass-card p-6 rounded-3xl space-y-4">
+    <h3 class="text-lg font-semibold text-white">Когда и где</h3>
+    <div class="space-y-3">
+        {% if page.start_date %}
+        <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-primary">calendar_month</span>
+            <div>
+                <p class="text-sm font-medium text-white">
+                    {% if page.end_date %}
+                        {{ page.start_date|date:"j E" }} — {{ page.end_date|date:"j E Y" }}
+                    {% else %}
+                        {{ page.start_date|date:"j E Y" }}
+                    {% endif %}
+                </p>
+                {% if page.start_time %}
+                <p class="text-xs text-base-content/50">{{ page.start_date|date:"l"|title }} · {{ page.start_time|date:"H:i" }}</p>
+                {% else %}
+                <p class="text-xs text-base-content/50">{{ page.start_date|date:"l"|title }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if page.venue %}
+        <div class="flex items-start gap-3">
+            <span class="material-symbols-outlined text-primary">location_on</span>
+            <div>
+                <p class="text-sm font-medium text-white">{{ page.venue|linebreaks }}</p>
+                <p class="text-xs text-base-content/50">Место</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}

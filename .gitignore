@@ -358,6 +358,8 @@ node_modules/
 bower_components/
 # Vite build output
 frontend/dist/
+dacha/dacha/static/assets/
+dacha/dacha/static/.vite/
 orleans.codegen.cs
 
 # RIA/Silverlight projects

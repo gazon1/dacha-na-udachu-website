@@ -1,0 +1,49 @@
+{% load wagtailimages_tags %}
+{# Event card for grid — upcoming events #}
+<article class="group bg-surface-2 rounded-2xl overflow-hidden border border-white/5 hover:border-primary/30 transition-all flex flex-col">
+
+    {# Image #}
+    <a href="{{ event.url }}" class="block h-56 relative overflow-hidden">
+        {% if event.hero_image %}
+        {% image event.hero_image fill-600x400 class="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700" %}
+        {% else %}
+        <div class="w-full h-full bg-surface-3 flex items-center justify-center">
+            <span class="material-symbols-outlined text-5xl text-base-content/20">event</span>
+        </div>
+        {% endif %}
+        <div class="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-surface-2 to-transparent">
+            <span class="text-secondary text-xs font-medium uppercase tracking-widest">
+                {{ event.start_date|date:"d M" }}
+            </span>
+        </div>
+    </a>
+
+    {# Card Content #}
+    <div class="p-6 flex-1 flex flex-col">
+        <h3 class="text-lg font-semibold mb-2 text-white group-hover:text-primary transition-colors line-clamp-2">
+            <a href="{{ event.url }}">{{ event.title }}</a>
+        </h3>
+
+        {% if event.summary %}
+        <p class="text-base-content/50 text-sm mb-4 line-clamp-2 flex-1">
+            {{ event.summary }}
+        </p>
+        {% endif %}
+
+        <div class="mt-auto flex items-center justify-between border-t border-white/5 pt-4">
+            {% if event.venue %}
+            <span class="text-base-content/40 text-xs flex items-center gap-1">
+                <span class="material-symbols-outlined text-sm text-primary">location_on</span>
+                <span class="truncate max-w-[120px]">{{ event.venue }}</span>
+            </span>
+            {% else %}
+            <div></div>
+            {% endif %}
+
+            <a href="{{ event.url }}"
+               class="text-primary hover:bg-primary/10 px-4 py-2 rounded-lg text-sm font-medium border border-primary/20 transition-all">
+                Подробнее
+            </a>
+        </div>
+    </div>
+</article>

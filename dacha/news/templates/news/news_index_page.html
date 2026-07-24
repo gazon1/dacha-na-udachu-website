@@ -1,38 +1,84 @@
 {% extends "base.html" %}
-{% load wagtailcore_tags %}
+{% load wagtailcore_tags wagtailimages_tags %}
 
 {% block content %}
-<div class="container">
-    <h1>{{ page.title }}</h1>
+{# Page hero #}
+<section class="relative py-16 md:py-24 overflow-hidden">
+    <div class="absolute -top-24 -left-24 w-96 h-96 bg-secondary/10 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="absolute -top-24 -right-24 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none"></div>
 
-    {% if page.intro %}
-        {% for block in page.intro %}
-            {% include_block block %}
-        {% endfor %}
-    {% endif %}
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">{{ page.title }}</h1>
+        {% if page.intro %}
+        <div class="text-lg text-base-content/70 max-w-2xl">
+            {% for block in page.intro %}
+                {% include_block block %}
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</section>
 
-    <div class="news-list">
+{# News grid #}
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+    {% if news_pages %}
+    <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
         {% for news in news_pages %}
-        <article class="news-item">
-            <h2><a href="{{ news.url }}">{{ news.title }}</a></h2>
-            <p class="news-date">{{ news.formatted_date }}</p>
-            {% if news.summary %}
-            <p>{{ news.summary }}</p>
+        <article class="group glass-card rounded-2xl overflow-hidden hover:border-primary/30 transition-all duration-300">
+            {% if news.main_image %}
+            <a href="{{ news.url }}" class="block aspect-[16/9] overflow-hidden">
+                {% image news.main_image fill-600x400 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" %}
+            </a>
+            {% else %}
+            <a href="{{ news.url }}" class="block aspect-[16/9] bg-surface-2 flex items-center justify-center">
+                <span class="material-symbols-outlined text-5xl text-base-content/20">article</span>
+            </a>
             {% endif %}
+
+            <div class="p-6">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="material-symbols-outlined text-primary text-sm">calendar_month</span>
+                    <time class="text-xs text-base-content/50 uppercase tracking-wider">{{ news.formatted_date }}</time>
+                </div>
+
+                <h2 class="text-xl font-semibold text-white mb-2 group-hover:text-primary transition-colors line-clamp-2">
+                    <a href="{{ news.url }}">{{ news.title }}</a>
+                </h2>
+
+                {% if news.summary %}
+                <p class="text-base-content/60 text-sm line-clamp-3 mb-4">{{ news.summary }}</p>
+                {% endif %}
+
+                <a href="{{ news.url }}"
+                   class="inline-flex items-center gap-1 text-primary text-sm font-medium hover:gap-2 transition-all">
+                    Читать
+                    <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                </a>
+            </div>
         </article>
         {% endfor %}
     </div>
 
     {% if news_pages.has_other_pages %}
-    <div class="pagination">
+    <nav aria-label="Pagination" class="flex justify-center items-center gap-2 mt-16">
         {% if news_pages.has_previous %}
-        <a href="?page={{ news_pages.previous_page_number }}">← Назад</a>
+        <a href="?page={{ news_pages.previous_page_number }}" class="btn btn-ghost text-base-content/60 hover:text-primary gap-2">
+            <span class="material-symbols-outlined text-sm">chevron_left</span>
+            Назад
+        </a>
         {% endif %}
-        <span>Страница {{ news_pages.number }} из {{ news_pages.paginator.num_pages }}</span>
+        <span class="px-4 py-2 text-sm text-base-content/40">{{ news_pages.number }} / {{ news_pages.paginator.num_pages }}</span>
         {% if news_pages.has_next %}
-        <a href="?page={{ news_pages.next_page_number }}">Вперед →</a>
+        <a href="?page={{ news_pages.next_page_number }}" class="btn btn-ghost text-base-content/60 hover:text-primary gap-2">
+            Далее
+            <span class="material-symbols-outlined text-sm">chevron_right</span>
+        </a>
         {% endif %}
-    </div>
+    </nav>
     {% endif %}
-</div>
+
+    {% else %}
+    {% include "includes/components/_empty_state.html" with icon="article" title="Новостей пока нет" subtitle="Следите за обновлениями" %}
+    {% endif %}
+</section>
 {% endblock %}

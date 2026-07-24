@@ -19,6 +19,14 @@ DATABASES = {
 # ManifestStaticFilesStorage for cache-busting
 STORAGES["staticfiles"]["BACKEND"] = "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
 
+# django-vite — production (loads manifest.json for hashed asset names)
+DJANGO_VITE = {
+    "default": {
+        "dev_mode": False,
+        "manifest_path": PROJECT_DIR / "static" / ".vite" / "manifest.json",
+    },
+}
+
 # Security settings (HSTS commented out for initial deploy)
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 

@@ -1,0 +1,7 @@
+{# Section wrapper — standard padding + max-width #}
+{# Usage: {% include "includes/components/_section.html" with id="about" class="bg-surface-1" %}{% block_section %}...{% endblock_section %}{% endinclude %} #}
+{# Or simpler: use the tag directly. Here we use a macro approach. #}
+
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 {{ class|default:"" }}"{% if id %} id="{{ id }}"{% endif %}>
+    {{ content }}
+</section>

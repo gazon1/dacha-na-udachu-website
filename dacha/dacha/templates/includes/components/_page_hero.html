@@ -1,0 +1,42 @@
+{# Page hero — title + optional subtitle/image #}
+{# Usage: {% include "includes/components/_page_hero.html" with title=page.title subtitle=page.intro image=page.hero_image %}
+   Optional: tag="event" for event badge, date=page.start_date
+#}
+
+<section class="relative {{ hero_class|default:"py-16 md:py-24" }}">
+    {# Optional background image #}
+    {% if image %}
+    <div class="absolute inset-0 z-0">
+        {% image image width-1920 class="w-full h-full object-cover" srcset="480 800 1200 1920" sizes="100vw" formats="avif,webp" %}
+        <div class="absolute inset-0 bg-gradient-to-t from-[#0b1326] via-[#0b1326]/30 to-transparent"></div>
+    </div>
+    {% endif %}
+
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {# Optional eyebrow tag #}
+        {% if tag %}
+        <span class="inline-flex items-center gap-1.5 bg-community-magenta text-white px-3 py-1 rounded-full text-xs font-medium mb-4">
+            {% if tag_icon %}<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">{{ tag_icon }}</span>{% endif %}
+            {{ tag }}
+        </span>
+        {% endif %}
+
+        <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-4">
+            {{ title }}
+        </h1>
+
+        {% if subtitle %}
+        <p class="text-lg text-base-content/70 max-w-2xl">
+            {{ subtitle|linebreaks }}
+        </p>
+        {% endif %}
+
+        {# Optional date badge #}
+        {% if date %}
+        <div class="mt-4 inline-flex items-center gap-2 text-primary bg-[#0b1326]/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-sm">
+            <span class="material-symbols-outlined text-sm">calendar_month</span>
+            {{ date|date:"j E Y" }}
+        </div>
+        {% endif %}
+    </div>
+</section>

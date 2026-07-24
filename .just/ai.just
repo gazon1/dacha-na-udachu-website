@@ -2,20 +2,9 @@
 # 🤖 AI PIPELINE
 # ==============================================================================
 
-workspace_dir := "/workspace"
-tmp_context   := workspace_dir + "/tmp/context.txt"
-agents_md     := workspace_dir + "/agents.md"
-
-# Базовые папки, которые нужны в обоих рецептах
-base_dirs     := workspace_dir + "/WebCrawler " + \
-                 workspace_dir + "/WebCrawler.Core " + \
-                 workspace_dir + "/WebCrawler.Domain " + \
-                 workspace_dir + "/WebCrawler.Infrastructure " + \
-                 workspace_dir + "/WebCrawler.Tests"
 
 
-# Общие флаги для запуска sing
-sing_base     := "sing context -o " + tmp_context + " -l csharp " + base_dirs
+
 
 
 [group('ai-context')]
@@ -24,23 +13,6 @@ context-py-scripts:
     #!/usr/bin/env bash
     set -e
     sing context -o /workspace/tmp/context.txt -l python /workspace/scripts/singularity_tools 
-
-
-[group('ai-context')]
-[working-directory: workspace_dir]
-context-project:
-    @echo "Running: {{ sing_base }} --agent-md {{ agents_md }}"
-    {{ sing_base }} --agent-md {{ agents_md }}
-
-[group('ai-context')]
-[working-directory: workspace_dir]
-context-project-web:
-    {{ sing_base }} {{ workspace_dir }}/WebCrawler.Admin -e csproj -e json -e razor --agent-md {{ agents_md }}
-
-[group('ai-context')]
-[working-directory: "/workspace/tmp/prod/"]
-context-py-crawler-project:
-    sing context -o /workspace/tmp/prod_py_context.txt -l python . --ignore-dirs 'tests,tg_bot,scripts,leave_review,alembic,logs,tmp,wb_leave_review.py'
 
 
 [group('docs')]

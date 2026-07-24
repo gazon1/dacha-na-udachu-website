@@ -1,0 +1,20 @@
+{# Breadcrumb navigation #}
+{# Usage: {% include "includes/components/_breadcrumb.html" with items=crumbs %}{% endinclude %} #}
+{# where crumbs = [{"title": "Главная", "url": "/"}, {"title": "События", "url": "/events/"}, {"title": page.title}] #}
+
+{% if items %}
+<nav aria-label="Breadcrumb" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+    <ol class="flex items-center gap-2 text-sm text-base-content/60">
+        {% for item in items %}
+            {% if forloop.last %}
+            <li class="text-base-content font-medium truncate max-w-[200px]" aria-current="page">{{ item.title }}</li>
+            {% else %}
+            <li class="flex items-center gap-2">
+                {% if item.url %}<a href="{{ item.url }}" class="hover:text-primary transition-colors">{{ item.title }}</a>{% else %}<span>{{ item.title }}</span>{% endif %}
+                <span class="material-symbols-outlined text-xs opacity-40">chevron_right</span>
+            </li>
+            {% endif %}
+        {% endfor %}
+    </ol>
+</nav>
+{% endif %}

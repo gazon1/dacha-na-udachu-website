@@ -1,0 +1,24 @@
+{# CTA block — title + description + button #}
+<section class="py-16 md:py-20 {{ value.class|default:"" }}">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="glass-card rounded-3xl p-8 md:p-12 text-center bonfire-glow">
+            {% if value.title %}
+            <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">{{ value.title }}</h2>
+            {% endif %}
+
+            {% if value.description %}
+            <p class="text-base-content/70 max-w-xl mx-auto mb-8">
+                {{ value.description|linebreaks }}
+            </p>
+            {% endif %}
+
+            {% if value.button_text and value.button_url %}
+            <a href="{{ value.button_url }}"
+               class="btn btn-primary btn-lg inline-flex items-center gap-2 text-lg px-8 py-4">
+                {{ value.button_text }}
+                <span class="material-symbols-outlined">arrow_forward</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</section>

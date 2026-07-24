@@ -12,6 +12,7 @@ from wagtail.documents import urls as wagtaildocs_urls
 
 from search import views as search_views
 import booking.urls as booking_urls
+import events.urls as events_urls
 
 
 def newsletter(request):
@@ -45,6 +46,7 @@ urlpatterns = [
     path("documents/", include(wagtaildocs_urls)),
     path("search/", search_views.search, name="search"),
     path("booking/", include(booking_urls)),
+    path("events/", include(events_urls)),
     path("health/", health_check, name="health_check"),
     path("robots.txt", robots_txt, name="robots_txt"),
     path("sitemap.xml", sitemap, name="sitemap"),

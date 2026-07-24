@@ -6,22 +6,7 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
-  plugins: [
-    tailwindcss({
-      content: {
-        files: [
-          resolve(__dirname, "../../dacha/dacha/**/*.html"),
-          resolve(__dirname, "../../dacha/home/**/*.html"),
-          resolve(__dirname, "../../dacha/houses/**/*.html"),
-          resolve(__dirname, "../../dacha/events/**/*.html"),
-          resolve(__dirname, "../../dacha/faq/**/*.html"),
-          resolve(__dirname, "../../dacha/news/**/*.html"),
-          resolve(__dirname, "../../dacha/booking/**/*.html"),
-          resolve(__dirname, "../../dacha/core/**/*.html"),
-        ],
-      },
-    }),
-  ],
+  plugins: [tailwindcss()],
   resolve: {
     alias: {
       "@": resolve(__dirname, "./frontend/src"),
@@ -29,18 +14,21 @@ export default defineConfig({
   },
   root: resolve(__dirname, "frontend"),
   build: {
-    outDir: resolve(__dirname, "static/dist"),
+    outDir: resolve(__dirname, "dacha/dacha/static"),
     emptyOutDir: true,
+    manifest: true,
     rollupOptions: {
-      input: resolve(__dirname, "frontend/index.html"),
+      input: resolve(__dirname, "frontend/src/js/app.js"),
       output: {
-        entryFileNames: "assets/[name]-[hash].js",
-        chunkFileNames: "assets/[name]-[hash].js",
-        assetFileNames: "assets/[name]-[hash][extname]",
+        entryFileNames: "assets/[name].js",
+        chunkFileNames: "assets/[name].js",
+        assetFileNames: "assets/[name][extname]",
       },
     },
   },
   server: {
+    origin: "http://localhost:5173",
+    cors: true,
     static: {
       directory: resolve(__dirname),
       publicDir: resolve(__dirname, "static"),

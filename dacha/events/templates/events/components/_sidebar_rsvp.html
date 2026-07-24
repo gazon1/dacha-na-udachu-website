@@ -1,0 +1,89 @@
+{% load static wagtailcore_tags %}
+{# RSVP Widget — HTMX form, live attendee count #}
+<div id="rsvp-widget" class="glass-card p-8 rounded-3xl space-y-6 border border-community-magenta/20">
+
+    {# Attendee summary #}
+    <div class="space-y-2" id="rsvp-summary">
+        {% with page.total_attending as total %}
+        <h3 class="text-xl font-semibold text-white">Присоединишься?</h3>
+        {% if total > 0 %}
+        <div class="flex items-center gap-2">
+            <div class="flex -space-x-3">
+                {% for i in "012"|make_list %}
+                <div class="w-8 h-8 rounded-full border-2 border-surface-2 bg-surface-2 flex items-center justify-center text-[10px] font-bold text-primary">+</div>
+                {% endfor %}
+                {% if total > 3 %}
+                <div class="w-8 h-8 rounded-full border-2 border-surface-2 bg-surface-2 flex items-center justify-center text-[10px] font-bold text-primary">+{{ total|add:"-3" }}</div>
+                {% endif %}
+            </div>
+            <span class="text-sm text-base-content/60">
+                {% if page.going_count > 0 %}{{ page.going_count }} идут{% endif %}
+                {% if page.maybe_count > 0 %}{% if page.going_count > 0 %}, {% endif %}{{ page.maybe_count }} возможно{% endif %}
+            </span>
+        </div>
+        {% else %}
+        <p class="text-sm text-base-content/30">Пока никто не ответил</p>
+        {% endif %}
+        {% endwith %}
+    </div>
+
+    {# RSVP form — htmx, replaces summary on success #}
+    <form
+        hx-post="{% url 'event_rsvp' page.slug %}"
+        hx-target="#rsvp-summary"
+        hx-swap="innerHTML"
+        x-data="{ submitting: false }"
+        @htmx:before-request="submitting = true"
+        @htmx:after-request="submitting = false"
+        class="space-y-3">
+
+        <input type="text" name="name" placeholder="Ваше имя" required maxlength="100"
+            class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-base-content/30 focus:outline-none focus:border-primary/50 transition-colors disabled:opacity-50"
+            :disabled="submitting">
+
+        <div class="space-y-2">
+            <button type="submit" name="status" value="going" :disabled="submitting"
+                class="w-full py-4 bg-community-magenta text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2 hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                Я иду
+            </button>
+
+            <div class="grid grid-cols-2 gap-2">
+                <button type="submit" name="status" value="maybe" :disabled="submitting"
+                    class="py-3 glass-card border-white/10 text-base-content/60 rounded-xl text-sm font-medium hover:bg-white/5 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none">
+                    Возможно
+                </button>
+                <button type="submit" name="status" value="not_going" :disabled="submitting"
+                    class="py-3 text-base-content/30 rounded-xl text-xs font-medium hover:text-error transition-colors disabled:opacity-50 disabled:pointer-events-none">
+                    Не смогу
+                </button>
+            </div>
+        </div>
+    </form>
+
+    {# Time + weather #}
+    {% if page.start_time or page.expected_temperature %}
+    <div class="pt-6 border-t border-white/10 space-y-4">
+        {% if page.start_time %}
+        <div class="flex items-start gap-4">
+            <span class="material-symbols-outlined text-primary">schedule</span>
+            <div>
+                <p class="text-sm font-medium text-white">{{ page.start_time|date:"H:i" }}</p>
+                <p class="text-xs text-base-content/40">Время начала</p>
+            </div>
+        </div>
+        {% endif %}
+        {% if page.expected_temperature %}
+        <div class="flex items-start gap-4">
+            <span class="material-symbols-outlined text-primary">thermostat</span>
+            <div>
+                <p class="text-sm font-medium text-white">{{ page.expected_temperature }}</p>
+                {% if page.weather_note %}
+                <p class="text-xs text-base-content/40">{{ page.weather_note }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>

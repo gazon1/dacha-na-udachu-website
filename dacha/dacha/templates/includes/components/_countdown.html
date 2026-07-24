@@ -1,0 +1,27 @@
+{# Countdown timer card — Alpine-powered, zero JS required #}
+{# Usage: {% include "includes/components/_countdown.html" with target=page.countdown_target label="До события" %}{% endinclude %} #}
+{# Requires: page.countdown_target (ISO date string) and Alpine + app.js loaded #}
+
+{% if target %}
+<div class="glass-card p-8 rounded-3xl text-center relative overflow-hidden"
+     x-data="countdown('{{ target }}')">
+    <div class="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
+    <p class="text-xs font-medium text-primary uppercase tracking-widest mb-4">
+        {{ label|default:"Начнётся через" }}
+    </p>
+    <div class="flex justify-center gap-4">
+        {% for unit in "days,hours,minutes,seconds"|cut:"," %}
+        <div class="space-y-1 text-center">
+            <div class="text-[32px] font-bold text-white leading-none tabular-nums"
+                 x-text="{{ unit }}">0</div>
+            <div class="text-[10px] font-medium uppercase opacity-60">
+                {% if unit == 'days' %}Дней{% elif unit == 'hours' %}Час{% elif unit == 'minutes' %}Мин{% else %}Сек{% endif %}
+            </div>
+        </div>
+        {% if not forloop.last %}
+        <div class="text-[32px] font-bold text-primary leading-none self-start mt-1">:</div>
+        {% endif %}
+        {% endfor %}
+    </div>
+</div>
+{% endif %}

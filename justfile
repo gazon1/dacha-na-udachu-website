@@ -1,11 +1,22 @@
-# =============================================================================
-# justfile — dacha.maxdrobin.ru development tasks
-# =============================================================================
+# ==============================================================================
+# 📋 GLOBAL SETTINGS
+# ==============================================================================
 set dotenv-load := true
 set shell := ["bash", "-euo", "pipefail", "-c"]
 set export
 set positional-arguments
 set quiet
+
+# ==============================================================================
+# 📦 MODULE IMPORTS
+# ==============================================================================
+import '.just/config.just'
+import '.just/ai.just'
+import '.just/bd.just'
+import '.just/devcontainer.just'
+import '.just/docker.just'
+import '.just/wagtail.just'
+
 
 # ---- HELP ----
 [doc("Show all available commands")]
@@ -28,6 +39,7 @@ setup: install install-node frontend-build
 
 # ---- FRONTEND ----
 [doc("Build frontend assets (Vite → frontend/dist)")]
+[working-directory: "/workspace/dacha"]
 frontend-build:
     npm run build
 
@@ -62,10 +74,12 @@ test-quick:
 
 # ---- DATABASE ----
 [doc("Apply all migrations")]
+[working-directory: "/workspace/dacha"]
 migrate:
     uv run python manage.py migrate
 
 [doc("Create migrations for changed apps")]
+[working-directory: "/workspace/dacha"]
 makemigrations *apps:
     uv run python manage.py makemigrations {{apps}}
 
@@ -83,9 +97,16 @@ check:
 check-deploy:
     uv run python manage.py check --deploy --settings=dacha.settings.production
 
+
 [doc("Start Django development server")]
+[working-directory: "/workspace/dacha"]
 runserver:
     uv run python manage.py runserver 0.0.0.0:8000
+
+
+# ---- LOCAL DEV ----
+[doc("Full local dev startup: build frontend + makemigrations + migrate + runserver")]
+dev: frontend-build makemigrations migrate runserver
 
 
 # ---- DOCKER ----
@@ -93,9 +114,9 @@ runserver:
 docker-validate:
     docker compose -f docker-compose.prod.yml config
 
-[doc("Build production Docker image")]
-docker-build:
-    docker build -f Dockerfile.prod -t dacha-wagtail:latest .
+# [doc("Build production Docker image")]
+# docker-build:
+#     docker build -f Dockerfile.prod -t dacha-wagtail:latest .
 
 [doc("Build and tag by commit SHA for immutable deployments")]
 docker-build-sha:

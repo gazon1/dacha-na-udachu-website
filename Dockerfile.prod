@@ -8,12 +8,13 @@
 # ---- Stage 1: Node / Vite build ----
 FROM node:22-alpine AS node-stage
 
-WORKDIR /frontend
+WORKDIR /workspace
 
 COPY package.json package-lock.json* ./
 RUN npm ci
 
 COPY frontend/ ./frontend/
+COPY vite.config.js ./
 RUN npm run build
 
 # ---- Stage 2: Python dependencies ----
@@ -72,7 +73,7 @@ COPY --from=python-stage /workspace/.venv /workspace/.venv
 ENV PATH="/workspace/.venv/bin:$PATH"
 
 # Copy built frontend assets
-COPY --from=node-stage /frontend/frontend/dist /workspace/frontend/dist
+COPY --from=node-stage /workspace/dacha/dacha/static /workspace/dacha/dacha/static
 
 # Copy project source
 COPY . /workspace/

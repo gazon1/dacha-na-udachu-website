@@ -1,0 +1,45 @@
+[project]
+name = "singularity-tools"
+version = "2.0.0"
+description = "Утилиты для Singularity Todo App"
+requires-python = ">=3.12"
+dependencies = [
+    "click>=8.3.1",
+    "pathspec>=0.11.0",
+    "loguru>=0.7.0",
+    "mistune",
+    "tree-sitter>=0.25.0",
+    "tree-sitter-rust>=0.24.0",
+    "tree-sitter-python>=0.25.0",
+    "nicegui==3.1.0",
+    "requests>=2.32.5",
+    "httpx==0.28.1",
+    "psycopg2-binary>=2.9.11",
+    "PyYAML>=6.0.3",
+    "markdown>=3.7.0",
+    "beautifulsoup4>=4.12.0",
+    "weasyprint>=60.0.0",
+    "tqdm>=4.66.0",
+]
+
+[project.optional-dependencies]
+web = [
+    "requests>=2.31.0",
+    "beautifulsoup4>=4.12.0",
+    "lxml>=4.9.0",
+    "curl-cffi>=0.6.0",
+    "markdownify>=0.11.0",
+    "tenacity>=8.2.0",
+    "ultimate-sitemap-parser>=1.8.0",
+]
+yadisk = ["yadisk[sync-defaults]>=3.4.0",]
+
+[project.scripts]
+sing = "singularity_tools.sing_cli:main"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]

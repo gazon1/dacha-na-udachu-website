@@ -2,157 +2,59 @@
 {% load wagtailcore_tags wagtailimages_tags %}
 
 {% block content %}
-{# Hero Section #}
-<section class="relative bg-surface overflow-hidden">
-    {% if page.hero_image %}
-    {% image page.hero_image fill-1920x600 class="absolute inset-0 w-full h-full object-cover opacity-30" %}
-    <div class="absolute inset-0 bg-gradient-to-t from-bg via-bg/80 to-bg/40"></div>
-    {% endif %}
 
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
-        {# Breadcrumb #}
-        <nav class="mb-8">
-            <ol class="flex items-center gap-2 text-sm">
-                <li><a href="/" class="text-gray-400 hover:text-white transition-colors">Главная</a></li>
-                <li class="text-gray-600">/</li>
-                <li><a href="/events/" class="text-gray-400 hover:text-white transition-colors">События</a></li>
-                <li class="text-gray-600">/</li>
-                <li class="text-brand-400">{{ page.title }}</li>
-            </ol>
-        </nav>
+{# ── Hero ──────────────────────────────────────────────────── #}
+{% include "events/components/_hero.html" %}
 
-        <div class="max-w-3xl">
-            {# Title #}
-            <h1 class="text-4xl md:text-5xl font-bold text-white mb-8">
-                {{ page.title }}
-            </h1>
+{# ── Main two-column layout ───────────────────────────────── #}
+<main class="max-w-7xl mx-auto px-6 py-16 grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
 
-            {# Where & When - Telegram Style Info Block #}
-            <div class="bg-surface-2/50 border border-stroke rounded-2xl p-6 mb-8">
-                <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    ГДЕ И КОГДА
-                </h2>
+    {# ── Left column: body StreamField + venue/drivers ────────── #}
+    <div class="lg:col-span-8 space-y-12">
 
-                <div class="space-y-4">
-                    {# Date #}
-                    <div class="flex items-start gap-4">
-                        <div class="flex-shrink-0 w-10 h-10 bg-brand-500/20 rounded-xl flex items-center justify-center">
-                            <span class="text-xl">🗓</span>
-                        </div>
-                        <div class="flex-1">
-                            <div class="text-white font-medium leading-relaxed">
-                                {% if page.end_date %}
-                                    {{ page.start_date|date:"j E" }} ({% if page.start_date|date:"N" == 'July' %}июля{% endif %}) — {{ page.end_date|date:"j E" }} ({% if page.end_date|date:"N" == 'July' %}июля{% endif %})
-                                {% else %}
-                                    {{ page.start_date|date:"j E Y" }} года
-                                {% endif %}
-                            </div>
-                            <div class="text-gray-500 text-sm mt-1">
-                                {% with start_weekday=page.start_date|date:"l" %}
-                                {% if start_weekday == 'Saturday' %}Суббота{% elif start_weekday == 'Sunday' %}Воскресенье{% elif start_weekday == 'Monday' %}Понедельник{% elif start_weekday == 'Tuesday' %}Вторник{% elif start_weekday == 'Wednesday' %}Среда{% elif start_weekday == 'Thursday' %}Четверг{% elif start_weekday == 'Friday' %}Пятница{% else %}{{ start_weekday }}{% endif %}
-                                {% endwith %}
-                            </div>
-                        </div>
-                    </div>
+        {# StreamField body #}
+        {% if page.body %}
+        <div class="prose prose-invert prose-headings:text-white prose-a:text-primary max-w-none leading-relaxed">
+            {% include_block page.body %}
+        </div>
+        {% endif %}
 
-                    {# Time #}
-                    <div class="flex items-start gap-4">
-                        <div class="flex-shrink-0 w-10 h-10 bg-accent-500/20 rounded-xl flex items-center justify-center">
-                            <span class="text-xl">🕐</span>
-                        </div>
-                        <div class="flex-1">
-                            <div class="text-white font-medium">С 12:00</div>
-                            <div class="text-gray-500 text-sm mt-1">Время начала</div>
-                        </div>
-                    </div>
-
-                    {# Venue #}
-                    {% if page.venue %}
-                    <div class="flex items-start gap-4">
-                        <div class="flex-shrink-0 w-10 h-10 bg-danger/20 rounded-xl flex items-center justify-center">
-                            <span class="text-xl">📍</span>
-                        </div>
-                        <div class="flex-1">
-                            <div class="text-white font-medium leading-relaxed">{{ page.venue|linebreaks }}</div>
-                            <div class="text-gray-500 text-sm mt-1">Место проведения</div>
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
+        {# Venue + drivers #}
+        {% if page.venue %}
+        <div class="space-y-6 pt-6 border-t border-white/5">
+            <h3 class="text-2xl font-bold text-white flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-primary">location_on</span>
+                Как добраться
+            </h3>
+            <div class="glass-card p-6 rounded-2xl border border-white/5 shadow-xl transition-all hover:border-community-cyan/30">
+                <p class="text-base-content/80 text-base leading-relaxed">{{ page.venue|linebreaks }}</p>
             </div>
+            {% include "events/components/_drivers.html" %}
+        </div>
+        {% endif %}
 
-            {# Summary #}
-            {% if page.summary %}
-            <p class="text-xl text-gray-300 leading-relaxed">
-                {{ page.summary }}
-            </p>
-            {% endif %}
+        {# Back link (Redesign) #}
+        <div class="pt-8 border-t border-white/10">
+            <a href="/events/" class="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 text-base-content/70 hover:text-white border border-white/5 transition-all duration-300 shadow-sm hover:border-brand-500/40">
+                <span class="material-symbols-outlined text-sm">arrow_back</span>
+                <span class="text-sm font-semibold">Все события</span>
+            </a>
         </div>
     </div>
-</section>
 
-{# Countdown #}
-{% if page.show_countdown and page.countdown_target %}
-<section class="py-12 bg-surface border-y border-border" x-data="countdown('{{ page.countdown_target }}')">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-8">
-            <h2 class="text-lg font-medium text-gray-400 uppercase tracking-wider">До события осталось</h2>
-        </div>
-        <div class="flex justify-center gap-4 md:gap-8">
-            <div class="text-center">
-                <div class="w-20 h-20 md:w-24 md:h-24 bg-surface-2 border border-stroke rounded-2xl flex items-center justify-center mb-2">
-                    <span class="text-3xl md:text-4xl font-bold text-brand-400" x-text="days">0</span>
-                </div>
-                <span class="text-sm text-gray-500 uppercase tracking-wider">дней</span>
-            </div>
-            <div class="text-center">
-                <div class="w-20 h-20 md:w-24 md:h-24 bg-surface-2 border border-stroke rounded-2xl flex items-center justify-center mb-2">
-                    <span class="text-3xl md:text-4xl font-bold text-brand-400" x-text="hours">0</span>
-                </div>
-                <span class="text-sm text-gray-500 uppercase tracking-wider">часов</span>
-            </div>
-            <div class="text-center">
-                <div class="w-20 h-20 md:w-24 md:h-24 bg-surface-2 border border-stroke rounded-2xl flex items-center justify-center mb-2">
-                    <span class="text-3xl md:text-4xl font-bold text-brand-400" x-text="minutes">0</span>
-                </div>
-                <span class="text-sm text-gray-500 uppercase tracking-wider">минут</span>
-            </div>
-            <div class="text-center">
-                <div class="w-20 h-20 md:w-24 md:h-24 bg-surface-2 border border-stroke rounded-2xl flex items-center justify-center mb-2">
-                    <span class="text-3xl md:text-4xl font-bold text-brand-400" x-text="seconds">0</span>
-                </div>
-                <span class="text-sm text-gray-500 uppercase tracking-wider">секунд</span>
-            </div>
-        </div>
-    </div>
-</section>
-{% endif %}
+    {# ── Right column: sticky sidebar widgets ───────────────── #}
+    <aside class="lg:col-span-4 space-y-8 sticky top-28">
 
-{# Body Content #}
-{% if page.body %}
-<section class="py-12 md:py-16">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="max-w-3xl richtext-content">
-            {% for block in page.body %}
-                {% include_block block %}
-            {% endfor %}
-        </div>
-    </div>
-</section>
-{% endif %}
+        {# Countdown timer #}
+        {% include "events/components/_sidebar_countdown.html" %}
 
-{# Back Link #}
-<section class="py-8 border-t border-border">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <a href="/events/" class="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-            </svg>
-            Все события
-        </a>
-    </div>
-</section>
+        {# RSVP widget #}
+        {% include "events/components/_sidebar_rsvp.html" %}
+
+        {# When & Where #}
+        {% include "events/components/_sidebar_meta.html" %}
+
+    </aside>
+</main>
+
 {% endblock %}

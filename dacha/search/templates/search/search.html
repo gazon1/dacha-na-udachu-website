@@ -1,38 +1,74 @@
 {% extends "base.html" %}
 {% load static wagtailcore_tags %}
 
-{% block body_class %}template-searchresults{% endblock %}
-
-{% block title %}Search{% endblock %}
+{% block title %}Поиск{% endblock %}
 
 {% block content %}
-<h1>Search</h1>
+{# Hero #}
+<section class="py-12 md:py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 class="text-3xl font-bold text-white mb-8">Поиск</h1>
 
-<form action="{% url 'search' %}" method="get">
-    <input type="text" name="query"{% if search_query %} value="{{ search_query }}"{% endif %}>
-    <input type="submit" value="Search" class="button">
-</form>
+        {# Search form #}
+        <form action="{% url 'search' %}" method="get" class="flex gap-3 max-w-xl">
+            <input
+                type="text"
+                name="query"
+                placeholder="Что ищем?"
+                value="{{ search_query|default:"" }}"
+                class="input input-bordered flex-1 bg-base-200 border-white/10 focus:border-primary text-white placeholder:text-base-content/30"
+                autofocus>
+            <button type="submit" class="btn btn-primary gap-2">
+                <span class="material-symbols-outlined text-lg">search</span>
+                Найти
+            </button>
+        </form>
+    </div>
+</section>
 
-{% if search_results %}
-<ul>
-    {% for result in search_results %}
-    <li>
-        <h4><a href="{% pageurl result %}">{{ result }}</a></h4>
-        {% if result.search_description %}
-        {{ result.search_description }}
+{# Results #}
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+    {% if search_results %}
+    <div class="grid gap-6">
+        {% for result in search_results %}
+        <article class="glass-card rounded-2xl p-6 hover:border-primary/30 transition-colors">
+            <a href="{% pageurl result %}" class="block">
+                <h2 class="text-xl font-semibold text-white mb-2 hover:text-primary transition-colors">{{ result }}</h2>
+                {% if result.search_description %}
+                <p class="text-base-content/60 text-sm line-clamp-2">{{ result.search_description }}</p>
+                {% endif %}
+            </a>
+        </article>
+        {% endfor %}
+    </div>
+
+    {# Pagination #}
+    {% if search_results.has_previous or search_results.has_next %}
+    <nav aria-label="Pagination" class="flex justify-center items-center gap-2 mt-12">
+        {% if search_results.has_previous %}
+        <a href="{% url 'search' %}?query={{ search_query|urlencode }}&amp;page={{ search_results.previous_page_number }}"
+           class="btn btn-ghost text-base-content/60 hover:text-primary gap-2">
+            <span class="material-symbols-outlined text-sm">chevron_left</span>
+            Назад
+        </a>
         {% endif %}
-    </li>
-    {% endfor %}
-</ul>
+        <span class="px-4 py-2 text-sm text-base-content/40">
+            {{ search_results.number }} / {{ search_results.paginator.num_pages }}
+        </span>
+        {% if search_results.has_next %}
+        <a href="{% url 'search' %}?query={{ search_query|urlencode }}&amp;page={{ search_results.next_page_number }}"
+           class="btn btn-ghost text-base-content/60 hover:text-primary gap-2">
+            Далее
+            <span class="material-symbols-outlined text-sm">chevron_right</span>
+        </a>
+        {% endif %}
+    </nav>
+    {% endif %}
 
-{% if search_results.has_previous %}
-<a href="{% url 'search' %}?query={{ search_query|urlencode }}&amp;page={{ search_results.previous_page_number }}">Previous</a>
-{% endif %}
-
-{% if search_results.has_next %}
-<a href="{% url 'search' %}?query={{ search_query|urlencode }}&amp;page={{ search_results.next_page_number }}">Next</a>
-{% endif %}
-{% elif search_query %}
-No results found
-{% endif %}
+    {% elif search_query %}
+    {% include "includes/components/_empty_state.html" with icon="search_off" title="Ничего не найдено" subtitle="Попробуйте другие слова или проверьте написание" %}
+    {% else %}
+    {% include "includes/components/_empty_state.html" with icon="search" title="Введите запрос" subtitle="Напишите что-нибудь в поиск" %}
+    {% endif %}
+</section>
 {% endblock %}

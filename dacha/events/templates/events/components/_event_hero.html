@@ -1,0 +1,32 @@
+{% load wagtailimages_tags wagtailcore_tags %}
+{# Hero section for events index page #}
+<section class="relative py-16 md:py-24 overflow-hidden" style="background: linear-gradient(to bottom, #121d13, #0b130c);">
+    <div class="absolute -top-24 -left-24 w-96 h-96 bg-secondary/10 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="absolute -top-24 -right-24 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+    <div class="relative max-w-7xl mx-auto px-6 lg:px-8">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-8">
+            <div>
+                <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 tracking-tight">
+                    {{ page.title }}
+                </h1>
+                {% if page.intro %}
+                <div class="text-lg text-base-content/70 max-w-2xl">
+                    {% include_block page.intro %}
+                </div>
+                {% endif %}
+            </div>
+            {% if total_participants %}
+            <div class="bg-surface-2 border border-white/5 p-4 rounded-xl flex items-center gap-3">
+                <div class="w-12 h-12 rounded-full bg-secondary/20 flex items-center justify-center text-secondary">
+                    <span class="material-symbols-outlined">group</span>
+                </div>
+                <div>
+                    <span class="block text-xs text-base-content/50 uppercase tracking-widest font-medium">Участников</span>
+                    <span class="block text-xl font-semibold text-white">{{ total_participants }}</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>

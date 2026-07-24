@@ -1,0 +1,32 @@
+{% load wagtailcore_tags %}
+{# Tabs navigation — drives shared activeTab state in parent x-data #}
+<div class="max-w-7xl mx-auto px-6 lg:px-8 -mt-6 mb-8 relative z-20">
+    <div class="bg-surface-2 border border-white/5 rounded-2xl p-2 flex items-center gap-2 overflow-x-auto no-scrollbar shadow-2xl">
+
+        <button
+            @click="$dispatch('tab-change', { tab: 'upcoming' })"
+            :class="activeTab === 'upcoming' ? 'bg-surface-3 text-primary shadow-sm' : 'text-base-content/50 hover:text-white hover:bg-white/5'"
+            class="whitespace-nowrap px-6 py-3 text-sm font-medium rounded-xl transition-all duration-200">
+            Предстоящие
+        </button>
+
+        <button
+            @click="$dispatch('tab-change', { tab: 'past' })"
+            :class="activeTab === 'past' ? 'bg-surface-3 text-primary shadow-sm' : 'text-base-content/50 hover:text-white hover:bg-white/5'"
+            class="whitespace-nowrap px-6 py-3 text-sm font-medium rounded-xl transition-all duration-200">
+            Прошедшие
+        </button>
+
+        <button
+            @click="$dispatch('tab-change', { tab: 'calendar' })"
+            :class="activeTab === 'calendar' ? 'bg-surface-3 text-primary shadow-sm' : 'text-base-content/50 hover:text-white hover:bg-white/5'"
+            class="whitespace-nowrap px-6 py-3 text-sm font-medium rounded-xl transition-all duration-200">
+            Календарь
+        </button>
+
+        <div class="ml-auto pr-4 border-l border-white/5 pl-6 hidden md:flex items-center gap-2">
+            <span class="material-symbols-outlined text-base-content/30">search</span>
+            <span class="text-sm text-base-content/30">Поиск событий...</span>
+        </div>
+    </div>
+</div>

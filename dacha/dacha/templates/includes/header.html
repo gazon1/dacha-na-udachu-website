@@ -1,48 +1,52 @@
-<header class="site-header" x-data="{ mobileOpen: false }">
+{% load static wagtailcore_tags %}
+
+<header class="sticky top-0 z-50 bg-base-100/80 backdrop-blur-md border-b border-white/5"
+        x-data="{ mobileMenuOpen: false }">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
-            <!-- Logo -->
-            <a href="/" class="flex items-center gap-2 text-white font-semibold text-lg hover:text-brand-400 transition-colors">
+            {# Logo #}
+            <a href="/" class="flex items-center gap-2 text-white font-semibold text-lg hover:text-primary transition-colors">
                 <span>🏠</span>
                 <span>Dacha</span>
             </a>
 
-            <!-- Desktop Nav -->
-            <nav class="hidden md:flex items-center gap-8">
-                <a href="/houses/" class="text-gray-300 hover:text-white transition-colors">Дома</a>
-                <a href="/events/" class="text-gray-300 hover:text-white transition-colors">События</a>
-                <a href="/faq/" class="text-gray-300 hover:text-white transition-colors">FAQ</a>
-                <a href="/booking/" class="inline-flex items-center px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg font-medium transition-colors">
+            {# Desktop Nav #}
+            <nav class="hidden md:flex items-center gap-8" aria-label="Main navigation">
+                <a href="/houses/" class="text-base-content/70 hover:text-white transition-colors text-sm font-medium">Дома</a>
+                <a href="/events/" class="text-base-content/70 hover:text-white transition-colors text-sm font-medium">События</a>
+                <a href="/faq/" class="text-base-content/70 hover:text-white transition-colors text-sm font-medium">FAQ</a>
+                <a href="/news/" class="text-base-content/70 hover:text-white transition-colors text-sm font-medium">Новости</a>
+                <a href="/booking/"
+                   class="inline-flex items-center px-4 py-2 bg-primary text-[#213600] rounded-lg font-medium text-sm hover:brightness-110 transition-all">
                     Забронировать
                 </a>
             </nav>
 
-            <!-- Mobile Menu Button -->
+            {# Mobile Menu Button #}
             <button
-                @click="mobileOpen = !mobileOpen"
-                class="md:hidden p-2 text-gray-300 hover:text-white"
-                aria-label="Toggle menu"
-            >
-                <svg x-show="!mobileOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                </svg>
-                <svg x-show="mobileOpen" x-cloak class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
+                @click="mobileMenuOpen = !mobileMenuOpen"
+                :aria-expanded="mobileMenuOpen.toString()"
+                aria-controls="mobile-menu"
+                aria-label="Открыть меню"
+                class="md:hidden p-2 text-base-content/70 hover:text-white transition-colors">
+                <span x-show="!mobileMenuOpen" class="material-symbols-outlined">menu</span>
+                <span x-show="mobileMenuOpen" x-cloak class="material-symbols-outlined">close</span>
             </button>
         </div>
 
-        <!-- Mobile Nav -->
+        {# Mobile Nav #}
         <nav
-            x-show="mobileOpen"
+            id="mobile-menu"
+            x-show="mobileMenuOpen"
             x-cloak
-            class="md:hidden pb-4 space-y-2"
-            x-transition
-        >
-            <a href="/houses/" class="block px-4 py-2 text-gray-300 hover:text-white hover:bg-surface-2 rounded-lg transition-colors">Дома</a>
-            <a href="/events/" class="block px-4 py-2 text-gray-300 hover:text-white hover:bg-surface-2 rounded-lg transition-colors">События</a>
-            <a href="/faq/" class="block px-4 py-2 text-gray-300 hover:text-white hover:bg-surface-2 rounded-lg transition-colors">FAQ</a>
-            <a href="/booking/" class="block px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg font-medium text-center transition-colors">
+            class="md:hidden pb-4 space-y-1"
+            x-transition>
+            <a href="/houses/" class="block px-4 py-2 text-base-content/70 hover:text-white hover:bg-surface-2 rounded-lg transition-colors text-sm font-medium">Дома</a>
+            <a href="/events/" class="block px-4 py-2 text-base-content/70 hover:text-white hover:bg-surface-2 rounded-lg transition-colors text-sm font-medium">События</a>
+            <a href="/faq/" class="block px-4 py-2 text-base-content/70 hover:text-white hover:bg-surface-2 rounded-lg transition-colors text-sm font-medium">FAQ</a>
+            <a href="/news/" class="block px-4 py-2 text-base-content/70 hover:text-white hover:bg-surface-2 rounded-lg transition-colors text-sm font-medium">Новости</a>
+            <a href="/booking/"
+               class="block px-4 py-2 bg-primary text-[#213600] rounded-lg font-medium text-sm text-center mt-2 hover:brightness-110 transition-all">
                 Забронировать
             </a>
         </nav>

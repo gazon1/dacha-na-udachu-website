@@ -1,5 +1,4 @@
 from .base import *
-from pathlib import Path
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -12,12 +11,14 @@ ALLOWED_HOSTS = ["*"]
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
-# Add static assets from frontend build
-STATICFILES_DIRS = [
-    *STATICFILES_DIRS,
-    BASE_DIR.parent / "static",
-]
-
+# django-vite — manifest-based (prod; use dev_mode + npm run dev for HMR)
+# Vite builds to BASE_DIR / "static"; Django serves it via dacha app static dirs
+DJANGO_VITE = {
+    "default": {
+        "dev_mode": False,
+        "manifest_path": PROJECT_DIR / "static" / ".vite" / "manifest.json",
+    },
+}
 
 try:
     from .local import *

@@ -1,9 +1,8 @@
 from django.db import models
-from wagtail import blocks
 from wagtail.models import Page
 from wagtail import fields
 from wagtail.admin.panels import FieldPanel
-from wagtail.images.blocks import ImageChooserBlock
+from dacha.blocks import HeadingBlock, RichTextBlock, ImageBlock
 
 
 class NewsPage(Page):
@@ -20,9 +19,9 @@ class NewsPage(Page):
     summary = models.TextField(blank=True)
 
     body = fields.StreamField([
-        ("heading", blocks.CharBlock(form_classname="title")),
-        ("paragraph", blocks.RichTextBlock()),
-        ("image", ImageChooserBlock()),
+        ("heading", HeadingBlock()),
+        ("paragraph", RichTextBlock()),
+        ("image", ImageBlock()),
     ], use_json_field=True, blank=True)
 
     content_panels = Page.content_panels + [
@@ -43,7 +42,7 @@ class NewsIndexPage(Page):
     """Index page for news articles with pagination."""
 
     intro = fields.StreamField([
-        ("paragraph", blocks.RichTextBlock()),
+        ("paragraph", RichTextBlock()),
     ], use_json_field=True, blank=True)
 
     content_panels = Page.content_panels + [
@@ -53,9 +52,8 @@ class NewsIndexPage(Page):
     def get_context(self, request):
         from django.core.paginator import Paginator
         context = super().get_context(request)
-
         all_news = NewsPage.objects.live().public().order_by("-date")
-        paginator = Paginator(all_news, 10)  # 10 per page
+        paginator = Paginator(all_news, 10)
         page_number = request.GET.get("page", 1)
         context["news_pages"] = paginator.get_page(page_number)
         return context

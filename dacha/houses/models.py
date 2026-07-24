@@ -1,9 +1,9 @@
 from django.db import models
-from wagtail import blocks
 from wagtail.models import Page
 from wagtail import fields
 from wagtail.admin.panels import FieldPanel
 from wagtail.images.blocks import ImageChooserBlock
+from dacha.blocks import HeadingBlock, RichTextBlock, ImageBlock
 
 
 class HousePage(Page):
@@ -22,9 +22,9 @@ class HousePage(Page):
     booking_enabled = models.BooleanField(default=True)
 
     body = fields.StreamField([
-        ("heading", blocks.CharBlock(form_classname="title")),
-        ("paragraph", blocks.RichTextBlock()),
-        ("image", ImageChooserBlock()),
+        ("heading", HeadingBlock()),
+        ("paragraph", RichTextBlock()),
+        ("image", ImageBlock()),
     ], use_json_field=True, blank=True)
 
     content_panels = Page.content_panels + [
@@ -41,7 +41,7 @@ class HousePage(Page):
 
 class HousesIndexPage(Page):
     intro = fields.StreamField([
-        ("paragraph", blocks.RichTextBlock()),
+        ("paragraph", RichTextBlock()),
     ], use_json_field=True, blank=True)
 
     content_panels = Page.content_panels + [
