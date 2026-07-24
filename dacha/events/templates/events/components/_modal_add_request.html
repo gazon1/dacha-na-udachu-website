@@ -1,4 +1,4 @@
-{% load crispy_forms_tags %}
+{% load widget_tweaks %}
 {% with form=carpool_request_form %}{% if form %}
 {# ── SEARCH MODAL ───────────────────────────────────────────────────────────── #}
 <div x-data="{ open: false }"
@@ -18,13 +18,28 @@
             </button>
         </div>
 
-        <form hx-post="{% url 'event_add_carpool_request' page.slug %}"
+        <form hx-post="{% pageurl page %}/carpool/add-request/"
               hx-target="#drivers-section"
               hx-swap="innerHTML"
               @htmx:after-request="if(event.detail.successful) open = false"
               class="space-y-4">
             {% csrf_token %}
-            {% crispy form %}
+
+            {% render_field form.name class="form-input" placeholder="Ваше имя" %}
+            {% render_field form.telegram class="form-input" placeholder="Telegram" %}
+            {% render_field form.phone class="form-input" placeholder="Телефон" %}
+            {% render_field form.pickup_location class="form-input" placeholder="Откуда заберут" %}
+            {% render_field form.seats_needed class="form-input" min="1" max="6" %}
+            <div class="flex items-center gap-3">
+                {% render_field form.can_share_gas %}
+                <label class="text-sm text-white/70">Могу скинуться на бензин</label>
+            </div>
+            <div class="flex items-center gap-3">
+                {% render_field form.flexible_time %}
+                <label class="text-sm text-white/70">Гибкое время</label>
+            </div>
+            {% render_field form.notes class="form-input" placeholder="Заметки" rows="2" %}
+
             <div class="flex gap-3 pt-2">
                 <button type="submit"
                         class="flex-1 py-3 bg-secondary hover:brightness-110 text-[#213600] rounded-xl font-semibold transition-all">

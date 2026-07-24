@@ -1,4 +1,4 @@
-{% load crispy_forms_tags %}
+{% load widget_tweaks %}
 {% with form=driver_form %}{% if form %}
 {# ── ADD CAR MODAL ──────────────────────────────────────────────────────────── #}
 <div x-data="{ open: false }"
@@ -18,13 +18,27 @@
             </button>
         </div>
 
-        <form hx-post="{% url 'event_add_driver' page.slug %}"
+        <form hx-post="{% pageurl page %}/carpool/add-driver/"
               hx-target="#drivers-section"
               hx-swap="innerHTML"
               @htmx:after-request="if(event.detail.successful) open = false"
               class="space-y-4">
             {% csrf_token %}
-            {% crispy form %}
+
+            {% render_field form.name class="form-input" placeholder="Ваше имя" %}
+            {% render_field form.telegram class="form-input" placeholder="Telegram" %}
+            {% render_field form.phone class="form-input" placeholder="Телефон" %}
+            {% render_field form.car_model class="form-input" placeholder="Марка / цвет авто" %}
+            {% render_field form.car_type class="form-input" placeholder="Тип авто" %}
+            {% render_field form.departure_location class="form-input" placeholder="Откуда" %}
+            {% render_field form.departure_date class="form-input" type="date" %}
+            {% render_field form.departure_time class="form-input" type="time" placeholder="—" %}
+            {% render_field form.return_date class="form-input" type="date" %}
+            {% render_field form.return_time class="form-input" type="time" placeholder="—" %}
+            {% render_field form.seats_total class="form-input" min="1" max="20" %}
+            {% render_field form.notes class="form-input" placeholder="Заметки" rows="2" %}
+            {% render_field form.contact_preference class="form-select" %}
+
             <div class="flex gap-3 pt-2">
                 <button type="submit"
                         class="flex-1 py-3 bg-primary hover:brightness-110 text-[#213600] rounded-xl font-semibold transition-all">

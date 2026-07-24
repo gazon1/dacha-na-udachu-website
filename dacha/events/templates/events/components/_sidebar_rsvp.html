@@ -76,7 +76,7 @@
 
             {# RSVP form — htmx, transitions to voted state on success #}
             <form
-                hx-post="{% url 'event_rsvp' page.slug %}"
+                hx-post="{% pageurl page %}/rsvp/"
                 hx-swap="none"
                 x-data="{ submitting: false }"
                 @htmx:before-request="submitting = true"

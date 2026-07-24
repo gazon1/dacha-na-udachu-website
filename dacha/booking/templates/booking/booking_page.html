@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load crispy_forms_tags %}
+{% load widget_tweaks %}
 
 {% block content %}
 <div class="container">
@@ -13,9 +13,16 @@
     </div>
     {% endif %}
 
-    <form method="post" action="{% url 'submit_booking' %}" class="booking-form" x-data="bookingForm()">
+    <form method="post" action="{% url 'submit_booking' %}" class="booking-form space-y-4" x-data="bookingForm()">
         {% csrf_token %}
-        {{ form|crispy }}
+
+        {{ form.house }}
+        {% render_field form.check_in class="form-input" %}
+        {% render_field form.check_out class="form-input" %}
+        {% render_field form.name class="form-input" placeholder="Ваше имя" %}
+        {% render_field form.phone class="form-input" id="phone" placeholder="+7 (___) ___-__-__" %}
+        {% render_field form.telegram class="form-input" placeholder="Telegram" %}
+        {% render_field form.guest_num class="form-select" %}
 
         <div class="booking-summary" x-show="nights > 0">
             <h3>Итого</h3>
@@ -26,4 +33,3 @@
     </form>
 </div>
 {% endblock %}
-

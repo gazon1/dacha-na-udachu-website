@@ -1,13 +1,22 @@
+import datetime
+
 from django.db import models
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from django.views.decorators.http import require_POST
+
 from wagtail import blocks
 from wagtail.models import Page
+from wagtail.contrib.routable_page.models import RoutablePageMixin, route
 from wagtail import fields
 from wagtail.admin.panels import FieldPanel
 from wagtail.images.blocks import ImageChooserBlock
+
 from dacha.blocks import (
     InfoCardBlock, FaqBlock, CtaCardBlock, AmenityItemBlock,
     RichTextBlock as DachaRichTextBlock,
 )
+from events.http_utils import htmx_error
 
 
 class EventRSVP(models.Model):
@@ -242,7 +251,7 @@ class TaxiPassenger(models.Model):
         return f"{self.name} — {self.seats} мест в такси"
 
 
-class EventPage(Page):
+class EventPage(RoutablePageMixin, Page):
     start_date = models.DateField("Дата начала")
     end_date = models.DateField("Дата окончания", null=True, blank=True)
     start_time = models.TimeField("Время начала", null=True, blank=True)
@@ -312,6 +321,123 @@ class EventPage(Page):
     @property
     def maybe_count(self):
         return self.rsvps.filter(status="maybe").count()
+
+    # ─── Routable routes ───────────────────────────────────────────────────────
+
+    @route("rsvp/")
+    def event_rsvp(self, request):
+        """Handle RSVP form submission via HTMX."""
+        from events.forms import RSVPForm
+        form = RSVPForm(request.POST)
+        if not form.is_valid():
+            return htmx_error("Имя обязательно")
+
+        rsvp, created = EventRSVP.objects.update_or_create(
+            event=self,
+            name=form.cleaned_data["name"],
+            defaults={
+                "status": form.cleaned_data["status"],
+                "guests_count": form.cleaned_data["guests_count"],
+            },
+        )
+
+        return HttpResponse(render_to_string("events/components/_rsvp_count.html", {
+            "total": self.total_attending,
+            "going": self.going_count,
+            "maybe": self.maybe_count,
+        }))
+
+    @route("carpool/")
+    def event_carpool_section(self, request):
+        """Return full carpool section HTML."""
+        from events.forms import DriverForm, CarpoolRequestForm, TaxiPoolForm
+        return HttpResponse(render_to_string("events/components/_drivers.html", {
+            "page": self,
+            "driver_form": DriverForm(),
+            "carpool_request_form": CarpoolRequestForm(),
+            "taxi_pool_form": TaxiPoolForm(),
+        }, request=request))
+
+    @route("carpool/add-driver/")
+    @require_POST
+    def event_add_driver(self, request):
+        """Add a new driver offer."""
+        from events.forms import DriverForm
+        form = DriverForm(request.POST)
+        if not form.is_valid():
+            return htmx_error("Заполните обязательные поля")
+
+        driver = form.save(commit=False)
+        driver.event = self
+        driver.save()
+
+        return HttpResponse(render_to_string("events/components/_drivers.html", {
+            "page": self,
+            "success": f"Машина добавлена! {self.url}#driver-{driver.id}",
+        }, request=request))
+
+    @route("carpool/add-request/")
+    @require_POST
+    def event_add_carpool_request(self, request):
+        """Add a ride request (looking for a ride)."""
+        from events.forms import CarpoolRequestForm
+        form = CarpoolRequestForm(request.POST)
+        if not form.is_valid():
+            return htmx_error("Заполните обязательные поля")
+
+        carpool = form.save(commit=False)
+        carpool.event = self
+        carpool.save()
+
+        return HttpResponse(render_to_string("events/components/_drivers.html", {
+            "page": self,
+        }, request=request))
+
+    @route("carpool/add-taxi/")
+    @require_POST
+    def event_add_taxi_pool(self, request):
+        """Create a shared taxi pool."""
+        from events.forms import TaxiPoolForm
+        form = TaxiPoolForm(request.POST)
+        if not form.is_valid():
+            return htmx_error("Заполните обязательные поля")
+
+        pool = form.save(commit=False)
+        pool.event = self
+        pool.save()
+
+        return HttpResponse(render_to_string("events/components/_drivers.html", {
+            "page": self,
+        }, request=request))
+
+    @route("ical/")
+    def event_ical(self, request):
+        """Generate a minimal .ics calendar file for the event."""
+        start = datetime.datetime.combine(self.start_date, self.start_time or datetime.time(12, 0))
+        end = datetime.datetime.combine(self.end_date or self.start_date, datetime.time(23, 59))
+
+        uid = f"{self.slug}@dacha.local"
+        summary = self.title
+        location = self.venue or ""
+
+        lines = [
+            "BEGIN:VCALENDAR",
+            "VERSION:2.0",
+            "PRODID:-//Dacha//Event//RU",
+            "BEGIN:VEVENT",
+            f"UID:{uid}",
+            f"DTSTART:{start.strftime('%Y%m%dT%H%M%S')}",
+            f"DTEND:{end.strftime('%Y%m%dT%H%M%S')}",
+            f"SUMMARY:{summary}",
+            f"LOCATION:{location}",
+            "END:VEVENT",
+            "END:VCALENDAR",
+        ]
+        ics = "\r\n".join(lines)
+
+        response = HttpResponse(ics, content_type="text/calendar; charset=utf-8")
+        response["Content-Disposition"] = f"attachment; filename={self.slug}.ics"
+        return response
 
 
 class EventsIndexPage(Page):

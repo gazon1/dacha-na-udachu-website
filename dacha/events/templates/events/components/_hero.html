@@ -33,7 +33,7 @@
             </a>
 
             {# Add to calendar — generate .ics #}
-            <a href="{% url 'event_ical' page.slug %}"
+            <a href="{% pageurl page %}/ical/"
                class="glass-card text-white px-8 py-4 rounded-xl text-sm font-medium flex items-center gap-2 transition-all hover:bg-white/10">
                 <span class="material-symbols-outlined">calendar_today</span>
                 Добавить в календарь

@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.postgres",
     "django.contrib.sites",
     "django.contrib.sitemaps",
     "django.contrib.humanize",
@@ -54,8 +55,7 @@ INSTALLED_APPS = [
     "modelcluster",
     "taggit",
     "django_filters",
-    "crispy_forms",
-    "crispy_tailwind",
+    "widget_tweaks",
     "booking",
     "houses",
     "events",
@@ -63,6 +63,8 @@ INSTALLED_APPS = [
     "news",
     "core",
 ]
+
+AUTH_USER_MODEL = "core.User"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

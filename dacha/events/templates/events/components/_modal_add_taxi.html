@@ -1,4 +1,4 @@
-{% load crispy_forms_tags %}
+{% load widget_tweaks %}
 {% with form=taxi_pool_form %}{% if form %}
 {# ── TAXI MODAL ─────────────────────────────────────────────────────────────── #}
 <div x-data="{ open: false }"
@@ -18,13 +18,23 @@
             </button>
         </div>
 
-        <form hx-post="{% url 'event_add_taxi_pool' page.slug %}"
+        <form hx-post="{% pageurl page %}/carpool/add-taxi/"
               hx-target="#drivers-section"
               hx-swap="innerHTML"
               @htmx:after-request="if(event.detail.successful) open = false"
               class="space-y-4">
             {% csrf_token %}
-            {% crispy form %}
+
+            {% render_field form.organizer class="form-input" placeholder="Ваше имя" %}
+            {% render_field form.telegram class="form-input" placeholder="Telegram" %}
+            {% render_field form.pickup_location class="form-input" placeholder="Точка сбора" %}
+            {% render_field form.departure_date class="form-input" type="date" %}
+            {% render_field form.departure_time class="form-input" type="time" %}
+            {% render_field form.max_passengers class="form-input" min="1" max="20" %}
+            {% render_field form.estimated_price class="form-input" min="0" placeholder="Цена с человека" %}
+            {% render_field form.service class="form-select" %}
+            {% render_field form.notes class="form-input" placeholder="Заметки" rows="2" %}
+
             <div class="flex gap-3 pt-2">
                 <button type="submit"
                         class="flex-1 py-3 bg-community-magenta hover:brightness-110 text-white rounded-xl font-semibold transition-all">

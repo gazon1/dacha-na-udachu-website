@@ -7,15 +7,20 @@ from django.core.exceptions import ValidationError
 class BookingForm(forms.ModelForm):
     class Meta:
         model = Booking
-        fields = ["check_in", "check_out", "name", "phone", "telegram", "guest_num"]
+        fields = ["house", "check_in", "check_out", "name", "phone", "telegram", "guest_num"]
         widgets = {
-            "check_in": forms.DateInput(attrs={"type": "date", "class": "input"}),
-            "check_out": forms.DateInput(attrs={"type": "date", "class": "input"}),
-            "name": forms.TextInput(attrs={"class": "input"}),
-            "phone": forms.TextInput(attrs={"class": "input", "id": "phone"}),
-            "telegram": forms.TextInput(attrs={"class": "input"}),
-            "guest_num": forms.Select(choices=[(i, str(i)) for i in range(1, 9)], attrs={"class": "input"}),
+            "house": forms.HiddenInput(),
+            "check_in": forms.DateInput(attrs={"type": "date"}),
+            "check_out": forms.DateInput(attrs={"type": "date"}),
         }
+        labels = {
+            "guest_num": "Гостей",
+        }
+
+    guest_num = forms.ChoiceField(
+        choices=[(i, str(i)) for i in range(1, 9)],
+        label="Гостей",
+    )
 
     def clean_phone(self):
         phone = self.cleaned_data["phone"]
