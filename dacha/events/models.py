@@ -451,17 +451,27 @@ class EventsIndexPage(Page):
 
     def get_context(self, request):
         from django.utils import timezone
+        from django_tables2 import RequestConfig
+        from .filters import EventPageFilterSet
+        from .tables import PastEventTable
+
         context = super().get_context(request)
         now = timezone.now().date()
         upcoming = EventPage.objects.filter(
             start_date__gte=now
         ).live().public().order_by("start_date")
         context["upcoming_events"] = upcoming
-        context["featured_event"] = upcoming.first()  # already shown as featured, excluded from grid
-        context["grid_events"] = list(upcoming[1:])  # rest for the grid (no duplicate)
-        context["past_events"] = EventPage.objects.filter(
-            start_date__lt=now
-        ).live().public().order_by("-start_date")
+        context["featured_event"] = upcoming.first()
+        context["grid_events"] = list(upcoming[1:])
+
+        # Past events with django-filter + django-tables2
+        base_qs = EventPage.objects.filter(start_date__lt=now).live().public()
+        past_filter = EventPageFilterSet(request.GET, queryset=base_qs)
+        past_table = PastEventTable(past_filter.qs)
+        RequestConfig(request, paginate={"per_page": 25}).configure(past_table)
+
+        context["past_filter"] = past_filter
+        context["past_table"] = past_table
 
         # Sum all attendees across upcoming events
         total = 0

@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     "modelcluster",
     "taggit",
     "django_filters",
+    "django_tables2",
     "widget_tweaks",
     "booking",
     "houses",

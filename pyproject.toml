@@ -24,6 +24,10 @@ dependencies = [
     "django-vite>=3.0",
     # HTMX helpers
     "django-htmx>=1.0",
+    # New dependencies
+    "django-filter>=25.1",
+    "django-tables2>=2.7",
+
 ]
 
 [project.optional-dependencies]
@@ -52,12 +56,36 @@ package = false
 # --- Ruff ---
 [tool.ruff]
 exclude = [
-    ".bzr", ".direnv", ".eggs", ".env", ".git", ".git-rewrite",
-    ".hg", ".ipynb_checkpoints", ".mypy_cache", ".nox", ".pants.d",
-    ".pyenv", ".pytest_cache", ".pytype", ".ruff_cache", ".svn",
-    ".tox", ".venv", ".vscode", "__pypackages__", "_build", "buck-out",
-    "build", "dist", "env", "node_modules", "site-packages", "static",
-    "frontend", "templates",
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".env",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "env",
+    "node_modules",
+    "site-packages",
+    "static",
+    "frontend",
+    "templates",
 ]
 src = ["."]
 line-length = 120
@@ -71,7 +99,13 @@ fixable = ["ALL"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["apps", "dacha"]
-section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder",
+]
 
 [tool.ruff.format]
 quote-style = "double"

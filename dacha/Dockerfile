@@ -17,8 +17,8 @@ RUN apt-get update --yes --quiet && apt-get install --yes --quiet --no-install-r
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Install the project requirements.
-COPY requirements.txt /
-RUN pip install -r /requirements.txt
+COPY pyproject.toml /
+RUN pip install -e /
 
 # Install the application server.
 RUN pip install "gunicorn==25.1.0"
