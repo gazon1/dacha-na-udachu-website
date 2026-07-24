@@ -1,7 +1,6 @@
 {% load wagtailcore_tags %}
 {# Drivers / Ride-share coordination block #}
 {% with page.drivers.all as drivers %}{% with page.carpool_requests.all as carpool_requests %}{% with page.taxi_pools.all as taxi_pools %}
-{% with drivers|length as drivers_count %}{% with carpool_requests|length as requests_count %}{% with taxi_pools|length as pools_count %}
 
 {# Success message if any #}
 {% if success %}
@@ -21,38 +20,39 @@
     </div>
 
     {# ── Tabs ───────────────────────────────────────────── #}
-    <div class="flex gap-2 flex-wrap" x-data="{ activeTab: 'cars' }">
+    <div class="flex gap-2 flex-wrap"
+         x-data="{
+             activeTab: sessionStorage.getItem('driversTab') || 'cars'
+         }"
+         x-effect="sessionStorage.setItem('driversTab', activeTab)">
         <button @click="activeTab = 'cars'"
                 :class="activeTab === 'cars' ? 'bg-primary text-[#213600]' : 'bg-white/5 text-white hover:bg-white/10'"
                 class="px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2">
             <span>🚗</span> Машины
-            {% if drivers_count %}<span class="opacity-60">({{ drivers_count }})</span>{% endif %}
+            {% if drivers %}<span class="opacity-60">({{ drivers|length }})</span>{% endif %}
         </button>
         <button @click="activeTab = 'search'"
                 :class="activeTab === 'search' ? 'bg-secondary text-[#213600]' : 'bg-white/5 text-white hover:bg-white/10'"
                 class="px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2">
             <span>🔍</span> Ищу попутку
-            {% if requests_count %}<span class="opacity-60">({{ requests_count }})</span>{% endif %}
+            {% if carpool_requests %}<span class="opacity-60">({{ carpool_requests|length }})</span>{% endif %}
         </button>
         <button @click="activeTab = 'taxi'"
                 :class="activeTab === 'taxi' ? 'bg-community-magenta text-white' : 'bg-white/5 text-white hover:bg-white/10'"
                 class="px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2">
             <span>🚕</span> Такси
-            {% if pools_count %}<span class="opacity-60">({{ pools_count }})</span>{% endif %}
+            {% if taxi_pools %}<span class="opacity-60">({{ taxi_pools|length }})</span>{% endif %}
         </button>
     </div>
 
     {# ── CARS TAB ────────────────────────────────────────── #}
     <div x-show="activeTab === 'cars'" x-cloak>
-
-        {# Add Car Button #}
         <button @click="$dispatch('open-add-car-modal')"
                 class="w-full mb-4 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2">
             <span class="material-symbols-outlined">add</span>
             Добавить машину
         </button>
 
-        {# Cars List #}
         {% if drivers %}
         <div class="space-y-3">
             {% for driver in drivers %}
@@ -68,7 +68,6 @@
 
     {# ── SEARCH TAB ────────────────────────────────────── #}
     <div x-show="activeTab === 'search'" x-cloak>
-        {# Add Request Button #}
         <button @click="$dispatch('open-search-modal')"
                 class="w-full mb-4 bg-secondary/10 hover:bg-secondary/20 text-secondary border border-secondary/20 px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2">
             <span class="material-symbols-outlined">add</span>
@@ -103,7 +102,6 @@
 
     {# ── TAXI TAB ───────────────────────────────────────── #}
     <div x-show="activeTab === 'taxi'" x-cloak>
-        {# Add Taxi Button #}
         <button @click="$dispatch('open-taxi-modal')"
                 class="w-full mb-4 bg-community-magenta/10 hover:bg-community-magenta/20 text-community-magenta border border-community-magenta/20 px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2">
             <span class="material-symbols-outlined">add</span>
@@ -113,7 +111,7 @@
         {% if taxi_pools %}
         <div class="space-y-3">
             {% for pool in taxi_pools %}
-            <div class="glass-card p-4 rounded-xl border-l-4 border-community-magenta">
+            <div class="glass-card p-4 rounded-xl border-l-4 border-community-magenta" id="taxi-pool-{{ pool.id }}">
                 <div class="flex items-center justify-between mb-2">
                     <span class="font-bold text-white flex items-center gap-2">
                         <span>🚕</span> {{ pool.organizer }}
@@ -128,15 +126,13 @@
                     {{ pool.get_service_display }} · {{ pool.spots_left }} из {{ pool.max_passengers }} свободно
                 </p>
 
-                {# Join Taxi Form #}
+                {# Join Taxi Form — still inline (simple 2-field form) #}
                 <form hx-post="{% url 'event_join_taxi' pool.id %}"
                       hx-target="#taxi-pool-{{ pool.id }}"
                       hx-swap="outerHTML"
                       class="space-y-2">
-                    <input type="text" name="name" placeholder="Ваше имя" required
-                           class="w-full bg-surface-2 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-base-content/30 focus:outline-none focus:border-primary/50">
-                    <input type="text" name="telegram" placeholder="@telegram"
-                           class="w-full bg-surface-2 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-base-content/30 focus:outline-none focus:border-primary/50">
+                    <input type="text" name="name" placeholder="Ваше имя" required class="form-input text-sm">
+                    <input type="text" name="telegram" placeholder="@telegram" class="form-input text-sm">
                     <button type="submit"
                             class="w-full py-2 bg-community-magenta/20 hover:bg-community-magenta/30 text-community-magenta rounded-lg text-sm font-medium transition-all">
                         + Присоединиться
@@ -159,297 +155,9 @@
     </p>
 </div>
 
-{# ── ADD CAR MODAL ─────────────────────────────────────────────────────────── #}
-<div x-data="{ open: false }"
-     @open-add-car-modal.window="open = true"
-     @keydown.escape.window="open = false"
-     x-show="open"
-     class="fixed inset-0 z-50 flex items-center justify-center p-4"
-     x-cloak>
-    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="open = false"></div>
-    <div class="relative bg-surface border border-stroke rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+{# ── Modals (crispy forms) ──────────────────────────────────────────────── #}
+{% include "events/components/_modal_add_driver.html" %}
+{% include "events/components/_modal_add_request.html" %}
+{% include "events/components/_modal_add_taxi.html" %}
 
-        <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-bold text-white">🚗 Добавить машину</h3>
-            <button @click="open = false" class="text-base-content/40 hover:text-white transition-colors">
-                <span class="material-symbols-outlined">close</span>
-            </button>
-        </div>
-
-        <form hx-post="{% url 'event_add_driver' page.slug %}"
-              hx-target="#drivers-section"
-              hx-swap="innerHTML"
-              @htmx:after-request="if(event.detail.successful) open = false"
-              class="space-y-4">
-            {% csrf_token %}
-
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm text-base-content/60 mb-1">Ваше имя *</label>
-                    <input type="text" name="name" required
-                           class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-base-content/30 focus:outline-none focus:border-primary/50">
-                </div>
-                <div>
-                    <label class="block text-sm text-base-content/60 mb-1">Telegram *</label>
-                    <input type="text" name="telegram" placeholder="@username"
-                           class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-base-content/30 focus:outline-none focus:border-primary/50">
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm text-base-content/60 mb-1">Марка/цвет</label>
-                    <input type="text" name="car_model" placeholder="Kia Rio, белый"
-                           class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-base-content/30 focus:outline-none focus:border-primary/50">
-                </div>
-                <div>
-                    <label class="block text-sm text-base-content/60 mb-1">Всего мест *</label>
-                    <input type="number" name="seats_total" value="4" min="2" max="8"
-                           class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50">
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-sm text-base-content/60 mb-1">Откуда *</label>
-                <input type="text" name="departure_location" placeholder="м. Тульская, выход 2" required
-                       class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-base-content/30 focus:outline-none focus:border-primary/50">
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm text-base-content/60 mb-1">Дата выезда</label>
-                    <input type="date" name="departure_date"
-                           class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50">
-                </div>
-                <div>
-                    <label class="block text-sm text-base-content/60 mb-1">Время</label>
-                    <input type="time" name="departure_time"
-                           class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50">
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm text-base-content/60 mb-1">Обратно (дата)</label>
-                    <input type="date" name="return_date"
-                           class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50">
-                </div>
-                <div>
-                    <label class="block text-sm text-base-content/60 mb-1">Обратно (время)</label>
-                    <input type="time" name="return_time"
-                           class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50">
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-sm text-base-content/60 mb-1">Заметки</label>
-                <textarea name="notes" rows="3" placeholder="Заезжаю в Химки, можно с собакой, не курю..."
-                          class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-base-content/30 focus:outline-none focus:border-primary/50 resize-none"></textarea>
-            </div>
-
-            <div>
-                <label class="block text-sm text-base-content/60 mb-1">Связаться через</label>
-                <select name="contact_preference"
-                        class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50">
-                    <option value="telegram">Telegram</option>
-                    <option value="phone">Телефон</option>
-                    <option value="both">Оба</option>
-                </select>
-            </div>
-
-            <div class="flex gap-3 pt-2">
-                <button type="submit"
-                        class="flex-1 py-3 bg-primary hover:brightness-110 text-[#213600] rounded-xl font-semibold transition-all">
-                    Опубликовать
-                </button>
-                <button type="button" @click="open = false"
-                        class="px-6 py-3 glass-card text-white rounded-xl font-medium hover:bg-white/10 transition-all">
-                    Отмена
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-{# ── SEARCH MODAL ───────────────────────────────────────────────────────────── #}
-<div x-data="{ open: false }"
-     @open-search-modal.window="open = true"
-     @keydown.escape.window="open = false"
-     x-show="open"
-     class="fixed inset-0 z-50 flex items-center justify-center p-4"
-     x-cloak>
-    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="open = false"></div>
-    <div class="relative bg-surface border border-stroke rounded-2xl p-6 max-w-md w-full">
-
-        <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-bold text-white">🔍 Ищу попутку</h3>
-            <button @click="open = false" class="text-base-content/40 hover:text-white transition-colors">
-                <span class="material-symbols-outlined">close</span>
-            </button>
-        </div>
-
-        <form hx-post="{% url 'event_add_carpool_request' page.slug %}"
-              hx-target="#drivers-section"
-              hx-swap="innerHTML"
-              @htmx:after-request="if(event.detail.successful) open = false"
-              class="space-y-4">
-            {% csrf_token %}
-
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm text-base-content/60 mb-1">Ваше имя *</label>
-                    <input type="text" name="name" required
-                           class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-base-content/30 focus:outline-none focus:border-primary/50">
-                </div>
-                <div>
-                    <label class="block text-sm text-base-content/60 mb-1">Telegram</label>
-                    <input type="text" name="telegram" placeholder="@username"
-                           class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-base-content/30 focus:outline-none focus:border-primary/50">
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm text-base-content/60 mb-1">Откуда *</label>
-                    <input type="text" name="pickup_location" placeholder="м. Планерная" required
-                           class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-base-content/30 focus:outline-none focus:border-primary/50">
-                </div>
-                <div>
-                    <label class="block text-sm text-base-content/60 mb-1">Сколько мест</label>
-                    <input type="number" name="seats_needed" value="1" min="1" max="6"
-                           class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50">
-                </div>
-            </div>
-
-            <div class="flex gap-4">
-                <label class="flex items-center gap-2 text-sm text-base-content/60 cursor-pointer">
-                    <input type="checkbox" name="flexible_time"
-                           class="w-4 h-4 rounded border-white/20 bg-surface-2 text-primary focus:ring-primary">
-                    Гибкое время
-                </label>
-                <label class="flex items-center gap-2 text-sm text-base-content/60 cursor-pointer">
-                    <input type="checkbox" name="can_share_gas"
-                           class="w-4 h-4 rounded border-white/20 bg-surface-2 text-primary focus:ring-primary">
-                    Могу скинуться
-                </label>
-            </div>
-
-            <div>
-                <label class="block text-sm text-base-content/60 mb-1">Заметки</label>
-                <textarea name="notes" rows="2" placeholder="Готов к раннему выезду..."
-                          class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-base-content/30 focus:outline-none focus:border-primary/50 resize-none"></textarea>
-            </div>
-
-            <div class="flex gap-3 pt-2">
-                <button type="submit"
-                        class="flex-1 py-3 bg-secondary hover:brightness-110 text-[#213600] rounded-xl font-semibold transition-all">
-                    Опубликовать
-                </button>
-                <button type="button" @click="open = false"
-                        class="px-6 py-3 glass-card text-white rounded-xl font-medium hover:bg-white/10 transition-all">
-                    Отмена
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-{# ── TAXI MODAL ─────────────────────────────────────────────────────────────── #}
-<div x-data="{ open: false }"
-     @open-taxi-modal.window="open = true"
-     @keydown.escape.window="open = false"
-     x-show="open"
-     class="fixed inset-0 z-50 flex items-center justify-center p-4"
-     x-cloak>
-    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="open = false"></div>
-    <div class="relative bg-surface border border-stroke rounded-2xl p-6 max-w-md w-full">
-
-        <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-bold text-white">🚕 Собрать такси</h3>
-            <button @click="open = false" class="text-base-content/40 hover:text-white transition-colors">
-                <span class="material-symbols-outlined">close</span>
-            </button>
-        </div>
-
-        <form hx-post="{% url 'event_add_taxi_pool' page.slug %}"
-              hx-target="#drivers-section"
-              hx-swap="innerHTML"
-              @htmx:after-request="if(event.detail.successful) open = false"
-              class="space-y-4">
-            {% csrf_token %}
-
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm text-base-content/60 mb-1">Организатор *</label>
-                    <input type="text" name="organizer" required
-                           class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-base-content/30 focus:outline-none focus:border-primary/50">
-                </div>
-                <div>
-                    <label class="block text-sm text-base-content/60 mb-1">Telegram</label>
-                    <input type="text" name="telegram" placeholder="@username"
-                           class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-base-content/30 focus:outline-none focus:border-primary/50">
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-sm text-base-content/60 mb-1">Точка сбора *</label>
-                <input type="text" name="pickup_location" placeholder="м. Тульская" required
-                       class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-base-content/30 focus:outline-none focus:border-primary/50">
-            </div>
-
-            <div class="grid grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-sm text-base-content/60 mb-1">Дата *</label>
-                    <input type="date" name="departure_date" required
-                           class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50">
-                </div>
-                <div>
-                    <label class="block text-sm text-base-content/60 mb-1">Время *</label>
-                    <input type="time" name="departure_time" required
-                           class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50">
-                </div>
-                <div>
-                    <label class="block text-sm text-base-content/60 mb-1">Макс. людей</label>
-                    <input type="number" name="max_passengers" value="4" min="2" max="8"
-                           class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50">
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm text-base-content/60 mb-1">Цена/чел ₽</label>
-                    <input type="number" name="estimated_price" placeholder="350" min="0"
-                           class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-base-content/30 focus:outline-none focus:border-primary/50">
-                </div>
-                <div>
-                    <label class="block text-sm text-base-content/60 mb-1">Сервис</label>
-                    <select name="service"
-                            class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50">
-                        <option value="yandex">Яндекс</option>
-                        <option value="citymobil">Ситимобил</option>
-                        <option value="other">Другое</option>
-                    </select>
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-sm text-base-content/60 mb-1">Заметки</label>
-                <textarea name="notes" rows="2" placeholder="Ждём 5 минут..."
-                          class="w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-base-content/30 focus:outline-none focus:border-primary/50 resize-none"></textarea>
-            </div>
-
-            <div class="flex gap-3 pt-2">
-                <button type="submit"
-                        class="flex-1 py-3 bg-community-magenta hover:brightness-110 text-white rounded-xl font-semibold transition-all">
-                    Создать
-                </button>
-                <button type="button" @click="open = false"
-                        class="px-6 py-3 glass-card text-white rounded-xl font-medium hover:bg-white/10 transition-all">
-                    Отмена
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-{% endwith %}{% endwith %}{% endwith %}{% endwith %}{% endwith %}{% endwith %}
+{% endwith %}{% endwith %}{% endwith %}

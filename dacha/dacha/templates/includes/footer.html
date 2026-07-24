@@ -22,8 +22,9 @@
             <div>
                 <h3 class="text-white font-semibold mb-4">Контакты</h3>
                 <ul class="space-y-2 text-sm text-gray-400">
-                    <li>📞 +7 (xxx) xxx-xx-xx</li>
-                    <li>✉️ info@dacha.maxdrobin.ru</li>
+                    {% if request.settings.phone %}<li>📞 {{ request.settings.phone }}</li>{% endif %}
+                    {% if request.settings.email %}<li>✉️ {{ request.settings.email }}</li>{% endif %}
+                    {% if request.settings.telegram_url %}<li><a href="{{ request.settings.telegram_url }}" class="hover:text-white transition-colors">Telegram</a></li>{% endif %}
                 </ul>
             </div>
         </div>

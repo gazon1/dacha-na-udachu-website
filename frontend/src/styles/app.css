@@ -180,6 +180,18 @@ body {
   }
 }
 
+/* ---- Form inputs (shared across all carpool modals) ---- */
+.form-input {
+  @apply w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-base-content/30 focus:outline-none focus:border-primary/50;
+}
+.form-input:where(textarea) {
+  @apply resize-none;
+}
+.form-select {
+  @apply w-full bg-surface-2 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50;
+}
+
+
 /* ---- Prose styles ---- */
 .prose {
   --tw-prose-body: #c2cab0;

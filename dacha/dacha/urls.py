@@ -1,3 +1,5 @@
+import json
+
 from django.conf import settings
 from django.urls import include, path
 from django.contrib import admin
@@ -15,13 +17,31 @@ import booking.urls as booking_urls
 import events.urls as events_urls
 
 
+def _htmx_error(message: str, status: int = 400):
+    """HTMX error response with toast trigger."""
+    response = HttpResponse(message, status=status)
+    response["HX-Trigger"] = json.dumps({
+        "showToast": {"message": message, "type": "error"}
+    })
+    return response
+
+
+def _htmx_success(message: str):
+    """HTMX success response with toast trigger."""
+    response = HttpResponse(message)
+    response["HX-Trigger"] = json.dumps({
+        "showToast": {"message": message, "type": "success"}
+    })
+    return response
+
+
 def newsletter(request):
-    """Simple newsletter signup - stores email in session for now."""
-    email = request.POST.get("email")
-    if email:
-        request.session["newsletter_email"] = email
-        return HttpResponse("Спасибо за подписку!")
-    return HttpResponse("Укажите email", status=400)
+    """Newsletter signup — stores email in session, returns HTMX-aware response."""
+    email = request.POST.get("email", "").strip()
+    if not email:
+        return _htmx_error("Укажите email")
+    request.session["newsletter_email"] = email
+    return _htmx_success("Подписка оформлена!")
 
 
 def health_check(request):

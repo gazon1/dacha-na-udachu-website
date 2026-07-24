@@ -27,36 +27,3 @@
 </div>
 {% endblock %}
 
-{% block extra_js %}
-<script>
-function bookingForm() {
-  return {
-    nights: 0,
-
-    init() {
-      const checkIn = document.querySelector('[name="check_in"]');
-      const checkOut = document.querySelector('[name="check_out"]');
-
-      if (checkIn && checkOut) {
-        checkIn.addEventListener('change', () => this.calculate());
-        checkOut.addEventListener('change', () => this.calculate());
-      }
-    },
-
-    calculate() {
-      const checkIn = document.querySelector('[name="check_in"]');
-      const checkOut = document.querySelector('[name="check_out"]');
-
-      if (checkIn && checkOut && checkIn.value && checkOut.value) {
-        const d1 = new Date(checkIn.value);
-        const d2 = new Date(checkOut.value);
-        const diff = (d2 - d1) / (1000 * 60 * 60 * 24);
-        this.nights = diff > 0 ? diff : 0;
-      } else {
-        this.nights = 0;
-      }
-    }
-  }
-}
-</script>
-{% endblock %}

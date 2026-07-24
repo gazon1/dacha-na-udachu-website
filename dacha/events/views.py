@@ -52,6 +52,9 @@ def event_carpool_section(request, slug):
     event = get_object_or_404(EventPage, slug=slug)
     return HttpResponse(render_to_string("events/components/_drivers.html", {
         "page": event,
+        "driver_form": DriverForm(),
+        "carpool_request_form": CarpoolRequestForm(),
+        "taxi_pool_form": TaxiPoolForm(),
     }, request=request))
 
 

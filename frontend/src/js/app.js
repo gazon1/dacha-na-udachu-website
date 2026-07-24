@@ -8,6 +8,7 @@ import Alpine from "alpinejs";
 import collapse from "@alpinejs/collapse";
 import focus from "@alpinejs/focus";
 import mask from "@alpinejs/mask";
+import persist from "@alpinejs/persist";
 import htmx from "htmx.org";
 
 window.Alpine = Alpine;
@@ -68,19 +69,76 @@ document.addEventListener("alpine:init", () => {
       this.seconds = Math.floor((diff % 60000) / 1000);
     },
   }));
+
+  // RSVP Widget — voted state persisted per-event in localStorage via @alpinejs/persist
+  Alpine.data("rsvpWidget", function (slug) {
+    return {
+      voted: this.$persist(false).as("rsvp_voted_" + slug),
+      showMenu: false,
+      vote() {
+        this.voted = true;
+      },
+      resetVote() {
+        this.voted = false;
+        this.showMenu = false;
+      },
+    };
+  });
 });
 
 Alpine.plugin(focus);   // x-trap + a11y focus management
 Alpine.plugin(mask);    // x-mask for phone inputs
 Alpine.plugin(collapse);
+Alpine.plugin(persist); // x-persist for localStorage-backed state
 Alpine.start();
+
+// Booking form — night calculator (used in booking_page.html via x-data="bookingForm()")
+window.bookingForm = function () {
+  return {
+    nights: 0,
+
+    init() {
+      const checkIn = document.querySelector('[name="check_in"]');
+      const checkOut = document.querySelector('[name="check_out"]');
+      if (checkIn && checkOut) {
+        checkIn.addEventListener('change', () => this.calculate());
+        checkOut.addEventListener('change', () => this.calculate());
+      }
+    },
+
+    calculate() {
+      const checkIn = document.querySelector('[name="check_in"]');
+      const checkOut = document.querySelector('[name="check_out"]');
+      if (checkIn && checkOut && checkIn.value && checkOut.value) {
+        const d1 = new Date(checkIn.value);
+        const d2 = new Date(checkOut.value);
+        const diff = (d2 - d1) / (1000 * 60 * 60 * 24);
+        this.nights = diff > 0 ? diff : 0;
+      } else {
+        this.nights = 0;
+      }
+    },
+  };
+};
 
 // HTMX config
 htmx.config.timeout = 5000;
 htmx.config.defaultSwapStyle = "outerHTML";
 
-// HX-Trigger: return HTTP header "HX-Trigger: {\"showToast\": {...}}" from Django views
+// HX-Trigger: return HTTP header "HX-Trigger: {"showToast": {...}}" from Django views
 // to trigger toasts without DOM-parsing.  Alpine listens globally.
 window.addEventListener("showToast", (event) => {
   Alpine.store("toast").show(event.detail.message, event.detail.type);
+});
+
+// Global HTMX error handler — catches timeouts, 5xx, and any response
+// that doesn't carry an HX-Trigger header (hx-swap="none" forms especially).
+document.body.addEventListener("htmx:responseError", (event) => {
+  const xhr = event.detail.xhr;
+  if (!xhr.getResponseHeader("HX-Trigger")) {
+    Alpine.store("toast").show(
+      "Произошла ошибка. Попробуйте ещё раз.",
+      "error"
+    );
+  }
 });

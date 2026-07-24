@@ -1,6 +1,14 @@
 import json
+import re
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Layout, Fieldset, Submit, Button
 from django import forms
+from django.core.exceptions import ValidationError
+
 from .models import EventRSVP, EventDriver, RidePassenger, CarpoolRequest, TaxiPool, TaxiPassenger
+
+INPUT_CLASS = "form-input"
+SELECT_CLASS = "form-select"
 
 
 class RSVPForm(forms.ModelForm):
@@ -11,6 +19,13 @@ class RSVPForm(forms.ModelForm):
     name = forms.CharField(max_length=100)
     status = forms.ChoiceField(choices=EventRSVP.STATUS_CHOICES, required=False)
     guests_count = forms.IntegerField(min_value=0, required=False, initial=0)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        self.fields["name"].widget.attrs.update({"class": INPUT_CLASS, "placeholder": "Ваше имя"})
+        self.fields["guests_count"].widget.attrs.update({"class": INPUT_CLASS})
 
     def clean_name(self):
         return self.cleaned_data["name"].strip()[:100]
@@ -38,13 +53,29 @@ class DriverForm(forms.ModelForm):
     departure_time = forms.TimeField(required=False)
     return_date = forms.DateField(required=False)
     return_time = forms.TimeField(required=False)
+    # seats_total: 1-20 to match form validation (removed 2-8 from old HTML)
     seats_total = forms.IntegerField(min_value=1, max_value=20, initial=4)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        for field in ["name", "telegram", "phone", "car_model", "car_type",
+                       "departure_location", "notes"]:
+            self.fields[field].widget.attrs.update({"class": INPUT_CLASS})
+        for field in ["departure_date", "departure_time", "return_date", "return_time"]:
+            self.fields[field].widget.attrs.update({"class": INPUT_CLASS, "placeholder": "—"})
+        self.fields["seats_total"].widget.attrs.update({"class": INPUT_CLASS, "min": 1, "max": 20})
+        self.fields["contact_preference"].widget.attrs.update({"class": SELECT_CLASS})
 
     def clean_name(self):
         return self.cleaned_data["name"].strip()[:100]
 
     def clean_telegram(self):
-        return self.cleaned_data.get("telegram", "").strip().lstrip("@")
+        username = self.cleaned_data.get("telegram", "").strip().lstrip("@")
+        if username and not re.match(r'^[a-zA-Z0-9_]{5,32}$', username):
+            raise ValidationError("Telegram-username должен быть от 5 до 32 символов: латиница, цифры, _")
+        return username
 
 
 class PassengerForm(forms.ModelForm):
@@ -56,11 +87,22 @@ class PassengerForm(forms.ModelForm):
     pickup_location = forms.CharField(max_length=200, required=False)
     seats = forms.IntegerField(min_value=1, initial=1)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        for field in ["name", "telegram", "phone", "pickup_location", "notes"]:
+            self.fields[field].widget.attrs.update({"class": INPUT_CLASS})
+        self.fields["seats"].widget.attrs.update({"class": INPUT_CLASS, "min": 1})
+
     def clean_name(self):
         return self.cleaned_data["name"].strip()[:100]
 
     def clean_telegram(self):
-        return self.cleaned_data.get("telegram", "").strip().lstrip("@")
+        username = self.cleaned_data.get("telegram", "").strip().lstrip("@")
+        if username and not re.match(r'^[a-zA-Z0-9_]{5,32}$', username):
+            raise ValidationError("Telegram-username должен быть от 5 до 32 символов: латиница, цифры, _")
+        return username
 
 
 class CarpoolRequestForm(forms.ModelForm):
@@ -77,11 +119,22 @@ class CarpoolRequestForm(forms.ModelForm):
     can_share_gas = forms.BooleanField(required=False)
     flexible_time = forms.BooleanField(required=False)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        for field in ["name", "telegram", "phone", "pickup_location", "notes"]:
+            self.fields[field].widget.attrs.update({"class": INPUT_CLASS})
+        self.fields["seats_needed"].widget.attrs.update({"class": INPUT_CLASS, "min": 1, "max": 6})
+
     def clean_name(self):
         return self.cleaned_data["name"].strip()[:100]
 
     def clean_telegram(self):
-        return self.cleaned_data.get("telegram", "").strip().lstrip("@")
+        username = self.cleaned_data.get("telegram", "").strip().lstrip("@")
+        if username and not re.match(r'^[a-zA-Z0-9_]{5,32}$', username):
+            raise ValidationError("Telegram-username должен быть от 5 до 32 символов: латиница, цифры, _")
+        return username
 
 
 class TaxiPoolForm(forms.ModelForm):
@@ -100,11 +153,26 @@ class TaxiPoolForm(forms.ModelForm):
     max_passengers = forms.IntegerField(min_value=1, max_value=20, initial=4)
     estimated_price = forms.IntegerField(min_value=0, required=False, initial=0)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        for field in ["organizer", "telegram", "pickup_location", "notes"]:
+            self.fields[field].widget.attrs.update({"class": INPUT_CLASS})
+        for field in ["departure_date", "departure_time"]:
+            self.fields[field].widget.attrs.update({"class": INPUT_CLASS})
+        self.fields["max_passengers"].widget.attrs.update({"class": INPUT_CLASS, "min": 1, "max": 20})
+        self.fields["estimated_price"].widget.attrs.update({"class": INPUT_CLASS, "min": 0})
+        self.fields["service"].widget.attrs.update({"class": SELECT_CLASS})
+
     def clean_organizer(self):
         return self.cleaned_data["organizer"].strip()[:100]
 
     def clean_telegram(self):
-        return self.cleaned_data.get("telegram", "").strip().lstrip("@")
+        username = self.cleaned_data.get("telegram", "").strip().lstrip("@")
+        if username and not re.match(r'^[a-zA-Z0-9_]{5,32}$', username):
+            raise ValidationError("Telegram-username должен быть от 5 до 32 символов: латиница, цифры, _")
+        return username
 
 
 class TaxiPassengerForm(forms.ModelForm):
@@ -115,11 +183,22 @@ class TaxiPassengerForm(forms.ModelForm):
     name = forms.CharField(max_length=100)
     seats = forms.IntegerField(min_value=1, initial=1)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        for field in ["name", "telegram", "phone", "notes"]:
+            self.fields[field].widget.attrs.update({"class": INPUT_CLASS})
+        self.fields["seats"].widget.attrs.update({"class": INPUT_CLASS, "min": 1})
+
     def clean_name(self):
         return self.cleaned_data["name"].strip()[:100]
 
     def clean_telegram(self):
-        return self.cleaned_data.get("telegram", "").strip().lstrip("@")
+        username = self.cleaned_data.get("telegram", "").strip().lstrip("@")
+        if username and not re.match(r'^[a-zA-Z0-9_]{5,32}$', username):
+            raise ValidationError("Telegram-username должен быть от 5 до 32 символов: латиница, цифры, _")
+        return username
 
 
 # ─── HTMX error helper ───────────────────────────────────────────────────────

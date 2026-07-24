@@ -91,32 +91,7 @@
 
             {# Countdown timer #}
             {% if page.show_countdown and page.countdown_target %}
-            <div class="glass-card p-8 rounded-2xl text-center space-y-4 relative overflow-hidden"
-                 x-data="countdown('{{ page.countdown_target }}')">
-                <div class="absolute -top-10 -right-10 w-32 h-32 bg-brand-500/10 rounded-full blur-3xl"></div>
-                <p class="text-xs font-medium text-brand-400 uppercase tracking-widest">Начнётся через</p>
-                <div class="flex justify-center gap-4">
-                    <div class="space-y-1">
-                        <div class="text-[32px] font-bold text-white leading-none tabular-nums" x-text="days">0</div>
-                        <div class="text-[10px] font-medium uppercase opacity-60">Дней</div>
-                    </div>
-                    <div class="text-[32px] font-bold text-brand-400 leading-none">:</div>
-                    <div class="space-y-1">
-                        <div class="text-[32px] font-bold text-white leading-none tabular-nums" x-text="hours">0</div>
-                        <div class="text-[10px] font-medium uppercase opacity-60">Час</div>
-                    </div>
-                    <div class="text-[32px] font-bold text-brand-400 leading-none">:</div>
-                    <div class="space-y-1">
-                        <div class="text-[32px] font-bold text-white leading-none tabular-nums" x-text="minutes">0</div>
-                        <div class="text-[10px] font-medium uppercase opacity-60">Мин</div>
-                    </div>
-                    <div class="text-[32px] font-bold text-brand-400 leading-none">:</div>
-                    <div class="space-y-1">
-                        <div class="text-[24px] font-bold text-white/60 leading-none tabular-nums" x-text="seconds">0</div>
-                        <div class="text-[10px] font-medium uppercase opacity-40">Сек</div>
-                    </div>
-                </div>
-            </div>
+            {% include "includes/components/_countdown.html" with target=page.countdown_target rounded="rounded-2xl" separator_class="text-brand-400" %}
             {% endif %}
 
             {# RSVP Widget #}
