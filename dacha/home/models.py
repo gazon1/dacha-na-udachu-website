@@ -2,7 +2,7 @@ from django.db import models
 from wagtail.models import Page
 from wagtail import fields
 from wagtail.admin.panels import FieldPanel
-from dacha.blocks import HeroBlock, FeaturesBlock, TextBlock, ImageBlock, CTABlock, NewsletterBlock
+from dacha.blocks import HeroBlock, FeaturesBlock, RichTextBlock, ImageBlock, CTABlock, NewsletterBlock
 
 
 class HomePage(Page):
@@ -10,7 +10,7 @@ class HomePage(Page):
         [
             ("hero", HeroBlock()),
             ("features", FeaturesBlock()),
-            ("text", TextBlock()),
+            ("text", RichTextBlock()),
             ("image", ImageBlock()),
             ("cta", CTABlock()),
             ("newsletter", NewsletterBlock()),

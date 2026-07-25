@@ -52,9 +52,6 @@ dev = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.uv]
-package = false
-
 [tool.hatch.build.targets.wheel]
 packages = [
     "booking",
@@ -67,6 +64,9 @@ packages = [
     "news",
     "search",
 ]
+
+[tool.uv]
+package = false
 
 # --- Ruff ---
 [tool.ruff]
@@ -113,7 +113,7 @@ ignore = ["PLR0913"]
 fixable = ["ALL"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["apps", "dacha"]
+known-first-party = ["booking", "core", "dacha", "events", "faq", "home", "houses", "news", "search"]
 section-order = [
     "future",
     "standard-library",
@@ -146,7 +146,7 @@ django_settings_module = "dacha.settings.test"
 
 # --- Pytest / Coverage ---
 [tool.coverage.run]
-source = ["apps"]
+source = ["booking", "core", "dacha", "events", "faq", "home", "houses", "news", "search"]
 omit = ["*/migrations/*", "*/tests/*", "*/__init__.py"]
 
 [tool.coverage.report]

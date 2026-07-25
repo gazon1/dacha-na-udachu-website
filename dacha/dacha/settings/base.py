@@ -25,6 +25,7 @@ BASE_DIR = PROJECT_DIR.parent
 # Application definition
 
 INSTALLED_APPS = [
+    # Django
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -35,11 +36,16 @@ INSTALLED_APPS = [
     "django.contrib.sites",
     "django.contrib.sitemaps",
     "django.contrib.humanize",
+    # Third-party
     "csp",
     "django_vite",
-    "home",
-    "search",
-    "dacha",
+    "crispy_forms",
+    "widget_tweaks",
+    "modelcluster",
+    "taggit",
+    "django_filters",
+    "django_tables2",
+    # Wagtail — after django.contrib.auth but before local apps
     "wagtail.contrib.forms",
     "wagtail.contrib.sitemaps",
     "wagtail.contrib.redirects",
@@ -53,21 +59,19 @@ INSTALLED_APPS = [
     "wagtail.admin",
     "wagtail",
     "wagtail.contrib.settings",
-    "modelcluster",
-    "taggit",
-    "django_filters",
-    "django_tables2",
-    "crispy_forms",
-    "widget_tweaks",
+    # Local — core first (AUTH_USER_MODEL)
+    "core",
+    "home",
+    "search",
+    "dacha",
     "booking",
     "houses",
     "events",
     "faq",
     "news",
-    "core",
 ]
 
-AUTH_USER_MODEL = "core.User"
+# AUTH_USER_MODEL = "core.User"  # TODO: re-enable once custom User is needed
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

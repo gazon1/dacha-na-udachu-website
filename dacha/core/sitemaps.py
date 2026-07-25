@@ -3,7 +3,7 @@ Sitemap definitions for Wagtail pages.
 Provides separate sitemaps for EventPage and NewsPage
 so they can be submitted to search engines independently.
 """
-from wagtail.contrib.sitemaps.sitemaps import WagtailSitemap
+from wagtail.contrib.sitemaps.sitemap_generator import Sitemap as WagtailSitemap
 from events.models import EventPage
 from news.models import NewsPage
 

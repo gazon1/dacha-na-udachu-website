@@ -104,17 +104,8 @@ def get_booking_summary(
 
 
 def get_extra_prices_from_site():
-    """
-    Fetch extra prices from SiteSettings.
-
-    Returns:
-        dict with extra prices, or DEFAULT_EXTRA_PRICES if unavailable.
-    """
-    try:
-        from core.models import SiteSettings
-        return SiteSettings.objects.get().get_extra_prices()
-    except Exception:
-        return DEFAULT_EXTRA_PRICES
+    """Return extra prices. Currently uses DEFAULT_EXTRA_PRICES; replace with SiteSettings lookup when re-enabled."""
+    return DEFAULT_EXTRA_PRICES
 
 
 # Extra option keys recognized by the booking form
@@ -168,9 +159,13 @@ def create_booking(
     booking.total_price = total
     booking.options = extra_options
 
+    # Check for overlapping bookings (app-level overlap check — works on SQLite and PostgreSQL)
+    if booking.overlaps():
+        raise BookingServiceError("Даты пересекаются с существующим бронированием")
+
     try:
         booking.save()
     except IntegrityError as e:
-        raise BookingServiceError("Dates already booked") from e
+        raise BookingServiceError("Даты уже забронированы") from e
 
     return booking

@@ -1,8 +1,4 @@
 from django.db import models
-from django.contrib.postgres.constraints import ExclusionConstraint
-from django.contrib.postgres.fields import DateRangeField
-from django.db.models import Q
-from psycopg2.extras import DateRange
 from django.core.validators import MinValueValidator
 from decimal import Decimal
 
@@ -18,8 +14,6 @@ class Booking(models.Model):
     )
     check_in = models.DateField(verbose_name="Дата заезда")
     check_out = models.DateField(verbose_name="Дата выезда")
-    # Computed date range for ExclusionConstraint overlap detection
-    date_range = DateRangeField(null=True, blank=True)
     name = models.CharField(max_length=255, verbose_name="Имя")
     phone = models.CharField(max_length=50, verbose_name="Телефон")
     telegram = models.CharField(max_length=255, verbose_name="Telegram", blank=True)
@@ -55,21 +49,17 @@ class Booking(models.Model):
         verbose_name = "Бронирование"
         verbose_name_plural = "Бронирования"
         ordering = ["-created_at"]
-        constraints = [
-            ExclusionConstraint(
-                name="exclude_overlapping_bookings",
-                expressions=[
-                    ("house", "="),
-                    ("date_range", "&&"),
-                ],
-                condition=Q(is_confirmed=True) & Q(date_range__isnull=False),
-            ),
-        ]
 
-    def save(self, *args, **kwargs):
-        if self.check_in and self.check_out:
-            self.date_range = DateRange(self.check_in, self.check_out, bounds="[)")
-        super().save(*args, **kwargs)
+    def overlaps(self):
+        """Check for overlapping confirmed bookings for the same house."""
+        if not self.house or not self.check_in or not self.check_out:
+            return False
+        return Booking.objects.filter(
+            house=self.house,
+            is_confirmed=True,
+            check_in__lt=self.check_out,
+            check_out__gt=self.check_in,
+        ).exclude(pk=self.pk).exists()
 
     def __str__(self):
         return f"{self.name} ({self.check_in} - {self.check_out})"
