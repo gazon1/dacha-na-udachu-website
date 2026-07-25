@@ -4,6 +4,7 @@ from django.views.decorators.http import require_POST
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.contrib import messages
+from django_ratelimit.decorators import ratelimit
 
 from events.models import (
     EventDriver, RidePassenger,
@@ -16,6 +17,7 @@ from events.http_utils import htmx_error
 # ─── ID-based handlers (slug not needed, stay here) ───────────────────────────
 
 @require_POST
+@ratelimit(key='ip', rate='20/h', method='POST', block=True)
 def event_join_ride(request, driver_id):
     """Join a driver's ride."""
     seats = int(request.POST.get("seats", 1) or 1)
@@ -47,6 +49,7 @@ def event_join_ride(request, driver_id):
 
 
 @require_POST
+@ratelimit(key='ip', rate='20/h', method='POST', block=True)
 def event_cancel_ride(request, driver_id):
     """Cancel driver's ride."""
     driver = get_object_or_404(EventDriver, id=driver_id)
@@ -58,6 +61,7 @@ def event_cancel_ride(request, driver_id):
 
 
 @require_POST
+@ratelimit(key='ip', rate='20/h', method='POST', block=True)
 def event_join_taxi(request, pool_id):
     """Join a taxi pool."""
     seats = int(request.POST.get("seats", 1) or 1)

@@ -84,6 +84,7 @@ makemigrations *apps:
     uv run python manage.py makemigrations {{apps}}
 
 [doc("Check for uncommitted migrations")]
+[working-directory: "/workspace/dacha"]
 migration-check:
     uv run python manage.py makemigrations --check --dry-run
 

@@ -55,6 +55,19 @@ build-backend = "hatchling.build"
 [tool.uv]
 package = false
 
+[tool.hatch.build.targets.wheel]
+packages = [
+    "booking",
+    "core",
+    "dacha",
+    "events",
+    "faq",
+    "home",
+    "houses",
+    "news",
+    "search",
+]
+
 # --- Ruff ---
 [tool.ruff]
 exclude = [

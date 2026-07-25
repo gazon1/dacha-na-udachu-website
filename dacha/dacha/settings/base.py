@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "django.contrib.sites",
     "django.contrib.sitemaps",
     "django.contrib.humanize",
+    "csp",
     "django_vite",
     "home",
     "search",
@@ -70,6 +71,7 @@ AUTH_USER_MODEL = "core.User"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "csp.middleware.CSPMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -149,8 +151,8 @@ USE_TZ = True
 # Wagtail i18n — disabled (no translations used yet)
 WAGTAIL_I18N_ENABLED = False
 
-# Admin managers (used by django.core.mail.mail_managers for signals)
-MANAGERS = [("Admin", "admin@dacha.maxdrobin.ru")]
+# Admins for django.core.mail.mail_managers (signals, 5xx errors)
+ADMINS = [("Admin", "admin@dacha.maxdrobin.ru")]
 
 LANGUAGES = [
     ("ru", "Русский"),
