@@ -6,5 +6,5 @@ class EventsConfig(AppConfig):
     name = "events"
 
     def ready(self):
-        # Import admin to trigger @admin.register decorators
         from . import admin  # noqa: F401
+        from . import signals  # noqa: F401

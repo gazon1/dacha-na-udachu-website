@@ -8,7 +8,7 @@
     {# Header #}
     <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-2">
-            <span class="text-xl">🚗</span>
+            <span class="material-symbols-outlined text-xl">directions_car</span>
             <span class="font-bold text-white">{{ driver.name }}</span>
             {% if driver.telegram %}
             <a href="{{ driver.telegram_url }}" target="_blank"
@@ -23,30 +23,30 @@
         {% if driver.is_cancelled %}
         <span class="bg-gray-500/20 text-gray-400 text-xs px-2 py-1 rounded-full">Отменено</span>
         {% elif driver.seats_available == 0 %}
-        <span class="bg-gray-500/20 text-gray-400 text-xs px-2 py-1 rounded-full">🚫 Мест нет</span>
+        <span class="bg-gray-500/20 text-gray-400 text-xs px-2 py-1 rounded-full"><span class="material-symbols-outlined text-xs">block</span> Мест нет</span>
         {% elif driver.seats_available == 1 %}
-        <span class="bg-yellow-500/20 text-yellow-400 text-xs px-2 py-1 rounded-full">🟡 1 место</span>
+        <span class="bg-yellow-500/20 text-yellow-400 text-xs px-2 py-1 rounded-full"><span class="material-symbols-outlined text-xs">airline_seat_recline_normal</span> 1 место</span>
         {% else %}
-        <span class="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full">🟢 {{ driver.seats_available }} мест</span>
+        <span class="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full"><span class="material-symbols-outlined text-xs">check_circle</span> {{ driver.seats_available }} мест</span>
         {% endif %}
     </div>
 
     {# Car info #}
     {% if driver.car_model %}
-    <p class="text-sm text-base-content/80 mb-2">🚙 {{ driver.car_model }}</p>
+    <p class="text-sm text-base-content/80 mb-2"><span class="material-symbols-outlined">directions_car</span> {{ driver.car_model }}</p>
     {% endif %}
 
     {# Seats #}
     <p class="text-sm text-base-content/60 mb-2">
-        👥 Свободно: {{ driver.seats_available }} из {{ driver.seats_total }}
+        <span class="material-symbols-outlined">group</span> Свободно: {{ driver.seats_available }} из {{ driver.seats_total }}
     </p>
 
     {# Route #}
     {% if driver.departure_location %}
     <p class="text-sm text-base-content/60 mb-1">
-        📍 {{ driver.departure_location }}
+        <span class="material-symbols-outlined">location_on</span> {{ driver.departure_location }}
         {% if driver.departure_time %}
-        → 🕕 {{ driver.departure_date|date:"d b" }} {{ driver.departure_time|date:"H:i" }}
+        → <span class="material-symbols-outlined">schedule</span> {{ driver.departure_date|date:"d b" }} {{ driver.departure_time|date:"H:i" }}
         {% endif %}
     </p>
     {% endif %}
@@ -54,7 +54,7 @@
     {# Return #}
     {% if driver.return_date or driver.return_time %}
     <p class="text-sm text-base-content/60 mb-2">
-        🔄 Обратно: {% if driver.return_date %}{{ driver.return_date|date:"d b" }}{% endif %} {% if driver.return_time %}{{ driver.return_time|date:"H:i" }}{% endif %}
+        <span class="material-symbols-outlined">sync_alt</span> Обратно: {% if driver.return_date %}{{ driver.return_date|date:"d b" }}{% endif %} {% if driver.return_time %}{{ driver.return_time|date:"H:i" }}{% endif %}
     </p>
     {% endif %}
 
@@ -95,7 +95,7 @@
         {% if driver.telegram_url %}
         <a href="{{ driver.telegram_url }}" target="_blank"
            class="py-2 px-4 bg-surface-2 hover:bg-white/10 text-white rounded-lg text-sm font-medium transition-all">
-            💬
+            <span class="material-symbols-outlined">chat</span>
         </a>
         {% endif %}
     </div>
@@ -129,5 +129,5 @@
     <p class="text-xs text-gray-500 mt-2">Водитель отменил поездку</p>
     {% endif %}
 
-    <p class="text-[10px] text-base-content/30 mt-2">⚠️ Договаривайтесь о деталях в Telegram</p>
+    <p class="text-[10px] text-base-content/30 mt-2"><span class="material-symbols-outlined">warning</span> Договаривайтесь о деталях в Telegram</p>
 </div>

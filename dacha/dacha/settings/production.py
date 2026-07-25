@@ -30,8 +30,13 @@ DJANGO_VITE = {
     },
 }
 
-# Security settings (HSTS commented out for initial deploy)
+# Security settings
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+SECURE_HSTS_SECONDS = 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
 
 # CSRF
 CSRF_TRUSTED_ORIGINS = os.environ.get(
@@ -64,10 +69,21 @@ LOGGING = {
             "class": "logging.StreamHandler",
             "formatter": "verbose",
         },
+        "mail_admins": {
+            "class": "django.utils.log.AdminEmailHandler",
+            "include_html": False,
+        },
     },
     "root": {
         "handlers": ["console"],
         "level": "INFO",
+    },
+    "loggers": {
+        "django.request": {
+            "handlers": ["mail_admins"],
+            "level": "ERROR",
+            "propagate": False,
+        },
     },
 }
 

@@ -13,10 +13,10 @@
 <div class="space-y-4">
     <div class="flex items-center justify-between">
         <h3 class="text-xl font-semibold text-primary flex items-center gap-2">
-            <span class="material-symbols-outlined">🚗</span>
+            <span class="material-symbols-outlined">directions_car</span>
             Как добраться
         </h3>
-        <span class="material-symbols-outlined text-base-content/20">🔒</span>
+        <span class="material-symbols-outlined text-base-content/20">lock</span>
     </div>
 
     {# ── Tabs ───────────────────────────────────────────── #}
@@ -28,19 +28,19 @@
         <button @click="activeTab = 'cars'"
                 :class="activeTab === 'cars' ? 'bg-primary text-[#213600]' : 'bg-white/5 text-white hover:bg-white/10'"
                 class="px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2">
-            <span>🚗</span> Машины
+            <span class="material-symbols-outlined">directions_car</span> Машины
             {% if drivers %}<span class="opacity-60">({{ drivers|length }})</span>{% endif %}
         </button>
         <button @click="activeTab = 'search'"
                 :class="activeTab === 'search' ? 'bg-secondary text-[#213600]' : 'bg-white/5 text-white hover:bg-white/10'"
                 class="px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2">
-            <span>🔍</span> Ищу попутку
+            <span class="material-symbols-outlined">search</span> Ищу попутку
             {% if carpool_requests %}<span class="opacity-60">({{ carpool_requests|length }})</span>{% endif %}
         </button>
         <button @click="activeTab = 'taxi'"
                 :class="activeTab === 'taxi' ? 'bg-community-magenta text-white' : 'bg-white/5 text-white hover:bg-white/10'"
                 class="px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2">
-            <span>🚕</span> Такси
+            <span class="material-symbols-outlined">local_taxi</span> Такси
             {% if taxi_pools %}<span class="opacity-60">({{ taxi_pools|length }})</span>{% endif %}
         </button>
     </div>
@@ -83,7 +83,7 @@
                     <span class="text-sm text-secondary">{{ req.seats_needed }} мест</span>
                 </div>
                 <p class="text-sm text-base-content/60 mb-2">
-                    📍 {{ req.pickup_location }}
+                    <span class="material-symbols-outlined text-xs">location_on</span> {{ req.pickup_location }}
                     {% if req.flexible_time %}<span class="text-secondary">· гибкое время</span>{% endif %}
                     {% if req.can_share_gas %}<span class="text-secondary">· могу скинуться</span>{% endif %}
                 </p>
@@ -114,12 +114,12 @@
             <div class="glass-card p-4 rounded-xl border-l-4 border-community-magenta" id="taxi-pool-{{ pool.id }}">
                 <div class="flex items-center justify-between mb-2">
                     <span class="font-bold text-white flex items-center gap-2">
-                        <span>🚕</span> {{ pool.organizer }}
+                        <span class="material-symbols-outlined">local_taxi</span> {{ pool.organizer }}
                     </span>
                     <span class="text-sm text-community-magenta">~{{ pool.estimated_price }}₽/чел</span>
                 </div>
                 <p class="text-sm text-base-content/60 mb-2">
-                    📍 {{ pool.pickup_location }}
+                    <span class="material-symbols-outlined text-xs">location_on</span> {{ pool.pickup_location }}
                     · {{ pool.departure_date|date:"d b" }} в {{ pool.departure_time|date:"H:i" }}
                 </p>
                 <p class="text-xs text-base-content/40 mb-3">

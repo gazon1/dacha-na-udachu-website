@@ -15,17 +15,15 @@
 
         <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {# Breadcrumb #}
-            {% with breadcrumbs=page.get_ancestors|dictsort:"depth" %}
             <nav aria-label="Breadcrumb" class="mb-6">
-                <ol class="flex items-center gap-2 text-sm">
-                    <li><a href="/" class="text-gray-400 hover:text-white transition-colors">Главная</a></li>
-                    <li class="text-gray-600">/</li>
-                    <li><a href="/houses/" class="text-gray-400 hover:text-white transition-colors">Дома</a></li>
-                    <li class="text-gray-600">/</li>
-                    <li class="text-brand-400 font-medium">{{ page.title }}</li>
+                <ol class="flex items-center gap-2 text-sm text-base-content/60">
+                    <li><a href="/" class="hover:text-primary transition-colors">Главная</a></li>
+                    <li class="opacity-40"><span class="material-symbols-outlined text-xs">chevron_right</span></li>
+                    <li><a href="/houses/" class="hover:text-primary transition-colors">Дома</a></li>
+                    <li class="opacity-40"><span class="material-symbols-outlined text-xs">chevron_right</span></li>
+                    <li class="font-medium" aria-current="page">{{ page.title }}</li>
                 </ol>
             </nav>
-            {% endwith %}
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
                 <div class="lg:col-span-8">

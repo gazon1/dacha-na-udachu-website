@@ -40,7 +40,17 @@ class SiteSettings(BaseSiteSetting):
     ]
 
     def get_extra_prices(self):
-        """Return dict of extra prices, falling back to defaults if not set."""
+        """Return dict of extra prices from ExtraService model, falling back to legacy JSONField."""
+        try:
+            from collections import OrderedDict
+            services = OrderedDict()
+            for s in ExtraService.objects.filter(is_active=True).order_by("order"):
+                services[s.slug] = s.price
+            if services:
+                return services
+        except Exception:
+            pass
+        # Legacy fallback from JSONField
         defaults = {"banya": 500, "manhal": 300, "fishing": 200}
         if self.extra_prices:
             defaults.update(self.extra_prices)
@@ -73,3 +83,28 @@ class NewsletterSignup(models.Model):
 
     def __str__(self):
         return self.email
+
+
+class ExtraService(models.Model):
+    """Represents an optional add-on service for bookings (e.g. banya, manhal)."""
+    slug = models.SlugField("Идентификатор", unique=True, max_length=50)
+    name = models.CharField("Название", max_length=100)
+    price = models.DecimalField("Цена", max_digits=10, decimal_places=2)
+    is_active = models.BooleanField("Активна", default=True)
+    order = models.PositiveIntegerField("Порядок", default=0)
+
+    panels = [
+        FieldPanel("slug"),
+        FieldPanel("name"),
+        FieldPanel("price"),
+        FieldPanel("is_active"),
+        FieldPanel("order"),
+    ]
+
+    class Meta:
+        verbose_name = "Доп. услуга"
+        verbose_name_plural = "Доп. услуги"
+        ordering = ["order", "name"]
+
+    def __str__(self):
+        return f"{self.name} — {self.price} ₽"

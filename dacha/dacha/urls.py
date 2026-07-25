@@ -6,7 +6,8 @@ from django.db import connection
 from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
 
-from wagtail.contrib.sitemaps.views import sitemap
+from django.contrib.sitemaps.views import sitemap as django_sitemap
+from core.sitemaps import EventPageSitemap, NewsPageSitemap
 
 from wagtail.admin import urls as wagtailadmin_urls
 from wagtail import urls as wagtail_urls
@@ -63,7 +64,7 @@ urlpatterns = [
     path("events/", include(events_urls)),
     path("health/", health_check, name="health_check"),
     path("robots.txt", robots_txt, name="robots_txt"),
-    path("sitemap.xml", sitemap, name="sitemap"),
+    path("sitemap.xml", django_sitemap, {"sitemaps": {"events": EventPageSitemap, "news": NewsPageSitemap}}, name="sitemap"),
     path("newsletter/", newsletter, name="newsletter"),
 ]
 

@@ -149,6 +149,9 @@ USE_TZ = True
 # Wagtail i18n — disabled (no translations used yet)
 WAGTAIL_I18N_ENABLED = False
 
+# Admin managers (used by django.core.mail.mail_managers for signals)
+MANAGERS = [("Admin", "admin@dacha.maxdrobin.ru")]
+
 LANGUAGES = [
     ("ru", "Русский"),
     ("en", "English"),

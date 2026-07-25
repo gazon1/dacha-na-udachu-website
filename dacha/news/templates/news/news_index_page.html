@@ -60,21 +60,7 @@
     </div>
 
     {% if news_pages.has_other_pages %}
-    <nav aria-label="Pagination" class="flex justify-center items-center gap-2 mt-16">
-        {% if news_pages.has_previous %}
-        <a href="?page={{ news_pages.previous_page_number }}" class="btn btn-ghost text-base-content/60 hover:text-primary gap-2">
-            <span class="material-symbols-outlined text-sm">chevron_left</span>
-            Назад
-        </a>
-        {% endif %}
-        <span class="px-4 py-2 text-sm text-base-content/40">{{ news_pages.number }} / {{ news_pages.paginator.num_pages }}</span>
-        {% if news_pages.has_next %}
-        <a href="?page={{ news_pages.next_page_number }}" class="btn btn-ghost text-base-content/60 hover:text-primary gap-2">
-            Далее
-            <span class="material-symbols-outlined text-sm">chevron_right</span>
-        </a>
-        {% endif %}
-    </nav>
+    {% include "includes/components/_pagination.html" with paginated_page=news_pages %}
     {% endif %}
 
     {% else %}
