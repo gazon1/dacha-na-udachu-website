@@ -132,6 +132,11 @@ def create_site_structure(apps, schema_editor):
     # News index
     get_or_create_page(apps, homepage, NewsIndexPage, "Новости", "news")
 
+    # Fix numchild counters for all parent pages
+    for page in Page.objects.filter(depth__gte=1):
+        page.numchild = Page.objects.filter(depth=page.depth + 1, path__startswith=page.path).count()
+        page.save(update_fields=['numchild'])
+
 
 def reverse_migration(apps, schema_editor):
     """Remove all created pages."""
