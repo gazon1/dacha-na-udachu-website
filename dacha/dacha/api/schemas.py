@@ -106,9 +106,14 @@ class HouseOut(BaseModel):
     hero_image_url: str | None = None
 
 
+class DateRangeOut(BaseModel):
+    start: str
+    end: str
+
+
 class AvailabilityOut(BaseModel):
     available: bool
-    booked_dates: list[str]
+    booked_dates: list[DateRangeOut] = []
 
 
 # ─── Event schemas ────────────────────────────────────────────────────────────

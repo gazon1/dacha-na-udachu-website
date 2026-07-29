@@ -13,17 +13,10 @@ dependencies = [
     "wagtail-metadata>=4.0",
     # Database
     "psycopg[binary]>=3.1",
-    # Forms
-    "django-crispy-forms>=2.0",
-    "crispy-tailwind>=0.5",
     # Phone validation (preserved from existing booking app)
     "phonenumbers>=8.13",
     # Static files
     "whitenoise>=6.11.0",
-    # Asset pipeline
-    "django-vite>=3.0",
-    # HTMX helpers
-    "django-htmx>=1.0",
     # Rate limiting for spam protection
     "django-ratelimit>=4.1",
     # New dependencies

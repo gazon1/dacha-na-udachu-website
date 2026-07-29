@@ -31,14 +31,6 @@ if _redis_url:
         "LOCATION": _redis_url,
     }
 
-# django-vite — production (loads manifest.json for hashed asset names)
-DJANGO_VITE = {
-    "default": {
-        "dev_mode": False,
-        "manifest_path": PROJECT_DIR / "static" / ".vite" / "manifest.json",
-    },
-}
-
 # Security settings
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = True

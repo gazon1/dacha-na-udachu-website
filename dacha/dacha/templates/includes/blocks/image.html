@@ -1,9 +1,0 @@
-{# Image block with optional caption #}
-<figure class="mb-8 {{ value.class|default:"" }}">
-    {% image value.image width-1200 class="w-full rounded-2xl" srcset="400 800 1200" sizes="(max-width: 768px) 100vw, 800px" %}
-    {% if value.caption %}
-    <figcaption class="mt-3 text-sm text-base-content/50 text-center">
-        {{ value.caption }}
-    </figcaption>
-    {% endif %}
-</figure>

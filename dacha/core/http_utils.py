@@ -1,9 +1,8 @@
 """
-Cross-cutting HTMX-aware HTTP response helpers.
-Shared by all apps — not tied to any specific domain.
-
-Uses django-htmx middleware (django_htmx.middleware.HtmxMiddleware)
-which is already configured in settings.BASE.MIDDLEWARE.
+HTTP response helpers for HTMX-compatible responses.
+Still used by legacy event view functions (events/views.py).
+HTMX-specific headers (HX-Redirect, HX-Trigger) are set here so that
+event views continue to work without modification.
 """
 import json
 

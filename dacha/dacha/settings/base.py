@@ -38,15 +38,11 @@ INSTALLED_APPS = [
     "django.contrib.humanize",
     # Third-party
     "csp",
-    "django_vite",
-    "crispy_forms",
-    "widget_tweaks",
     "modelcluster",
     "taggit",
     "django_filters",
     "django_tables2",
-    # Headless API
-    "django_htmx",  # was in MIDDLEWARE but not here — needed for {% htmx_script %} tag
+    # Headless API — CORS for Next.js
     "corsheaders",
     "rest_framework",
     # Wagtail API v2 — headless page content
@@ -91,7 +87,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "django_htmx.middleware.HtmxMiddleware",
     "wagtail.contrib.redirects.middleware.RedirectMiddleware",
 ]
 

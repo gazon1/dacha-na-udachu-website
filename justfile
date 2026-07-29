@@ -30,7 +30,8 @@ default:
 install:
     uv sync --extra dev
 
-[doc("Install frontend Node dependencies")]
+[doc("Install frontend Node dependencies (Next.js at /workspace/dacha/web/)")]
+[working-directory("/workspace/dacha/web")]
 install-node:
     npm ci
 
@@ -39,31 +40,29 @@ setup: install install-node frontend-build
 
 
 # ---- FRONTEND ----
-[doc("Build frontend assets (Vite → frontend/dist)")]
-[working-directory: "/workspace/dacha"]
+[doc("Build Next.js frontend (output: /workspace/dacha/web/.next/)")]
+[working-directory("/workspace/dacha/web")]
 frontend-build:
     npm run build
 
-[doc("Start Vite dev server with hot reload")]
-[working-directory("/workspace/dacha")]
+[doc("Start Next.js dev server with hot reload")]
+[working-directory("/workspace/dacha/web")]
 frontend-dev:
     npm run dev
 
 
 # ---- LINT & FORMAT ----
-[doc("Run all linters (ruff, djlint)")]
+[doc("Run all linters (ruff)")]
 [working-directory("/workspace/dacha")]
 lint:
     uv run ruff check .
     uv run ruff format --check .
-    uv run djlint templates --check
 
 [doc("Auto-fix linting issues")]
 [working-directory("/workspace/dacha")]
 lint-fix:
     uv run ruff check --fix .
     uv run ruff format .
-    uv run djlint templates --reformat
 
 
 # ---- TESTS ----
@@ -115,7 +114,7 @@ runserver:
 
 # ---- LOCAL DEV ----
 [working-directory("/workspace/dacha")]
-[doc("Full local dev startup: build frontend + makemigrations + migrate + runserver")]
+[doc("Full local dev startup: makemigrations + migrate + runserver (Next.js: just frontend-dev)")]
 dev: frontend-build makemigrations migrate runserver
 
 

@@ -101,5 +101,7 @@ if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 urlpatterns = urlpatterns + [
-    path("", include(wagtail_urls)),
+    path("cms/", include(wagtail_urls)),
+    # Redirect root to Next.js in dev (Django is API-only; Next.js serves frontend)
+    path("", lambda _: __import__("django").shortcuts.redirect("http://localhost:3000", permanent=False)),
 ]
