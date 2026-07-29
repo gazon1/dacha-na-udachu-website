@@ -88,6 +88,10 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "dacha.urls"
 
+# Custom 403 handler — returns HX-Trigger for HTMX callers so the
+# frontend can show a "rate limited" toast instead of a blank page.
+handler403 = "dacha.urls.handler403"
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -219,6 +223,17 @@ STORAGES = {
 # Django sets a maximum of 1000 fields per form by default, but particularly complex page models
 # can exceed this limit within Wagtail's page editor.
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 10_000
+
+# Cache — used by django-ratelimit to store rate counters.
+# Dev/test: in-process memory. Prod: use Redis via REDIS_URL env var.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    }
+}
+
+# django-ratelimit: read IP from the correct proxy header.
+RATELIMIT_IP_META_KEY = "HTTP_X_FORWARDED_FOR"
 
 
 # Wagtail settings

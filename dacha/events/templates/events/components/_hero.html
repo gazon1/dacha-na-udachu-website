@@ -27,14 +27,14 @@
         <div class="flex flex-wrap gap-4">
             {# RSVP button — smooth-scrolls to sidebar on desktop, sticky bar handles mobile #}
             <a href="#rsvp-widget"
-               class="bg-community-magenta hover:bg-community-magenta/90 text-white px-8 py-4 rounded-xl text-sm font-medium flex items-center gap-2 transition-all shadow-lg">
+               class="btn-brand-lg">
                 RSVP
                 <span class="material-symbols-outlined">arrow_forward</span>
             </a>
 
             {# Add to calendar — generate .ics #}
             <a href="{% pageurl page %}/ical/"
-               class="glass-card text-white px-8 py-4 rounded-xl text-sm font-medium flex items-center gap-2 transition-all hover:bg-white/10">
+               class="glass-card px-8 py-4 text-sm font-medium flex items-center gap-2 hover:bg-white/10 transition-all">
                 <span class="material-symbols-outlined">calendar_today</span>
                 Добавить в календарь
             </a>

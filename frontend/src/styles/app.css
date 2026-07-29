@@ -41,6 +41,11 @@
   /* Community accents (Tailwind auto-generates bg/text/border + opacity variants) */
   --color-community-magenta: #d946ef;
   --color-community-cyan:   #06b6d4;
+
+  /* Semantic tokens referenced by call sites but missing from @theme */
+  --color-stroke:       #2d3449;
+  --color-border:        #2d3449;
+  --color-background:    #0b1326;
 }
 
 /* ---- daisyUI semantic tokens (single canonical block) ---- */
@@ -126,12 +131,7 @@ body {
 ::-webkit-scrollbar-thumb { background: #2d3449; border-radius: 3px; }
 
 /* ---- Glass Card ---- */
-.glass-card {
-  background: rgba(23, 31, 51, 0.4);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
+/* (merged into components.css @layer — see components.css:53) */
 
 /* ---- Glow Effects ---- */
 .glow-hover:hover {

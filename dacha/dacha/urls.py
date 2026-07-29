@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.urls import include, path
 from django.contrib import admin
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
 from django.db import connection
 from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
@@ -20,7 +20,7 @@ from core.http_utils import htmx_error as _htmx_error, htmx_success as _htmx_suc
 
 
 @require_POST
-@ratelimit(key='post:email', rate='10/h', method='POST', block=True)
+@ratelimit(key='ip', rate='10/h', method='POST', block=True)
 def newsletter(request):
     """Newsletter signup — GDPR-compliant, stores consented email in DB."""
     email = request.POST.get("email", "").strip()
@@ -53,6 +53,16 @@ def robots_txt(request):
         "User-agent: *\nAllow: /\n\nSitemap: https://dacha.maxdrobin.ru/sitemap.xml\n",
         content_type="text/plain",
     )
+
+
+def handler403(request, exception=None):
+    """Return a proper HTMX response for rate-limit / permission errors."""
+    if getattr(request, "htmx", False):
+        response = HttpResponse(status=403)
+        response["HX-Trigger"] = "rate-limited"
+        response["HX-Reswap"] = "none"
+        return response
+    return HttpResponseForbidden("Доступ запрещён")
 
 
 urlpatterns = [

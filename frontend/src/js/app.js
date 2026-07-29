@@ -74,10 +74,12 @@ document.addEventListener("alpine:init", () => {
     },
   }));
 
-  // RSVP Widget — voted state persisted per-event in localStorage via @alpinejs/persist
+  // RSVP Widget — voted state + secret_key persisted per-event in localStorage via @alpinejs/persist
   Alpine.data("rsvpWidget", function (slug) {
     return {
       voted: this.$persist(false).as("rsvp_voted_" + slug),
+      secretKey: this.$persist("").as("rsvp_key_" + slug),
+      rsvpId: this.$persist(null).as("rsvp_id_" + slug),
       showMenu: false,
       vote() {
         this.voted = true;
@@ -192,4 +194,21 @@ document.body.addEventListener("htmx:responseError", (event) => {
       "error"
     );
   }
+});
+
+// Handle HX-Trigger: rate-limited — fires when django-ratelimit blocks a request.
+// The handler403 view returns HX-Trigger: rate-limited on HTMX callers.
+document.body.addEventListener("rate-limited", () => {
+  Alpine.store("toast").show(
+    "Слишком много запросов. Попробуйте позже.",
+    "warning"
+  );
+});
+
+// Handle HX-Trigger: rsvp-confirmed — fires after a new RSVP is saved.
+document.body.addEventListener("rsvp-confirmed", () => {
+  Alpine.store("toast").show(
+    "Заявка отправлена!",
+    "success"
+  );
 });

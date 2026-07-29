@@ -131,6 +131,7 @@
                       hx-target="#taxi-pool-{{ pool.id }}"
                       hx-swap="outerHTML"
                       class="space-y-2">
+                    {% csrf_token %}
                     <input type="text" name="name" placeholder="Ваше имя" required class="form-input text-sm">
                     <input type="text" name="telegram" placeholder="@telegram" class="form-input text-sm">
                     <button type="submit"

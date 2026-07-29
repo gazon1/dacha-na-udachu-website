@@ -16,7 +16,7 @@ class RSVPForm(forms.ModelForm):
     def clean_status(self):
         status = self.cleaned_data.get("status")
         if status not in dict(EventRSVP.STATUS_CHOICES):
-            return EventRSVP.GOING
+            raise forms.ValidationError("Неверный статус")
         return status
 
 
@@ -50,7 +50,7 @@ class PassengerForm(forms.ModelForm):
     phone = PhoneNumberField()
     telegram = TelegramUsernameField()
     pickup_location = forms.CharField(max_length=200, required=False)
-    seats = forms.IntegerField(min_value=1, initial=1)
+    seats = forms.IntegerField(min_value=1, max_value=20, initial=1)
 
 
 class CarpoolRequestForm(forms.ModelForm):
@@ -65,7 +65,7 @@ class CarpoolRequestForm(forms.ModelForm):
     phone = PhoneNumberField()
     telegram = TelegramUsernameField()
     pickup_location = forms.CharField(max_length=200)
-    seats_needed = forms.IntegerField(min_value=1, initial=1)
+    seats_needed = forms.IntegerField(min_value=1, max_value=20, initial=1)
     can_share_gas = forms.BooleanField(required=False)
     flexible_time = forms.BooleanField(required=False)
 
@@ -96,4 +96,4 @@ class TaxiPassengerForm(forms.ModelForm):
     name = forms.CharField(max_length=100)
     phone = PhoneNumberField()
     telegram = TelegramUsernameField()
-    seats = forms.IntegerField(min_value=1, initial=1)
+    seats = forms.IntegerField(min_value=1, max_value=20, initial=1)

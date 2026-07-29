@@ -22,6 +22,15 @@ DATABASES = {
 # ManifestStaticFilesStorage for cache-busting
 STORAGES["staticfiles"]["BACKEND"] = "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
 
+# Redis-backed cache for django-ratelimit (shared across gunicorn workers).
+# Falls back to LocMemCache if REDIS_URL is not set.
+_redis_url = os.environ.get("REDIS_URL", "")
+if _redis_url:
+    CACHES["default"] = {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": _redis_url,
+    }
+
 # django-vite — production (loads manifest.json for hashed asset names)
 DJANGO_VITE = {
     "default": {
