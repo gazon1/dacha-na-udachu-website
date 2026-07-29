@@ -1,6 +1,6 @@
 {% load static wagtailcore_tags %}
 {# RSVP Widget — HTMX form, live attendee count #}
-<div id="rsvp-widget" class="glass-card p-6 rounded-2xl space-y-4 border border-community-magenta/20"
+<div id="rsvp-widget" class="glass-card-magenta space-y-4"
      x-data="rsvpWidget('{{ page.slug }}')">
 
     {# Header with menu #}
@@ -42,9 +42,9 @@
             {% with page.total_attending as total %}
             {% if total > 0 %}
             <div class="flex items-center gap-2">
-                <div class="flex -space-x-2">
+                <div class="avatar-stack">
                     {% for i in "012"|make_list %}
-                    <div class="w-6 h-6 rounded-full border border-surface-2 bg-surface-2 flex items-center justify-center text-[8px] font-bold text-primary">+</div>
+                    <div class="w-6 h-6 rounded-full border-2 border-surface-2 bg-surface-3 flex items-center justify-center text-[8px] font-bold text-primary">+</div>
                     {% endfor %}
                 </div>
                 <span class="text-sm text-base-content/60">
@@ -62,9 +62,9 @@
             {% with page.total_attending as total %}
             {% if total > 0 %}
             <div class="flex items-center gap-2 mb-4">
-                <div class="flex -space-x-2">
+                <div class="avatar-stack">
                     {% for i in "012"|make_list %}
-                    <div class="w-6 h-6 rounded-full border border-surface-2 bg-surface-2 flex items-center justify-center text-[8px] font-bold text-primary">+</div>
+                    <div class="w-6 h-6 rounded-full border-2 border-surface-2 bg-surface-3 flex items-center justify-center text-[8px] font-bold text-primary">+</div>
                     {% endfor %}
                 </div>
                 <span class="text-sm text-base-content/60">
@@ -90,14 +90,14 @@
 
                 <div class="space-y-2">
                     <button type="submit" name="status" value="going" :disabled="submitting"
-                        class="w-full py-3 bg-community-magenta text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2 hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none">
+                        class="w-full btn-rsvp disabled:opacity-50 disabled:pointer-events-none">
                         <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check_circle</span>
                         Я иду
                     </button>
 
                     <div class="grid grid-cols-2 gap-2">
                         <button type="submit" name="status" value="maybe" :disabled="submitting"
-                            class="py-2.5 bg-white/5 border border-white/10 text-white/70 rounded-xl text-sm font-medium hover:bg-white/10 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none">
+                            class="btn-rsvp-maybe disabled:opacity-50 disabled:pointer-events-none">
                             Возможно
                         </button>
                         <button type="submit" name="status" value="not_going" :disabled="submitting"

@@ -5,6 +5,7 @@
    ============================================================================= */
 
 @import "tailwindcss";
+@import "./components.css";
 @plugin "@tailwindcss/typography";
 @import "@fontsource-variable/inter";
 

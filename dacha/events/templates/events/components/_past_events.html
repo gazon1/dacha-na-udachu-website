@@ -9,14 +9,14 @@
                 <span class="w-2 h-2 rounded-full bg-base-content/20"></span>
                 <h2 class="text-xl font-semibold text-white/60">Прошедшие события</h2>
             </div>
-            <button class="bg-surface-2 text-white px-5 py-2 rounded-xl text-sm font-medium border border-white/5 hover:bg-white/10 transition-all">
+            <button class="btn-ghost px-5 py-2 text-sm">
                 Архив
             </button>
         </div>
 
         <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {% for event in events %}
-            <article class="group bg-surface-2 rounded-xl overflow-hidden border border-white/5 hover:border-white/10 transition-all">
+            <article class="group past-event-card">
                 <a href="{{ event.url }}" class="flex items-start gap-4 p-4">
                     {# Thumbnail #}
                     <div class="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-surface-3">

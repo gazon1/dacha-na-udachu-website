@@ -13,9 +13,6 @@ class RSVPForm(forms.ModelForm):
     status = forms.ChoiceField(choices=EventRSVP.STATUS_CHOICES, required=False)
     guests_count = forms.IntegerField(min_value=0, required=False, initial=0)
 
-    def clean_name(self):
-        return self.cleaned_data["name"].strip()[:100]
-
     def clean_status(self):
         status = self.cleaned_data.get("status")
         if status not in dict(EventRSVP.STATUS_CHOICES):
@@ -43,9 +40,6 @@ class DriverForm(forms.ModelForm):
     return_time = forms.TimeField(required=False)
     seats_total = forms.IntegerField(min_value=1, max_value=20, initial=4)
 
-    def clean_name(self):
-        return self.cleaned_data["name"].strip()[:100]
-
 
 class PassengerForm(forms.ModelForm):
     class Meta:
@@ -57,9 +51,6 @@ class PassengerForm(forms.ModelForm):
     telegram = TelegramUsernameField()
     pickup_location = forms.CharField(max_length=200, required=False)
     seats = forms.IntegerField(min_value=1, initial=1)
-
-    def clean_name(self):
-        return self.cleaned_data["name"].strip()[:100]
 
 
 class CarpoolRequestForm(forms.ModelForm):
@@ -77,9 +68,6 @@ class CarpoolRequestForm(forms.ModelForm):
     seats_needed = forms.IntegerField(min_value=1, initial=1)
     can_share_gas = forms.BooleanField(required=False)
     flexible_time = forms.BooleanField(required=False)
-
-    def clean_name(self):
-        return self.cleaned_data["name"].strip()[:100]
 
 
 class TaxiPoolForm(forms.ModelForm):
@@ -99,9 +87,6 @@ class TaxiPoolForm(forms.ModelForm):
     max_passengers = forms.IntegerField(min_value=1, max_value=20, initial=4)
     estimated_price = forms.IntegerField(min_value=0, required=False, initial=0)
 
-    def clean_organizer(self):
-        return self.cleaned_data["organizer"].strip()[:100]
-
 
 class TaxiPassengerForm(forms.ModelForm):
     class Meta:
@@ -112,6 +97,3 @@ class TaxiPassengerForm(forms.ModelForm):
     phone = PhoneNumberField()
     telegram = TelegramUsernameField()
     seats = forms.IntegerField(min_value=1, initial=1)
-
-    def clean_name(self):
-        return self.cleaned_data["name"].strip()[:100]

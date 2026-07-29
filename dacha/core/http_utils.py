@@ -7,7 +7,24 @@ which is already configured in settings.BASE.MIDDLEWARE.
 """
 import json
 
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
+
+
+def is_htmx(request) -> bool:
+    """Check if request was made via HTMX."""
+    return getattr(request, "htmx", False) is not False
+
+
+def htmx_redirect(url: str):
+    """
+    Return a redirect response that works correctly with HTMX.
+
+    Sets HX-Redirect so HTMX replaces the full page instead of doing
+    a client-side redirect.
+    """
+    response = HttpResponseRedirect(url)
+    response["HX-Redirect"] = url
+    return response
 
 
 def htmx_trigger(trigger_name: str, data: dict) -> str:

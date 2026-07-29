@@ -90,6 +90,14 @@ document.addEventListener("alpine:init", () => {
   });
 
   // Booking page — house selection + date picker with Flatpickr
+  // Shared night calculator — used by bookingPage and bookingForm
+  const calcNights = (checkIn, checkOut) => {
+    if (!checkIn || !checkOut) return 0;
+    const d1 = new Date(checkIn);
+    const d2 = new Date(checkOut);
+    return Math.max(0, (d2 - d1) / (1000 * 60 * 60 * 24));
+  };
+
   Alpine.data("bookingPage", () => ({
     step: "house", // 'house' | 'dates' | 'form'
     selectedHouse: null,
@@ -134,50 +142,35 @@ document.addEventListener("alpine:init", () => {
       if (!this.checkIn || !this.checkOut || !this.selectedHouse) return;
       const d1 = new Date(this.checkIn);
       const d2 = new Date(this.checkOut);
-      const diff = (d2 - d1) / (1000 * 60 * 60 * 24);
-      if (diff > 0) {
-        this.nights = diff;
+      const nights = calcNights(this.checkIn, this.checkOut);
+      if (nights > 0) {
+        this.nights = nights;
         this.totalPrice = this.nights * this.selectedHouse.price;
         this.bookingSummary = `${this.selectedHouse.name} • ${d1.toLocaleDateString("ru-RU")} - ${d2.toLocaleDateString("ru-RU")} (${this.nights} ночей)`;
       }
     },
   }));
-});
 
-Alpine.plugin(focus);   // x-trap + a11y focus management
-Alpine.plugin(mask);    // x-mask for phone inputs
-Alpine.plugin(collapse);
-Alpine.plugin(persist); // x-persist for localStorage-backed state
-Alpine.start();
-
-// Booking form — night calculator (used in booking_page.html via x-data="bookingForm()")
-window.bookingForm = function () {
-  return {
+  // Booking form — night calculator (used in booking_page.html)
+  Alpine.data("bookingForm", () => ({
     nights: 0,
 
     init() {
       const checkIn = document.querySelector('[name="check_in"]');
       const checkOut = document.querySelector('[name="check_out"]');
       if (checkIn && checkOut) {
-        checkIn.addEventListener('change', () => this.calculate());
-        checkOut.addEventListener('change', () => this.calculate());
+        checkIn.addEventListener("change", () => this.calculate());
+        checkOut.addEventListener("change", () => this.calculate());
       }
     },
 
     calculate() {
       const checkIn = document.querySelector('[name="check_in"]');
       const checkOut = document.querySelector('[name="check_out"]');
-      if (checkIn && checkOut && checkIn.value && checkOut.value) {
-        const d1 = new Date(checkIn.value);
-        const d2 = new Date(checkOut.value);
-        const diff = (d2 - d1) / (1000 * 60 * 60 * 24);
-        this.nights = diff > 0 ? diff : 0;
-      } else {
-        this.nights = 0;
-      }
+      this.nights = calcNights(checkIn?.value, checkOut?.value);
     },
-  };
-};
+  }));
+});
 
 // HTMX config
 htmx.config.timeout = 5000;

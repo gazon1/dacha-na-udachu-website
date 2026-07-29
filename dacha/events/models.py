@@ -100,14 +100,19 @@ class EventDriver(models.Model):
         ordering = ["departure_date", "departure_time"]
 
     def __str__(self):
-        return f"{self.name} — {self.car_model} ({self.seats_taken()}/{self.seats_total})"
+        return f"{self.name} — {self.car_model} ({self._seats_taken}/{self.seats_total})"
 
-    def seats_taken(self):
+    @property
+    def _seats_taken(self):
+        """Use annotated _seats_confirmed when available (from with_carpool_stats)."""
+        return getattr(self, "_seats_confirmed", None) or self.seats_taken_raw()
+
+    def seats_taken_raw(self):
         return self.passengers.filter(status="confirmed").count()
 
     @property
     def seats_available(self):
-        return max(0, self.seats_total - self.seats_taken())
+        return max(0, self.seats_total - self._seats_taken)
 
     @property
     def telegram_url(self):
@@ -219,12 +224,17 @@ class TaxiPool(models.Model):
         return f"Такси {self.departure_date} в {self.departure_time} от {self.pickup_location}"
 
     @property
-    def passengers_count(self):
+    def _passengers_count(self):
+        """Use annotated _passengers_active when available (from with_taxi_stats)."""
+        return getattr(self, "_passengers_active", None) if hasattr(self, "_passengers_active") else self.passengers_count_raw
+
+    @property
+    def passengers_count_raw(self):
         return self.passengers.filter(is_active=True).count()
 
     @property
     def spots_left(self):
-        return max(0, self.max_passengers - self.passengers_count)
+        return max(0, self.max_passengers - self._passengers_count)
 
 
 class TaxiPassenger(models.Model):
@@ -309,6 +319,18 @@ class EventPage(RoutablePageMixin, Page):
             return self.start_date.isoformat()
         return None
 
+    @classmethod
+    def with_stats(cls):
+        """Annotate with RSVP counts and total attendees in a single query."""
+        return cls.objects.annotate(
+            _going_count=Count("rsvps", filter=Q(rsvps__status="going")),
+            _maybe_count=Count("rsvps", filter=Q(rsvps__status="maybe")),
+            _total_attendees=Count(
+                "rsvps",
+                filter=Q(rsvps__status__in=["going", "maybe"]),
+            ),
+        )
+
     @property
     def total_attending(self):
         """Sum of all attendees across RSVPs (going + maybe)."""
@@ -317,20 +339,21 @@ class EventPage(RoutablePageMixin, Page):
 
     @property
     def total_attending_db(self):
-        """Annotated total — uses pre-fetched _going_count/_maybe_count if available."""
-        going = getattr(self, "_going_count", None)
-        maybe = getattr(self, "_maybe_count", None)
-        if going is not None and maybe is not None:
-            return going + maybe
+        """Use annotated _total_attendees when available (from with_stats)."""
+        annotated = getattr(self, "_total_attendees", None)
+        if annotated is not None:
+            return annotated
         return self.total_attending
 
     @property
     def going_count(self):
-        return self.rsvps.filter(status="going").count()
+        annotated = getattr(self, "_going_count", None)
+        return annotated if annotated is not None else self.rsvps.filter(status="going").count()
 
     @property
     def maybe_count(self):
-        return self.rsvps.filter(status="maybe").count()
+        annotated = getattr(self, "_maybe_count", None)
+        return annotated if annotated is not None else self.rsvps.filter(status="maybe").count()
 
     # ─── Routable routes ───────────────────────────────────────────────────────
 
@@ -478,10 +501,7 @@ class EventsIndexPage(Page):
         now = timezone.now().date()
         upcoming = EventPage.objects.filter(
             start_date__gte=now
-        ).live().public().order_by("start_date").annotate(
-            _going_count=Count("rsvps", filter=Q(rsvps__status="going")),
-            _maybe_count=Count("rsvps", filter=Q(rsvps__status="maybe")),
-        )
+        ).live().public().order_by("start_date").with_stats()
         context["upcoming_events"] = upcoming
         context["featured_event"] = upcoming.first()
         context["grid_events"] = list(upcoming[1:])

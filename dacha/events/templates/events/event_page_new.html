@@ -38,7 +38,7 @@
             <p class="text-lg text-gray-300 max-w-2xl mb-8">{{ page.summary }}</p>
             {% endif %}
             {% if page.show_countdown %}
-            <a href="#rsvp-widget" class="inline-flex items-center gap-2 bg-community-magenta hover:bg-community-magenta/90 text-white px-8 py-4 rounded-xl font-semibold transition-all shadow-lg w-fit">
+            <a href="#rsvp-widget" class="btn-brand">
                 RSVP Now
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -64,11 +64,11 @@
             {# Venue + Drivers #}
             {% if page.venue %}
             <div class="space-y-6 pt-6 border-t border-white/10">
-                <h3 class="text-2xl font-bold text-white flex items-center gap-2.5">
+                <h3 class="section-heading">
                     <span class="material-symbols-outlined">location_on</span>
                     Как добраться
                 </h3>
-                <div class="glass-card p-6 rounded-2xl border border-white/5 shadow-xl transition-all hover:border-community-cyan/30">
+                <div class="glass-card shadow-xl transition-all hover:border-community-cyan/30">
                     <p class="text-base-content/80 text-base leading-relaxed">{{ page.venue|linebreaks }}</p>
                 </div>
                 <div id="drivers-section">
@@ -79,7 +79,7 @@
 
             {# Back link #}
             <div class="pt-8 border-t border-white/10">
-                <a href="/events/" class="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 text-base-content/70 hover:text-white border border-white/5 transition-all duration-300 shadow-sm hover:border-brand-500/40">
+                <a href="/events/" class="back-link">
                     <span>←</span>
                     <span class="text-sm font-semibold">Все события</span>
                 </a>

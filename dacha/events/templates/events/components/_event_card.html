@@ -1,6 +1,6 @@
 {% load wagtailimages_tags %}
 {# Event card for grid — upcoming events #}
-<article class="group bg-surface-2 rounded-2xl overflow-hidden border border-white/5 hover:border-primary/30 transition-all flex flex-col">
+<article class="group event-card">
 
     {# Image #}
     <a href="/events/{{ event.slug }}/" class="block h-56 relative overflow-hidden">
@@ -19,7 +19,7 @@
     </a>
 
     {# Card Content #}
-    <div class="p-6 flex-1 flex flex-col">
+    <div class="event-card-body">
         <h3 class="text-lg font-semibold mb-2 text-white group-hover:text-primary transition-colors line-clamp-2">
             <a href="/events/{{ event.slug }}/">{{ event.title }}</a>
         </h3>
@@ -41,7 +41,7 @@
             {% endif %}
 
             <a href="/events/{{ event.slug }}/"
-               class="text-primary hover:bg-primary/10 px-4 py-2 rounded-lg text-sm font-medium border border-primary/20 transition-all">
+               class="event-card-action">
                 Подробнее
             </a>
         </div>

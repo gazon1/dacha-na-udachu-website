@@ -2,7 +2,7 @@
 {# Featured event spotlight card — large, full-width #}
 {% with featured as event %}
 {% if event %}
-<div class="group relative bg-surface-2 rounded-2xl overflow-hidden border border-white/5 shadow-2xl grid lg:grid-cols-5 h-auto lg:h-[450px]"
+<div class="group relative glass-card grid lg:grid-cols-5 h-auto lg:h-[450px]"
      x-data="{ shown: false }"
      x-intersect:enter="shown = true"
      :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
@@ -27,9 +27,9 @@
     <div class="lg:col-span-2 p-8 flex flex-col justify-between bg-surface-2">
         <div>
             <div class="flex gap-2 mb-6">
-                <span class="bg-surface-3 text-primary border border-primary/20 px-3 py-1 rounded-md text-xs font-medium">Событие</span>
+                <span class="badge-event">Событие</span>
                 {% if event.venue %}
-                <span class="bg-surface-3 text-secondary border border-secondary/20 px-3 py-1 rounded-md text-xs font-medium">Место</span>
+                <span class="badge-venue">Место</span>
                 {% endif %}
             </div>
             <h3 class="text-2xl md:text-3xl lg:text-4xl font-bold mb-4 leading-tight text-white">
@@ -43,9 +43,9 @@
         </div>
         <div class="flex items-center justify-between mt-6">
             <div class="flex items-center gap-2">
-                <div class="flex -space-x-2">
-                    <div class="w-8 h-8 rounded-full bg-surface-3 border-2 border-surface-2 flex items-center justify-center text-xs text-base-content/40">А</div>
-                    <div class="w-8 h-8 rounded-full bg-surface-3 border-2 border-surface-2 flex items-center justify-center text-xs text-base-content/40">Б</div>
+                <div class="avatar-stack">
+                    <div class="avatar-stack-item">А</div>
+                    <div class="avatar-stack-item">Б</div>
                 </div>
                 <span class="text-xs text-base-content/40">+{{ event.total_attending|default:0 }} записались</span>
             </div>
