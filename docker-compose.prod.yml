@@ -5,6 +5,8 @@ services:
       dockerfile: Dockerfile.prod
     restart: always
     user: "1000:1000"
+    env_file:
+      - .env
     environment:
       - DJANGO_SETTINGS_MODULE=dacha.settings.production
       - SECRET_KEY=${SECRET_KEY}
@@ -20,6 +22,10 @@ services:
       - DJANGO_SUPERUSER_EMAIL=${ADMIN_EMAIL}
       - DJANGO_SUPERUSER_PASSWORD=${ADMIN_PASSWORD}
       - WAGTAILADMIN_BASE_URL=https://dacha.maxdrobin.ru
+      # Telegram Login Widget
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME}
+      - TELEGRAM_AUTH_MAX_AGE_SECONDS=${TELEGRAM_AUTH_MAX_AGE_SECONDS:-300}
       # Optional email (V1.1)
       # - EMAIL_HOST=${EMAIL_HOST}
       # - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}

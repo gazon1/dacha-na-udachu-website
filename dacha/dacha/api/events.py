@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 
 from django.db import transaction
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.utils import timezone
 from ninja import Router
 from ninja.pagination import paginate
@@ -243,7 +243,7 @@ def submit_rsvp(request, event_id: int, data: RSVPSubmitIn):
     }
     form = RSVPForm(data=form_data)
     if not form.is_valid():
-        return {"error": "Ошибка валидации", "details": dict(form.errors)}, 400
+        return JsonResponse({"error": "Ошибка валидации", "details": dict(form.errors)}, status=400)
 
     with transaction.atomic():
         existing = EventRSVP.objects.filter(
@@ -252,7 +252,7 @@ def submit_rsvp(request, event_id: int, data: RSVPSubmitIn):
 
         if existing:
             if data.secret_key and data.secret_key != str(existing.secret_key):
-                return {"error": "Неверный ключ"}, 403
+                return JsonResponse({"error": "Неверный ключ"}, status=403)
             old_status = existing.status
             existing.status = data.status
             existing.guests_count = data.guests_count
@@ -307,23 +307,23 @@ def cancel_rsvp(request, event_id: int):
     """Cancel/delete an RSVP using cookie credentials."""
     secret_key = request.COOKIES.get(f"rsvp_{event_id}", "")
     if not secret_key:
-        return {"error": "Не авторизован"}, 401
+        return JsonResponse({"error": "Не авторизован"}, status=401)
 
     try:
         decoded = base64.b64decode(secret_key).decode()
         key, rsvp_id = decoded.rsplit(":", 1)
         rsvp_id = int(rsvp_id)
     except Exception:
-        return {"error": "Неверный формат cookie"}, 400
+        return JsonResponse({"error": "Неверный формат cookie"}, status=400)
 
     with transaction.atomic():
         try:
             rsvp = EventRSVP.objects.get(id=rsvp_id, event_id=event_id)
         except EventRSVP.DoesNotExist:
-            return {"error": "RSVP не найден"}, 404
+            return JsonResponse({"error": "RSVP не найден"}, status=404)
 
         if str(rsvp.secret_key) != key:
-            return {"error": "Неверный ключ"}, 403
+            return JsonResponse({"error": "Неверный ключ"}, status=403)
 
         was_confirmed = rsvp.status in ("going", "maybe")
         rsvp.delete()
@@ -345,7 +345,7 @@ def claim_rsvp(request, event_id: int, data: RSVPClaimIn):
             secret_key=data.secret_key,
         )
     except EventRSVP.DoesNotExist:
-        return {"error": "RSVP не найден"}, 404
+        return JsonResponse({"error": "RSVP не найден"}, status=404)
 
     response = HttpResponse()
     _set_rsvp_cookie(response, event_id, str(rsvp.secret_key), rsvp.id)
@@ -406,7 +406,7 @@ def add_driver(request, event_id: int, data: DriverIn):
     }
     form = DriverForm(data=form_data)
     if not form.is_valid():
-        return {"error": "Ошибка валидации", "details": dict(form.errors)}, 400
+        return JsonResponse({"error": "Ошибка валидации", "details": dict(form.errors)}, status=400)
 
     driver = form.save(commit=False)
     driver.event_id = event_id
@@ -429,7 +429,7 @@ def add_carpool_request(request, event_id: int, data: CarpoolRequestIn):
     }
     form = CarpoolRequestForm(data=form_data)
     if not form.is_valid():
-        return {"error": "Ошибка валидации", "details": dict(form.errors)}, 400
+        return JsonResponse({"error": "Ошибка валидации", "details": dict(form.errors)}, status=400)
 
     carpool = form.save(commit=False)
     carpool.event_id = event_id
@@ -453,7 +453,7 @@ def add_taxi_pool(request, event_id: int, data: TaxiPoolIn):
     }
     form = TaxiPoolForm(data=form_data)
     if not form.is_valid():
-        return {"error": "Ошибка валидации", "details": dict(form.errors)}, 400
+        return JsonResponse({"error": "Ошибка валидации", "details": dict(form.errors)}, status=400)
 
     pool = form.save(commit=False)
     pool.event_id = event_id
@@ -476,15 +476,15 @@ def join_ride(request, event_id: int, driver_id: int, data: PassengerIn):
     }
     form = PassengerForm(data=form_data)
     if not form.is_valid():
-        return {"error": "Ошибка валидации"}, 400
+        return JsonResponse({"error": "Ошибка валидации"}, status=400)
 
     with transaction.atomic():
         driver = EventDriver.objects.select_for_update().get(pk=driver_id)
         if driver.is_cancelled:
-            return {"error": "Поездка отменена"}, 409
+            return JsonResponse({"error": "Поездка отменена"}, status=409)
 
         if driver.seats_available < data.seats:
-            return {"error": "Недостаточно мест"}, 409
+            return JsonResponse({"error": "Недостаточно мест"}, status=409)
 
         passenger = form.save(commit=False)
         passenger.driver = driver
@@ -509,7 +509,7 @@ def cancel_driver(request, event_id: int, driver_id: int, token: str = ""):
     """Cancel a driver's ride using cancel_token."""
     driver = EventDriver.objects.get(pk=driver_id)
     if driver.cancel_token and token != driver.cancel_token:
-        return {"error": "Неверный токен"}, 403
+        return JsonResponse({"error": "Неверный токен"}, status=403)
 
     driver.is_cancelled = True
     driver.save(update_fields=["is_cancelled"])
@@ -528,16 +528,16 @@ def join_taxi(request, event_id: int, pool_id: int, data: TaxiPassengerIn):
     }
     form = TaxiPassengerForm(data=form_data)
     if not form.is_valid():
-        return {"error": "Ошибка валидации"}, 400
+        return JsonResponse({"error": "Ошибка валидации"}, status=400)
 
     with transaction.atomic():
         pool = TaxiPool.with_taxi_stats().select_for_update().get(pk=pool_id)
         if not pool.is_active:
-            return {"error": "Такси-пул неактивен"}, 409
+            return JsonResponse({"error": "Такси-пул неактивен"}, status=409)
         if pool.spots_left <= 0:
-            return {"error": "Нет мест"}, 409
+            return JsonResponse({"error": "Нет мест"}, status=409)
         if pool.spots_left < data.seats:
-            return {"error": "Недостаточно мест"}, 409
+            return JsonResponse({"error": "Недостаточно мест"}, status=409)
 
         passenger = form.save(commit=False)
         passenger.taxi = pool

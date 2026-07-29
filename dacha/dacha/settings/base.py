@@ -293,10 +293,11 @@ WAGTAILAPI_SEARCH_ENABLED = True
 WAGTAILAPI_LIMIT_MAX = 100
 
 # Wagtail headless preview — Next.js preview URL
-WAGTAIL_HEADLESS_PREVIEW_URL = os.environ.get(
-    "WAGTAIL_HEADLESS_PREVIEW_URL",
-    "http://localhost:3000/preview",
-)
+WAGTAIL_HEADLESS_PREVIEW = {
+    "CLIENT_URLS": {"default": os.environ.get("NEXT_PUBLIC_WAGTAIL_PREVIEW_URL", "http://localhost:3000")},
+    "SERVE_BASE_URL": "/api/pages/resolve/",
+    "ENFORCE_TRAILING_SLASH": True,
+}
 
 # Allowed file extensions for documents in the document library.
 # This can be omitted to allow all files, but note that this may present a security risk

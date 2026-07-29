@@ -49,7 +49,6 @@ def verify_telegram_auth(
             if key != "hash" and value is not None
         ]
         data_check_string = "\n".join(data_pairs)
-        print(f"DEBUG telegram_auth: data_check_string={data_check_string!r}")
 
         # Compute expected HMAC-SHA256
         secret_key = hashlib.sha256(bot_token.encode()).digest()

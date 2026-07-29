@@ -13,7 +13,6 @@ import {
   joinTaxi,
   type CarpoolSection,
 } from "@/lib/events";
-import { useUserStore } from "@/stores/user";
 import { useAppMutation } from "@/hooks/useAppMutation";
 import { PHONE_RE, TELEGRAM_RE } from "@/lib/validators";
 
@@ -88,21 +87,21 @@ export function DriversSection({ eventId }: { eventId: number }) {
 
   const driverMut = useAppMutation({
     mutationFn: (d: DriverForm) => addDriver(eventId, d as Parameters<typeof addDriver>[1]),
-    queryKeysToInvalidate: [["carpool", eventId], ["event", eventId]],
+    queryKeysToInvalidate: [["carpool", String(eventId)], ["event", String(eventId)]],
     successMessage: "Водитель добавлен!",
     onSuccessCallback: () => setShowDriverModal(false),
   });
 
   const requestMut = useAppMutation({
     mutationFn: (d: RequestForm) => addCarpoolRequest(eventId, d as Parameters<typeof addCarpoolRequest>[1]),
-    queryKeysToInvalidate: [["carpool", eventId], ["event", eventId]],
+    queryKeysToInvalidate: [["carpool", String(eventId)], ["event", String(eventId)]],
     successMessage: "Запрос отправлен!",
     onSuccessCallback: () => setShowRequestModal(false),
   });
 
   const taxiMut = useAppMutation({
     mutationFn: (d: TaxiForm) => addTaxiPool(eventId, d as Parameters<typeof addTaxiPool>[1]),
-    queryKeysToInvalidate: [["carpool", eventId], ["event", eventId]],
+    queryKeysToInvalidate: [["carpool", String(eventId)], ["event", String(eventId)]],
     successMessage: "Такси-пул создан!",
     onSuccessCallback: () => setShowTaxiModal(false),
   });
@@ -217,7 +216,7 @@ function DriverCard({ driver, eventId }: { driver: import("@/lib/events").Driver
 
   const joinMut = useAppMutation({
     mutationFn: (d: JoinForm) => joinRide(eventId, driver.id, d as Parameters<typeof joinRide>[2]),
-    queryKeysToInvalidate: [["carpool", eventId], ["event", eventId]],
+    queryKeysToInvalidate: [["carpool", String(eventId)], ["event", String(eventId)]],
     successMessage: "Присоединились!",
     onSuccessCallback: () => setJoining(false),
   });
@@ -276,7 +275,7 @@ function TaxiPoolCard({ pool, eventId }: { pool: import("@/lib/events").TaxiPool
 
   const joinMut = useAppMutation({
     mutationFn: (d: JoinForm) => joinTaxi(eventId, pool.id, d as Parameters<typeof joinTaxi>[2]),
-    queryKeysToInvalidate: [["carpool", eventId], ["event", eventId]],
+    queryKeysToInvalidate: [["carpool", String(eventId)], ["event", String(eventId)]],
     successMessage: "Присоединились!",
     onSuccessCallback: () => setJoining(false),
   });
@@ -313,13 +312,9 @@ function JoinFormEl({ onSubmit, isPending, onCancel }: {
   isPending: boolean;
   onCancel: () => void;
 }) {
-  const identity = useUserStore((s) => s.identity);
   const { register, handleSubmit } = useForm<JoinForm>({
     defaultValues: {
       seats: 1,
-      name: identity?.name ?? "",
-      phone: identity?.phone ?? "",
-      telegram: identity?.telegram ?? "",
       pickup_location: "",
       notes: "",
     },
@@ -343,15 +338,11 @@ function JoinFormEl({ onSubmit, isPending, onCancel }: {
 }
 
 function DriverForm({ onSubmit, isPending }: { onSubmit: (d: DriverForm) => void; isPending: boolean }) {
-  const identity = useUserStore((s) => s.identity);
   const { register, handleSubmit, formState: { errors } } = useForm<DriverForm>({
     resolver: zodResolver(driverSchema),
     defaultValues: {
       contact_preference: "any",
       seats_total: 4,
-      name: identity?.name ?? "",
-      phone: identity?.phone ?? "",
-      telegram: identity?.telegram ?? "",
     },
   });
   return (
@@ -376,15 +367,11 @@ function DriverForm({ onSubmit, isPending }: { onSubmit: (d: DriverForm) => void
 }
 
 function RequestFormEl({ onSubmit, isPending }: { onSubmit: (d: RequestForm) => void; isPending: boolean }) {
-  const identity = useUserStore((s) => s.identity);
   const { register, handleSubmit } = useForm<RequestForm>({
     resolver: zodResolver(requestSchema),
     defaultValues: {
       can_share_gas: false,
       flexible_time: false,
-      name: identity?.name ?? "",
-      phone: identity?.phone ?? "",
-      telegram: identity?.telegram ?? "",
     },
   });
   return (
@@ -411,13 +398,10 @@ function RequestFormEl({ onSubmit, isPending }: { onSubmit: (d: RequestForm) => 
 }
 
 function TaxiFormEl({ onSubmit, isPending }: { onSubmit: (d: TaxiForm) => void; isPending: boolean }) {
-  const identity = useUserStore((s) => s.identity);
   const { register, handleSubmit } = useForm<TaxiForm>({
     resolver: zodResolver(taxiSchema),
     defaultValues: {
       service: "Яндекс",
-      organizer: identity?.name ?? "",
-      telegram: identity?.telegram ?? "",
     },
   });
   return (

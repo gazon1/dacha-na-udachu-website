@@ -1,16 +1,17 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-interface UserIdentity {
-  name: string;
-  phone: string;
-  telegram: string;
-  token?: string;
+interface TelegramIdentity {
+  telegram_id: number;
+  telegram_username?: string;
+  telegram_first_name: string;
+  telegram_last_name?: string;
+  telegram_photo_url?: string;
 }
 
 interface UserState {
-  identity: UserIdentity | null;
-  setIdentity: (name: string, phone: string, telegram: string, token?: string) => void;
+  identity: TelegramIdentity | null;
+  setIdentity: (identity: TelegramIdentity) => void;
   clearIdentity: () => void;
 }
 
@@ -18,12 +19,16 @@ export const useUserStore = create<UserState>()(
   persist(
     (set) => ({
       identity: null,
-      setIdentity: (name, phone, telegram, token) =>
-        set((state) => ({
-          identity: { name, phone, telegram, token: token ?? state.identity?.token },
-        })),
+      setIdentity: (identity) => set({ identity }),
       clearIdentity: () => set({ identity: null }),
     }),
-    { name: "dacha-user-identity" }
+    {
+      name: "dacha-user-identity",
+      version: 2,
+      // Migrate from old schema { name, phone, telegram, token } to new { identity }
+      migrate: () => {
+        return { state: { identity: null }, version: 2 };
+      },
+    }
   )
 );

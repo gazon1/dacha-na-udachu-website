@@ -10,7 +10,6 @@ from django.contrib.sitemaps.views import sitemap as django_sitemap
 from core.sitemaps import EventPageSitemap, NewsPageSitemap
 
 from wagtail.admin import urls as wagtailadmin_urls
-from wagtail import urls as wagtail_urls
 from wagtail.documents import urls as wagtaildocs_urls
 from wagtail.api.v2.router import WagtailAPIRouter
 from wagtail.api.v2.views import PagesAPIViewSet
@@ -101,7 +100,8 @@ if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 urlpatterns = urlpatterns + [
-    path("cms/", include(wagtail_urls)),
+    # CMS UI — redirect /cms/ to Wagtail admin
+    path("cms/", lambda _: __import__("django").shortcuts.redirect("/admin/", permanent=False)),
     # Redirect root to Next.js in dev (Django is API-only; Next.js serves frontend)
     path("", lambda _: __import__("django").shortcuts.redirect("http://localhost:3000", permanent=False)),
 ]

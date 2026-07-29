@@ -23,9 +23,11 @@ from dacha.api.events import router as events_router
 from dacha.api.pages import router as pages_router
 from dacha.api.newsletter import router as newsletter_router
 from dacha.api.accounts import router as accounts_router
+from dacha.api.preview import router as preview_router
 
 api.add_router("/booking/", booking_router)
 api.add_router("/events/", events_router)
 api.add_router("/pages/", pages_router)
 api.add_router("/newsletter/", newsletter_router)
 api.add_router("/auth/", accounts_router)
+api.add_router("/preview/", preview_router)

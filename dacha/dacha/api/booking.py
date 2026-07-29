@@ -4,6 +4,7 @@ Booking API endpoints — GET houses/availability/quote, POST submit.
 from datetime import date
 
 from django.db import transaction
+from django.http import JsonResponse
 from ninja import Router
 
 from booking.forms import BookingForm
@@ -120,7 +121,7 @@ def submit_booking(request, data: BookingSubmitIn):
     """Create a booking from validated form data."""
     house = HousePage.objects.filter(pk=data.house_id).first()
     if not house:
-        return {"error": "Дом не найден"}, 404
+        return JsonResponse({"error": "Дом не найден"}, status=404)
 
     # Reuse the existing service — no formula duplication
     from booking.services import create_booking
@@ -138,7 +139,7 @@ def submit_booking(request, data: BookingSubmitIn):
     form = BookingForm(data=post_data)
     if not form.is_valid():
         errors = {k: v[0] for k, v in form.errors.items()}
-        return {"error": "Ошибка валидации", "details": errors}, 400
+        return JsonResponse({"error": "Ошибка валидации", "details": errors}, status=400)
 
     try:
         booking = create_booking(form)
@@ -148,4 +149,4 @@ def submit_booking(request, data: BookingSubmitIn):
             status="confirmed" if booking.is_confirmed else "pending",
         )
     except BookingServiceError as e:
-        return {"error": str(e)}, 409
+        return JsonResponse({"error": str(e)}, status=409)

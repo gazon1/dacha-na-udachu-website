@@ -2,6 +2,7 @@ from .base import *
 import os
 
 DEBUG = True
+ALLOWED_HOSTS = ["*"]
 
 SECRET_KEY = "test-secret-key-for-ci"
 

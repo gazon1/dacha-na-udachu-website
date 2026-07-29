@@ -1,7 +1,7 @@
 """
 Pages API — resolves slug to Wagtail page for Next.js catch-all route.
 """
-from django.http import HttpRequest
+from django.http import HttpRequest, JsonResponse
 from ninja import Router
 
 router = Router(tags=["pages"])
@@ -24,19 +24,19 @@ def resolve_page(request: HttpRequest, html_path: str):
 
     site = Site.find_for_request(request)
     if site is None:
-        return {"error": "No site configured"}, 404
+        return JsonResponse({"error": "No site configured"}, status=404)
 
     path = html_path.strip("/")
 
-    from wagtail.models import Page
+    path_components = [c for c in path.split("/") if c]
 
     try:
-        page, _, _ = Page.from_path(site.root_page, path)
+        page, _, _ = site.root_page.specific.route(request, path_components)
     except Exception:
-        return {"error": "Page not found"}, 404
+        return JsonResponse({"error": "Page not found"}, status=404)
 
     if page is None:
-        return {"error": "Page not found"}, 404
+        return JsonResponse({"error": "Page not found"}, status=404)
 
     return {
         "id": page.id,
