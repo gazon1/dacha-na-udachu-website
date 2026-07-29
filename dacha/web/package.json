@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@fontsource-variable/material-symbols-outlined": "^5.3.1",
     "@hookform/resolvers": "^5.5.7",
     "@radix-ui/react-dialog": "^1.1.23",
     "@radix-ui/react-label": "^2.1.15",
@@ -16,6 +17,7 @@
     "@radix-ui/react-tabs": "^1.1.21",
     "@tanstack/react-query": "^5.101.4",
     "clsx": "^2.1.1",
+    "daisyui": "^5.7.7",
     "next": "16.2.12",
     "nuqs": "^2.9.2",
     "react": "19.2.4",

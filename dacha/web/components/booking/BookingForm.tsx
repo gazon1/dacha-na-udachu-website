@@ -6,10 +6,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
 import { useBookingStore } from "@/stores/booking";
+import { useUserStore } from "@/stores/user";
 import { submitBooking } from "@/lib/booking";
-
-const PHONE_RE = /^\+\d{11,15}$/;
-const TELEGRAM_RE = /^[a-zA-Z0-9_]{5,32}$/;
+import { PHONE_RE, TELEGRAM_RE } from "@/lib/validators";
 
 const schema = z.object({
   name: z.string().min(1, "Введите имя").max(100),
@@ -29,6 +28,8 @@ const EXTRA_OPTIONS = [
 export function BookingForm() {
   const store = useBookingStore();
   const { selectedHouse, checkIn, checkOut, quote } = store;
+  const setIdentity = useUserStore((s) => s.setIdentity);
+  const identity = useUserStore((s) => s.identity);
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
 
@@ -38,7 +39,12 @@ export function BookingForm() {
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { guest_num: 1 },
+    defaultValues: {
+      guest_num: 1,
+      name: identity?.name ?? "",
+      phone: identity?.phone ?? "",
+      telegram: identity?.telegram ?? "",
+    },
   });
 
   const onSubmit = async (data: FormData) => {
@@ -58,6 +64,8 @@ export function BookingForm() {
       if (result.error) {
         toast.error(result.error);
       } else {
+        // Save identity for reuse across forms
+        setIdentity(data.name, data.phone, data.telegram ?? "");
         toast.success("Заявка отправлена! Мы свяжемся с вами.");
         store.reset();
         router.push("/booking/?submitted=1");
@@ -120,7 +128,7 @@ export function BookingForm() {
                 type="checkbox"
                 checked={store.options[opt.key]}
                 onChange={() => store.toggleOption(opt.key)}
-                className="checkbox checkbox-primary"
+                className="w-5 h-5 rounded border-white/20 bg-surface-2 accent-primary cursor-pointer"
               />
               <span className="text-white">{opt.label}</span>
               <span className="text-base-content/50 text-sm ml-auto">+{opt.price} ₽</span>

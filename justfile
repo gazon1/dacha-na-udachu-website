@@ -115,7 +115,7 @@ runserver:
 # ---- LOCAL DEV ----
 [working-directory("/workspace/dacha")]
 [doc("Full local dev startup: makemigrations + migrate + runserver (Next.js: just frontend-dev)")]
-dev: frontend-build makemigrations migrate runserver
+dev: makemigrations migrate runserver
 
 
 # ---- DOCKER ----

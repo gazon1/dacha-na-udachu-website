@@ -6,12 +6,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
 import { fetchMyRSVP, submitRSVP, cancelRSVP, type RSVPState } from "@/lib/events";
+import { useUserStore } from "@/stores/user";
 
 const PHONE_RE = /^\+\d{11,15}$/;
 const TELEGRAM_RE = /^[a-zA-Z0-9_]{5,32}$/;
 
 const schema = z.object({
   name: z.string().min(1, "Введите имя").max(100),
+  phone: z.string().regex(PHONE_RE, "Формат: +79... (11-15 цифр)").optional().or(z.literal("")),
+  telegram: z.string().regex(TELEGRAM_RE, "5-32 символа").optional().or(z.literal("")),
   status: z.enum(["going", "maybe", "not_going"]),
   guests_count: z.number().int().min(0).max(10),
 });
@@ -27,6 +30,8 @@ interface RsvpWidgetProps {
 export function RsvpWidget({ eventId, rsvpCapacity, totalAttending }: RsvpWidgetProps) {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const setIdentity = useUserStore((s) => s.setIdentity);
+  const identity = useUserStore((s) => s.identity);
 
   const { data: rsvp } = useQuery<RSVPState>({
     queryKey: ["rsvp", eventId],
@@ -39,12 +44,18 @@ export function RsvpWidget({ eventId, rsvpCapacity, totalAttending }: RsvpWidget
       if (result.error) {
         toast.error(result.error);
       } else {
+        // Persist user identity for carpool + booking forms
+        const formData = voteMutation.variables as FormData | undefined;
+        if (formData?.name) {
+          setIdentity(formData.name, formData.phone ?? "", formData.telegram ?? "");
+        }
         toast.success(
           result.status === "going" ? "Вы идёте! 🎉" :
           result.status === "maybe" ? "Возможно, увидимся!" : "Отмечено"
         );
         queryClient.invalidateQueries({ queryKey: ["rsvp", eventId] });
         queryClient.invalidateQueries({ queryKey: ["attendees", eventId] });
+        queryClient.invalidateQueries({ queryKey: ["event", eventId] });
         setShowForm(false);
       }
     },
@@ -60,6 +71,7 @@ export function RsvpWidget({ eventId, rsvpCapacity, totalAttending }: RsvpWidget
         toast.success("RSVP отменён");
         queryClient.invalidateQueries({ queryKey: ["rsvp", eventId] });
         queryClient.invalidateQueries({ queryKey: ["attendees", eventId] });
+        queryClient.invalidateQueries({ queryKey: ["event", eventId] });
       }
     },
     onError: () => toast.error("Ошибка сети"),
@@ -67,7 +79,13 @@ export function RsvpWidget({ eventId, rsvpCapacity, totalAttending }: RsvpWidget
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { status: "going", guests_count: 1 },
+    defaultValues: {
+      status: "going",
+      guests_count: 1,
+      name: identity?.name ?? "",
+      phone: identity?.phone ?? "",
+      telegram: identity?.telegram ?? "",
+    },
   });
 
   if (rsvp?.voted && rsvp.status) {
@@ -113,7 +131,7 @@ export function RsvpWidget({ eventId, rsvpCapacity, totalAttending }: RsvpWidget
     <div className="glass-card">
       <form onSubmit={handleSubmit((d) => voteMutation.mutate(d))} className="space-y-4">
         <div>
-          <input {...register("name")} placeholder="Ваше имя" className="form-input" />
+          <input {...register("name")} placeholder="Ваше имя *" className="form-input" />
           {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name.message}</p>}
         </div>
 
@@ -122,7 +140,7 @@ export function RsvpWidget({ eventId, rsvpCapacity, totalAttending }: RsvpWidget
             <button
               key={s}
               type="button"
-              onClick={() => reset({ ...Object.fromEntries(Object.entries({ status: s, guests_count: 1 })), name: "" })}
+              onClick={() => reset((prev) => ({ ...prev!, status: s }))}
               className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-all ${
                 s === "going"
                   ? "bg-primary/20 border-primary/30 text-primary"
@@ -134,6 +152,16 @@ export function RsvpWidget({ eventId, rsvpCapacity, totalAttending }: RsvpWidget
               {s === "going" ? "Иду" : s === "maybe" ? "Возможно" : "Не иду"}
             </button>
           ))}
+        </div>
+
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <input {...register("phone")} placeholder="+79001234567" className="form-input text-sm" />
+            {errors.phone && <p className="text-red-400 text-xs mt-1">{errors.phone.message}</p>}
+          </div>
+          <div className="flex-1">
+            <input {...register("telegram")} placeholder="@username" className="form-input text-sm" />
+          </div>
         </div>
 
         <div>

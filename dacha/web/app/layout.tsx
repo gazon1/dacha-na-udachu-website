@@ -35,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru" data-theme="community" className={`${inter.variable} h-full`}>
+    <html lang="ru" data-theme="community" data-scroll-behavior="smooth" className={`${inter.variable} h-full`}>
       <head>
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>

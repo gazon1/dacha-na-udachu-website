@@ -30,7 +30,7 @@ export function HeroBlock({ value }: HeroBlockProps) {
         {value.button_text && value.button_url && (
           <Link
             href={value.button_url}
-            className="btn btn-primary btn-lg inline-flex items-center gap-2 text-lg px-8 py-4"
+            className="btn-brand-lg inline-flex items-center gap-2 text-lg"
           >
             {value.button_text}
             <span className="material-symbols-outlined">arrow_forward</span>

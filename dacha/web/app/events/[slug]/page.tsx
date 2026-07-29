@@ -4,7 +4,7 @@ import Link from "next/link";
 import { fetchEvent } from "@/lib/events";
 import { RsvpWidget } from "@/components/event/RsvpWidget";
 import { AttendeesList } from "@/components/event/AttendeesList";
-import { DriversSection } from "@/components/event/DriversSection";
+import { CarpoolSidebar } from "@/components/event/CarpoolSidebar";
 import { Countdown } from "@/components/event/Countdown";
 
 interface Props {
@@ -125,13 +125,7 @@ export default async function EventPage({ params }: Props) {
         </div>
 
         {/* Sidebar — carpool */}
-        <div className="glass-card">
-          <h2 className="section-heading mb-4">
-            <span className="material-symbols-outlined text-primary">directions_car</span>
-            Попутчики
-          </h2>
-          <DriversSection eventId={event.id} />
-        </div>
+        <CarpoolSidebar eventId={event.id} />
       </div>
 
       {/* .ics download */}

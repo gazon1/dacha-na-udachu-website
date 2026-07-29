@@ -19,7 +19,7 @@ export function CtaCardBlock({ value }: CtaCardBlockProps) {
         <p className="text-base-content/70 mb-4">{value.description}</p>
       )}
       {value.button_text && value.button_url && (
-        <Link href={value.button_url} className="btn btn-brand">
+        <Link href={value.button_url} className="btn-brand">
           {value.button_text}
         </Link>
       )}

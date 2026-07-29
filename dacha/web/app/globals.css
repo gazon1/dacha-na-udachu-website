@@ -5,6 +5,7 @@
    ============================================================================= */
 
 @import "tailwindcss";
+@import "@fontsource-variable/material-symbols-outlined";
 
 /* ── Tailwind v4 theme tokens ────────────────────────────────────────────── */
 @theme {
@@ -30,64 +31,19 @@
   --color-community-magenta: #d946ef;
   --color-community-cyan:   #06b6d4;
 
+  /* Tailwind v4 semantic color aliases */
+  --color-primary:       #7fba2f;
+  --color-secondary:     #dae2fd;
+  --color-accent:        #06b6d4;
+  --color-base-content:  #dae2fd;
+
   /* Semantic aliases */
   --color-stroke:    #2d3449;
   --color-border:    #2d3449;
 }
 
-/* ── daisyUI community theme ─────────────────────────────────────────────── */
-@plugin "daisyui" {
-  themes: community --default;
-}
-
-[data-theme="community"] {
-  --p:   88 75% 62%;
-  --pf:  88 75% 52%;
-  --pc:  26 100% 12%;
-
-  --s:   130 35% 70%;
-  --sf:  130 35% 60%;
-  --sc:  120 45% 10%;
-
-  --a:   90 100% 50%;
-  --af:  90 100% 40%;
-  --ac:  50 100% 10%;
-
-  --n:   220 40% 10%;
-  --nf:  220 40% 7%;
-  --nc:  220 30% 92%;
-
-  --b1:  220 45% 6%;
-  --b2:  220 40% 10%;
-  --b3:  220 35% 15%;
-  --bc:  220 30% 92%;
-
-  --er:  6 100% 82%;
-  --erc: 6 100% 10%;
-
-  --su:  88 75% 62%;
-  --suc: 26 100% 12%;
-
-  --wa:  36 100% 65%;
-  --wac: 36 100% 10%;
-
-  --ca:  199 89% 55%;
-  --cac: 220 14% 96%;
-
-  --in:  220 40% 40%;
-  --inc: 220 30% 92%;
-
-  --rounded-btn: 0.75rem;
-  --rounded-box: 1rem;
-}
-
-/* ── Material Symbols font (self-hosted) ─────────────────────────────────── */
-@font-face {
-  font-family: "Material Symbols Outlined";
-  font-style: normal;
-  font-weight: 100..700;
-  src: url(https://fonts.gstatic.com/s/materialsymbols/v332/kJR8yVqaO0A4m7bZtRI6Vix9jGvm5oPB9H6hlFaTL6r3h7G4JH-HxA.woff2) format("woff2");
-}
+/* ── Material Symbols font (self-hosted via @fontsource) ──────────────────── */
+/* Imported via @fontsource-variable/material-symbols-outlined above */
 
 /* ── Base reset ───────────────────────────────────────────────────────────── */
 *,
@@ -97,7 +53,6 @@
 }
 
 html {
-  scroll-behavior: smooth;
   font-family: "InterVariable", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -122,7 +77,7 @@ body {
 
 /* ── Material Symbols ─────────────────────────────────────────────────────── */
 .material-symbols-outlined {
-  font-family: "Material Symbols Outlined";
+  font-family: "Material Symbols Outlined Variable";
   font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
   font-size: 1.25rem;
   vertical-align: middle;

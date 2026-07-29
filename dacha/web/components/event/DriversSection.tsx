@@ -14,6 +14,7 @@ import {
   joinTaxi,
   type CarpoolSection,
 } from "@/lib/events";
+import { useUserStore } from "@/stores/user";
 
 const PHONE_RE = /^\+\d{11,15}$/;
 const TELEGRAM_RE = /^[a-zA-Z0-9_]{5,32}$/;
@@ -86,6 +87,7 @@ export function DriversSection({ eventId }: DriversSectionProps) {
       if ("error" in r) { toast.error(r.error); return; }
       toast.success("Водитель добавлен!");
       queryClient.invalidateQueries({ queryKey: ["carpool", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["event", eventId] });
       setShowDriverModal(false);
     },
     onError: () => toast.error("Ошибка"),
@@ -97,6 +99,7 @@ export function DriversSection({ eventId }: DriversSectionProps) {
       if ("error" in r) { toast.error(r.error); return; }
       toast.success("Запрос отправлен!");
       queryClient.invalidateQueries({ queryKey: ["carpool", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["event", eventId] });
       setShowRequestModal(false);
     },
     onError: () => toast.error("Ошибка"),
@@ -108,6 +111,7 @@ export function DriversSection({ eventId }: DriversSectionProps) {
       if ("error" in r) { toast.error(r.error); return; }
       toast.success("Такси-пул создан!");
       queryClient.invalidateQueries({ queryKey: ["carpool", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["event", eventId] });
       setShowTaxiModal(false);
     },
     onError: () => toast.error("Ошибка"),
@@ -227,6 +231,7 @@ function DriverCard({ driver, eventId }: { driver: import("@/lib/events").Driver
       if ("error" in r) { toast.error(r.error); return; }
       toast.success("Присоединились!");
       queryClient.invalidateQueries({ queryKey: ["carpool", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["event", eventId] });
       setJoining(false);
     },
     onError: () => toast.error("Ошибка"),
@@ -292,6 +297,7 @@ function TaxiPoolCard({ pool, eventId }: { pool: import("@/lib/events").TaxiPool
       if ("error" in r) { toast.error(r.error); return; }
       toast.success("Присоединились!");
       queryClient.invalidateQueries({ queryKey: ["carpool", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["event", eventId] });
       setJoining(false);
     },
     onError: () => toast.error("Ошибка"),
@@ -328,8 +334,16 @@ function JoinForm({ onSubmit, isPending, onCancel }: {
   isPending: boolean;
   onCancel: () => void;
 }) {
+  const identity = useUserStore((s) => s.identity);
   const { register, handleSubmit } = useForm<{ name: string; phone: string; telegram: string; pickup_location: string; seats: number; notes: string }>({
-    defaultValues: { seats: 1, name: "", phone: "", telegram: "", pickup_location: "", notes: "" },
+    defaultValues: {
+      seats: 1,
+      name: identity?.name ?? "",
+      phone: identity?.phone ?? "",
+      telegram: identity?.telegram ?? "",
+      pickup_location: "",
+      notes: "",
+    },
   });
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-2 mt-2">
@@ -351,9 +365,16 @@ function JoinForm({ onSubmit, isPending, onCancel }: {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function DriverForm({ onSubmit, isPending }: { onSubmit: (d: any) => void; isPending: boolean }) {
+  const identity = useUserStore((s) => s.identity);
   const { register, handleSubmit, formState: { errors } } = useForm<DriverForm>({
     resolver: zodResolver(driverSchema),
-    defaultValues: { contact_preference: "any", seats_total: 4 },
+    defaultValues: {
+      contact_preference: "any",
+      seats_total: 4,
+      name: identity?.name ?? "",
+      phone: identity?.phone ?? "",
+      telegram: identity?.telegram ?? "",
+    },
   });
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
@@ -378,9 +399,16 @@ function DriverForm({ onSubmit, isPending }: { onSubmit: (d: any) => void; isPen
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function RequestForm({ onSubmit, isPending }: { onSubmit: (d: any) => void; isPending: boolean }) {
+  const identity = useUserStore((s) => s.identity);
   const { register, handleSubmit } = useForm<RequestForm>({
     resolver: zodResolver(requestSchema),
-    defaultValues: { can_share_gas: false, flexible_time: false },
+    defaultValues: {
+      can_share_gas: false,
+      flexible_time: false,
+      name: identity?.name ?? "",
+      phone: identity?.phone ?? "",
+      telegram: identity?.telegram ?? "",
+    },
   });
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
@@ -407,9 +435,14 @@ function RequestForm({ onSubmit, isPending }: { onSubmit: (d: any) => void; isPe
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function TaxiForm({ onSubmit, isPending }: { onSubmit: (d: any) => void; isPending: boolean }) {
+  const identity = useUserStore((s) => s.identity);
   const { register, handleSubmit, formState: { errors } } = useForm<TaxiForm>({
     resolver: zodResolver(taxiSchema),
-    defaultValues: { service: "Яндекс" },
+    defaultValues: {
+      service: "Яндекс",
+      organizer: identity?.name ?? "",
+      telegram: identity?.telegram ?? "",
+    },
   });
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">

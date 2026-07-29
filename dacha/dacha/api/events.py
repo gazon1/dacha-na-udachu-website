@@ -369,9 +369,9 @@ def list_attendees(request, event_id: int):
 @router.get("/{event_id}/carpool/", response=CarpoolSectionOut)
 def get_carpool_section(request, event_id: int):
     """Return all carpool data for an event."""
-    drivers = list(EventDriver.objects.with_carpool_stats().filter(event_id=event_id))
+    drivers = list(EventDriver.with_carpool_stats().filter(event_id=event_id))
     requests = list(CarpoolRequest.objects.filter(event_id=event_id, is_active=True))
-    pools = list(TaxiPool.objects.with_taxi_stats().filter(event_id=event_id, is_active=True))
+    pools = list(TaxiPool.with_taxi_stats().filter(event_id=event_id, is_active=True))
     return CarpoolSectionOut(
         drivers=[_driver_to_out(d) for d in drivers],
         carpool_requests=[_request_to_out(r) for r in requests],
@@ -526,7 +526,7 @@ def join_taxi(request, event_id: int, pool_id: int, data: TaxiPassengerIn):
         return {"error": "Ошибка валидации"}, 400
 
     with transaction.atomic():
-        pool = TaxiPool.objects.select_for_update().with_taxi_stats().get(pk=pool_id)
+        pool = TaxiPool.with_taxi_stats().select_for_update().get(pk=pool_id)
         if not pool.is_active:
             return {"error": "Такси-пул неактивен"}, 409
         if pool.spots_left <= 0:
