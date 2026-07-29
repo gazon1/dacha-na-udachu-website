@@ -15,7 +15,7 @@ export default defineConfig({
   root: resolve(__dirname, "frontend"),
   build: {
     outDir: resolve(__dirname, "dacha/dacha/static"),
-    emptyOutDir: true,
+    emptyOutDir: false,
     manifest: true,
     rollupOptions: {
       input: resolve(__dirname, "frontend/src/js/app.js"),
