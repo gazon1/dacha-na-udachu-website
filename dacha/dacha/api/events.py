@@ -6,28 +6,27 @@ import json
 from datetime import datetime
 
 from django.db import transaction
-from django.db.models import Value
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
 from ninja import Router
 from ninja.pagination import paginate
 
+from core.auth import public_auth, session_cookie_auth
 from events.forms import (
-    RSVPForm,
-    DriverForm,
     CarpoolRequestForm,
-    TaxiPoolForm,
+    DriverForm,
     PassengerForm,
+    RSVPForm,
     TaxiPassengerForm,
+    TaxiPoolForm,
 )
 from events.models import (
+    CarpoolRequest,
+    EventDriver,
     EventPage,
     EventRSVP,
-    EventDriver,
     RidePassenger,
-    CarpoolRequest,
     TaxiPool,
-    TaxiPassenger,
 )
 
 from .schemas import (
@@ -43,14 +42,13 @@ from .schemas import (
     RSVPClaimIn,
     RSVPMEOut,
     RSVPSubmitIn,
-    RSVPOut,
     TaxiPassengerIn,
+    TaxiPassengerOut,
     TaxiPoolIn,
     TaxiPoolOut,
-    TaxiPassengerOut,
 )
 
-router = Router(tags=["events"])
+router = Router(auth=session_cookie_auth, tags=["events"])
 
 
 # ─── RSVP helpers ──────────────────────────────────────────────────────────────
@@ -84,15 +82,6 @@ def _set_rsvp_cookie(response: HttpResponse, event_id: int, secret_key: str, rsv
 
 def _clear_rsvp_cookie(response: HttpResponse, event_id: int):
     response.delete_cookie(key=f"rsvp_{event_id}", path="/")
-
-
-def _rsvp_to_out(rsvp: EventRSVP) -> RSVPOut:
-    return RSVPOut(
-        id=rsvp.id,
-        name=rsvp.name,
-        status=rsvp.status,
-        guests_count=rsvp.guests_count,
-    )
 
 
 def _driver_to_out(d: EventDriver) -> DriverOut:
@@ -184,7 +173,7 @@ def _event_to_out(e: EventPage) -> EventOut:
 
 # ─── Event listing ─────────────────────────────────────────────────────────────
 
-@router.get("/", response=list[EventOut])
+@router.get("/", response=list[EventOut], auth=public_auth)
 def list_events(request, upcoming: bool = True):
     """List upcoming or past events with stats."""
     now = timezone.now().date()
@@ -196,7 +185,7 @@ def list_events(request, upcoming: bool = True):
     return [_event_to_out(e) for e in qs]
 
 
-@router.get("/{event_id}/", response=EventOut)
+@router.get("/{event_id}/", response=EventOut, auth=public_auth)
 def get_event(event_id: int):
     """Get a single event with aggregate stats."""
     e = EventPage.objects.with_stats().get(pk=event_id)
@@ -207,7 +196,7 @@ def get_event(event_id: int):
 
 @router.get("/{event_id}/rsvp/me", response=RSVPMEOut)
 def rsvp_me(request, event_id: int):
-    """Read current user's RSVP from cookie or X-User-Token header."""
+    """Read current user's RSVP from cookie (primary) or X-User-Token header (fallback)."""
     # Try cookie first
     secret_key, rsvp_id = _parse_rsvp_cookie(request, event_id)
     if secret_key and rsvp_id:
@@ -224,23 +213,17 @@ def rsvp_me(request, event_id: int):
         except EventRSVP.DoesNotExist:
             pass
 
-    # Fallback: try X-User-Token header
-    token = request.headers.get("X-User-Token", "")
-    if token:
-        from core.models import UserAccount
-        try:
-            account = UserAccount.objects.get(token=token)
-            rsvp = EventRSVP.objects.filter(event_id=event_id, user_account=account).first()
-            if rsvp:
-                return RSVPMEOut(
-                    voted=True,
-                    id=rsvp.id,
-                    name=rsvp.name,
-                    status=rsvp.status,
-                    secret_key=rsvp.secret_key,
-                )
-        except UserAccount.DoesNotExist:
-            pass
+    # Fallback: try authenticated UserAccount via session cookie
+    if request.auth is not None:
+        rsvp = EventRSVP.objects.filter(event_id=event_id, user_account=request.auth).first()
+        if rsvp:
+            return RSVPMEOut(
+                voted=True,
+                id=rsvp.id,
+                name=rsvp.name,
+                status=rsvp.status,
+                secret_key=rsvp.secret_key,
+            )
 
     return RSVPMEOut(voted=False)
 
@@ -249,17 +232,9 @@ def rsvp_me(request, event_id: int):
 def submit_rsvp(request, event_id: int, data: RSVPSubmitIn):
     """Create or update an RSVP, set httpOnly cookie, return JSON."""
     event = EventPage.objects.get(pk=event_id)
-    response_data: dict = {}
 
-    # Resolve UserAccount from X-User-Token header (optional)
-    user_account = None
-    token = request.headers.get("X-User-Token", "")
-    if token:
-        from core.models import UserAccount
-        try:
-            user_account = UserAccount.objects.get(token=token)
-        except UserAccount.DoesNotExist:
-            pass
+    # Resolve UserAccount from session cookie auth
+    user_account = request.auth
 
     form_data = {
         "name": data.name,
@@ -310,10 +285,9 @@ def submit_rsvp(request, event_id: int, data: RSVPSubmitIn):
             # Promote waiting if going/maybe left
             if effective_status != EventRSVP.WAITING:
                 pass  # Already going/maybe, no need to promote
-            else:
-                # A spot may have opened — try to promote
-                if old_status in ("going", "maybe") if existing else False:
-                    event.promote_first_waiting()
+            # A spot may have opened — try to promote
+            elif old_status in ("going", "maybe") if existing else False:
+                event.promote_first_waiting()
 
     # Set cookie
     response = HttpResponse()
@@ -384,7 +358,7 @@ def claim_rsvp(request, event_id: int, data: RSVPClaimIn):
     return response
 
 
-@router.get("/{event_id}/attendees/", response=list[AttendeeOut])
+@router.get("/{event_id}/attendees/", response=list[AttendeeOut], auth=public_auth)
 @paginate
 def list_attendees(request, event_id: int):
     """Paginated list of going/maybe attendees."""
@@ -397,7 +371,7 @@ def list_attendees(request, event_id: int):
 
 # ─── Carpool section ───────────────────────────────────────────────────────────
 
-@router.get("/{event_id}/carpool/", response=CarpoolSectionOut)
+@router.get("/{event_id}/carpool/", response=CarpoolSectionOut, auth=public_auth)
 def get_carpool_section(request, event_id: int):
     """Return all carpool data for an event."""
     drivers = list(EventDriver.with_carpool_stats().filter(event_id=event_id))
@@ -583,7 +557,7 @@ def join_taxi(request, event_id: int, pool_id: int, data: TaxiPassengerIn):
 
 # ─── .ics download ─────────────────────────────────────────────────────────────
 
-@router.get("/{event_id}/ical/")
+@router.get("/{event_id}/ical/", auth=public_auth)
 def event_ical(request, event_id: int):
     """Generate .ics calendar file for an event."""
     event = EventPage.objects.only(

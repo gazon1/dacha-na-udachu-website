@@ -100,6 +100,20 @@ CORS_ALLOW_CREDENTIALS = True
 # Cross-origin resource sharing for Next.js
 CORS_PREFLIGHT_MAX_AGE = 86400
 
+# Telegram Login Widget
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_BOT_USERNAME = os.environ.get("TELEGRAM_BOT_USERNAME", "YourDachaBot")
+TELEGRAM_AUTH_MAX_AGE_SECONDS = int(os.environ.get("TELEGRAM_AUTH_MAX_AGE_SECONDS", "300"))
+
+# Auth session cookie settings
+SESSION_COOKIE_NAME = "session"
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 365  # 1 year
+
+# CORS headers — extend with custom headers used by the frontend
+from corsheaders.defaults import default_headers as _cors_default_headers
+
+CORS_ALLOW_HEADERS = [*_cors_default_headers, "X-CSRFToken", "X-User-Token"]
+
 ROOT_URLCONF = "dacha.urls"
 
 # Custom 403 handler — returns HX-Trigger for HTMX callers so the

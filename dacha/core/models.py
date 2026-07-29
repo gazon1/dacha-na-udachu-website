@@ -1,29 +1,76 @@
 import uuid
+
 from django.db import models
+from django.utils import timezone
 from wagtail.admin.panels import FieldPanel
 
 
 class UserAccount(models.Model):
-    """Lightweight account for RSVP identity — no password, auth via token."""
-    name = models.CharField("Имя", max_length=100)
-    phone = models.CharField("Телефон", max_length=20)
-    token = models.UUIDField("Токен", default=uuid.uuid4, unique=True, db_index=True)
+    """
+    User account — identified by Telegram only (no passwords).
+
+    Created and updated via Telegram Login Widget HMAC-verified callback.
+    Session token is stored in httpOnly cookie.
+    """
+
+    # ── Telegram identity (NOT NULL) ───────────────────────────────────────────
+    telegram_id = models.BigIntegerField(
+        "Telegram ID",
+        unique=True,
+        db_index=True,
+    )
+
+    # ── Telegram profile data ──────────────────────────────────────────────────
+    telegram_username = models.CharField(
+        "Telegram username",
+        max_length=64,
+        blank=True,
+        default="",
+    )
+    telegram_first_name = models.CharField("Имя (Telegram)", max_length=200)
+    telegram_last_name = models.CharField(
+        "Фамилия (Telegram)",
+        max_length=200,
+        blank=True,
+        default="",
+    )
+    telegram_photo_url = models.URLField(
+        "Фото (Telegram)",
+        blank=True,
+        default="",
+    )
+
+    # ── Auth state ─────────────────────────────────────────────────────────────
+    auth_date = models.DateTimeField(
+        "Время авторизации в Telegram",
+        default=timezone.now,
+    )
+    session_token = models.UUIDField(
+        "Сессия",
+        default=uuid.uuid4,
+        unique=True,
+        db_index=True,
+    )
+
+    # ── Timestamps ─────────────────────────────────────────────────────────────
     created_at = models.DateTimeField("Создан", auto_now_add=True)
+    last_seen_at = models.DateTimeField("Последний визит", auto_now=True)
 
     panels = [
-        FieldPanel("name"),
-        FieldPanel("phone"),
+        FieldPanel("telegram_id"),
+        FieldPanel("telegram_first_name"),
+        FieldPanel("telegram_username"),
     ]
 
     class Meta:
         verbose_name = "Аккаунт"
         verbose_name_plural = "Аккаунты"
-        constraints = [
-            models.UniqueConstraint(fields=["name", "phone"], name="unique_name_phone"),
-        ]
 
-    def __str__(self):
-        return f"{self.name} ({self.phone})"
+    def __str__(self) -> str:
+        name = self.telegram_first_name
+        if self.telegram_username:
+            name += f" (@{self.telegram_username})"
+        return name
 
 
 class NewsletterSignup(models.Model):

@@ -42,12 +42,13 @@ SECURE_HSTS_PRELOAD = True
 # CSP — Content Security Policy (django-csp 4.x format)
 CONTENT_SECURITY_POLICY = {
     "default-src": ("'self'",),
-    "script-src": ("'self'", "'nonce'"),
+    "script-src": ("'self'", "'nonce'", "https://telegram.org"),
     "style-src": ("'self'", "'unsafe-inline'", "https://fonts.googleapis.com"),
     "font-src": ("'self'", "https://fonts.gstatic.com"),
     "img-src": ("'self'", "data:", "https:", "blob:"),
     "connect-src": ("'self'",),
     "frame-ancestors": ("'none'",),
+    "frame-src": ("https://oauth.telegram.org", "https://telegram.org"),
     "base-uri": ("'self'",),
     "form-action": ("'self'",),
 }
@@ -101,6 +102,11 @@ LOGGING = {
         "django.request": {
             "handlers": ["mail_admins"],
             "level": "ERROR",
+            "propagate": False,
+        },
+        "core": {
+            "handlers": ["console"],
+            "level": "INFO",
             "propagate": False,
         },
     },
