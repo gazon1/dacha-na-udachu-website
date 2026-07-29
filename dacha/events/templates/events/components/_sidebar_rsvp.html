@@ -1,14 +1,19 @@
 {% load static wagtailcore_tags %}
 {# RSVP Widget — HTMX form, live attendee count #}
-<div id="rsvp-widget" class="glass-card-magenta space-y-4"
-     x-data="rsvpWidget('{{ page.slug }}')">
+{% with rsvp_secret_key|default:"" as secret_key_val %}
+{% with rsvp_id|default_if_none:"" as rsvp_id_val %}
+<div id="rsvp-widget"
+     class="glass-card-magenta space-y-4"
+     x-data="rsvpWidget('{{ page.slug }}')"
+     data-rsvp-voted="{% if secret_key_val %}true{% else %}false{% endif %}"
+     data-rsvp-id="{% if rsvp_id_val %}{{ rsvp_id_val }}{% endif %}">
 
     {# Header with menu #}
     <div class="flex items-center justify-between">
         <h3 class="text-lg font-semibold text-white">Присоединишься?</h3>
 
-        {# Three-dot menu #}
-        <div class="relative" x-data="{ open: false }">
+        {# Three-dot menu — only shown when voted #}
+        <div class="relative" x-data="{ open: false }" x-show="voted">
             <button @click="open = !open" @click.away="open = false"
                     class="p-1 text-base-content/40 hover:text-white transition-colors"
                     aria-label="Меню">
@@ -21,8 +26,9 @@
             <div x-show="open"
                  class="absolute right-0 top-full mt-1 bg-surface-2 border border-white/10 rounded-xl shadow-xl py-1 z-10 min-w-[120px]"
                  x-cloak>
-                {# Cancel RSVP — submits the hidden form below with the persisted rsvpId + secretKey #}
-                <button @click="document.getElementById('rsvp-cancel-form').submit(); open = false"
+                {# Cancel RSVP — requestSubmit fires a submit event that HTMX intercepts #}
+                <button type="button"
+                        @click="$data.cancelRsvp(); open = false"
                         class="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-white/10 transition-colors flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -36,12 +42,12 @@
     {# Voted state — summary + cancel form #}
     <template x-if="voted">
         <div class="space-y-3">
-            {# Hidden cancel form — submitted from the menu via JS #}
+            {# Hidden cancel form — submitted via HTMX using requestSubmit() from the cancel button #}
             <form id="rsvp-cancel-form"
-                  hx-post="{% pageurl page %}/rsvp-cancel/"
+                  hx-post="{% pageurl page %}rsvp-cancel/"
                   hx-target="#rsvp-widget"
                   hx-swap="outerHTML"
-                  x-data>
+                  @htmx:after-request="if(event.detail.successful) { resetVote(); }">
                 <input type="hidden" name="rsvp_id" :value="rsvpId">
                 <input type="hidden" name="secret_key" :value="secretKey">
                 {% csrf_token %}
@@ -50,11 +56,11 @@
                 <span class="text-primary">✓</span>
                 <span class="text-sm text-white">Ваш голос учтён</span>
             </div>
-            {% if rsvp_secret_key %}
+            {% if secret_key_val %}
             {# First-time RSVP: show secret key once #}
             <div class="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs">
                 <p class="text-amber-400 font-medium mb-1">Сохраните ссылку для редактирования:</p>
-                <code class="text-amber-300 break-all">{{ rsvp_secret_key }}</code>
+                <code class="text-amber-300 break-all">{{ secret_key_val }}</code>
             </div>
             {% endif %}
             {% with page.total_attending as total %}
@@ -70,7 +76,7 @@
                 </span>
             </div>
             {# Who's coming — paginated list (HTMX modal-like swap) #}
-            <button hx-get="{% pageurl page %}/whos-coming/"
+            <button hx-get="{% pageurl page %}whos-coming/"
                     hx-target="#rsvp-widget"
                     hx-swap="innerHTML"
                     class="text-xs text-primary hover:underline">
@@ -101,14 +107,21 @@
 
             {# RSVP form — htmx, replaces the full widget on success #}
             <form
-                hx-post="{% pageurl page %}/rsvp/"
+                hx-post="{% pageurl page %}rsvp/"
                 hx-target="#rsvp-widget"
                 hx-swap="outerHTML"
-                x-data="{ submitting: false }"
                 @htmx:before-request="submitting = true"
-                @htmx:after-request="if(event.detail.successful) { this.vote(); submitting = false; } else { submitting = false; }"
+                @htmx:after-request="
+                    if(event.detail.successful) {
+                        $data.handleRsvpSuccess($el);
+                        submitting = false;
+                    } else {
+                        submitting = false;
+                    }
+                "
                 class="space-y-3">
                 {% csrf_token %}
+                <input type="hidden" name="rsvp_id" :value="rsvpId">
                 <input type="hidden" name="secret_key" x-model="secretKey">
 
                 <input type="text" name="name" placeholder="Ваше имя" required maxlength="100"
@@ -163,3 +176,5 @@
     </div>
     {% endif %}
 </div>
+{% endwith %}
+{% endwith %}

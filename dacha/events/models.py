@@ -391,10 +391,14 @@ class EventPage(RoutablePageMixin, Page):
 
     @property
     def countdown_target(self):
-        """Return ISO date string for JS countdown."""
-        if self.start_date:
-            return self.start_date.isoformat()
-        return None
+        """Return ISO datetime string for JS countdown, combining date + start_time in local timezone."""
+        if not self.start_date:
+            return None
+        naive_dt = datetime.datetime.combine(
+            self.start_date,
+            self.start_time or datetime.time(0, 0),
+        )
+        return naive_dt.isoformat()
 
     @property
     def total_attending(self):

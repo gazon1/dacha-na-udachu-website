@@ -18,6 +18,12 @@ import htmx from "htmx.org";
 window.Alpine = Alpine;
 window.htmx = htmx;
 
+// Register Alpine plugins
+Alpine.plugin(collapse);
+Alpine.plugin(focus);
+Alpine.plugin(mask);
+Alpine.plugin(persist);
+
 // Toast store — timeoutId prevents race when multiple toasts fire rapidly
 Alpine.store("toast", {
   message: "",
@@ -74,19 +80,75 @@ document.addEventListener("alpine:init", () => {
     },
   }));
 
-  // RSVP Widget — voted state + secret_key persisted per-event in localStorage via @alpinejs/persist
+  // RSVP Widget — voted state persisted in localStorage, but reads DOM data-attributes
+  // (set by server) first so server-rendered state always wins over stale localStorage.
   Alpine.data("rsvpWidget", function (slug) {
     return {
-      voted: this.$persist(false).as("rsvp_voted_" + slug),
-      secretKey: this.$persist("").as("rsvp_key_" + slug),
-      rsvpId: this.$persist(null).as("rsvp_id_" + slug),
+      voted: false,
+      secretKey: "",
+      rsvpId: null,
       showMenu: false,
+
+      init() {
+        // Server-controlled initial state via data attributes (set in template).
+        // Falls back to localStorage if no data attributes (e.g. first load).
+        const el = this.$el;
+        const serverVoted = el.dataset.rsvpVoted === "true";
+        const serverId = el.dataset.rsvpId ? parseInt(el.dataset.rsvpId, 10) : null;
+
+        if (serverVoted || serverId) {
+          this.voted = serverVoted;
+          this.rsvpId = serverId;
+          this.secretKey = el.dataset.rsvpSecretKey || "";
+          // Sync back to localStorage so persistence survives a page refresh
+          if (serverVoted) {
+            localStorage.setItem("rsvp_voted_" + slug, "true");
+          }
+          if (serverId) {
+            localStorage.setItem("rsvp_id_" + slug, String(serverId));
+          }
+          if (el.dataset.rsvpSecretKey) {
+            localStorage.setItem("rsvp_key_" + slug, el.dataset.rsvpSecretKey);
+          }
+        } else {
+          // Fall back to localStorage (for pages loaded before server-side fix)
+          this.voted = localStorage.getItem("rsvp_voted_" + slug) === "true";
+          this.rsvpId = localStorage.getItem("rsvp_id_" + slug)
+            ? parseInt(localStorage.getItem("rsvp_id_" + slug), 10)
+            : null;
+          this.secretKey = localStorage.getItem("rsvp_key_" + slug) || "";
+        }
+      },
+
       vote() {
         this.voted = true;
+        localStorage.setItem("rsvp_voted_" + slug, "true");
       },
+
+      handleRsvpSuccess(form) {
+        // Read rsvp_id from the hidden input in the submitted form,
+        // then persist and update voted state.
+        const idInput = form.querySelector("[name=rsvp_id]");
+        if (idInput && idInput.value) {
+          this.rsvpId = parseInt(idInput.value, 10);
+          localStorage.setItem("rsvp_id_" + slug, idInput.value);
+        }
+        this.vote();
+      },
+
+      cancelRsvp() {
+        const form = document.getElementById("rsvp-cancel-form");
+        if (form) form.requestSubmit();
+      },
+
       resetVote() {
         this.voted = false;
+        this.rsvpId = null;
+        this.secretKey = "";
         this.showMenu = false;
+        localStorage.removeItem("rsvp_voted_" + slug);
+        localStorage.removeItem("rsvp_id_" + slug);
+        localStorage.removeItem("rsvp_key_" + slug);
       },
     };
   });
@@ -212,3 +274,6 @@ document.body.addEventListener("rsvp-confirmed", () => {
     "success"
   );
 });
+
+// Start Alpine — MUST be last, after all plugins and alpine:init listeners are registered
+Alpine.start();
