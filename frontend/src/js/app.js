@@ -4,6 +4,10 @@
 
 import "../styles/app.css";
 
+import flatpickr from "flatpickr";
+import "flatpickr/dist/flatpickr.min.css";
+import "flatpickr/dist/l10n/ru";
+
 import Alpine from "alpinejs";
 import collapse from "@alpinejs/collapse";
 import focus from "@alpinejs/focus";
@@ -84,6 +88,60 @@ document.addEventListener("alpine:init", () => {
       },
     };
   });
+
+  // Booking page — house selection + date picker with Flatpickr
+  Alpine.data("bookingPage", () => ({
+    step: "house", // 'house' | 'dates' | 'form'
+    selectedHouse: null,
+    checkIn: null,
+    checkOut: null,
+    nights: 0,
+    totalPrice: 0,
+    bookingSummary: "",
+    _datePicker: null,
+
+    init() {
+      // Flatpickr is available globally from npm import
+    },
+
+    selectHouse(id, name, price, bookedDates) {
+      this.selectedHouse = { id, name, price };
+      this.step = "dates";
+      this.$nextTick(() => this.initDatePicker(bookedDates));
+    },
+
+    initDatePicker(bookedDates) {
+      if (this._datePicker) {
+        this._datePicker.destroy();
+      }
+      this._datePicker = flatpickr("#date-range", {
+        mode: "range",
+        minDate: "today",
+        dateFormat: "Y-m-d",
+        disable: bookedDates || [],
+        locale: flatpickr.l10ns.ru,
+        onChange: (selectedDates, dateStr, instance) => {
+          if (selectedDates.length === 2) {
+            this.checkIn = instance.formatDate(selectedDates[0], "Y-m-d");
+            this.checkOut = instance.formatDate(selectedDates[1], "Y-m-d");
+            this.calculatePrice();
+          }
+        },
+      });
+    },
+
+    calculatePrice() {
+      if (!this.checkIn || !this.checkOut || !this.selectedHouse) return;
+      const d1 = new Date(this.checkIn);
+      const d2 = new Date(this.checkOut);
+      const diff = (d2 - d1) / (1000 * 60 * 60 * 24);
+      if (diff > 0) {
+        this.nights = diff;
+        this.totalPrice = this.nights * this.selectedHouse.price;
+        this.bookingSummary = `${this.selectedHouse.name} • ${d1.toLocaleDateString("ru-RU")} - ${d2.toLocaleDateString("ru-RU")} (${this.nights} ночей)`;
+      }
+    },
+  }));
 });
 
 Alpine.plugin(focus);   // x-trap + a11y focus management

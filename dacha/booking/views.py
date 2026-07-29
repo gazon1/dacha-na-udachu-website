@@ -1,4 +1,4 @@
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse, HttpResponse
@@ -8,6 +8,35 @@ from django_ratelimit.decorators import ratelimit
 from .forms import BookingForm
 from .availability import is_available, get_booked_dates
 from .services import create_booking, BookingServiceError
+
+
+def booking_page(request):
+    """Render the booking page with house selection and availability calendar."""
+    from houses.models import HousePage
+    import json
+
+    houses = HousePage.objects.live().public().filter(booking_enabled=True)
+    houses_data = []
+
+    for house in houses:
+        booked_dates = get_booked_dates(house.id)
+        houses_data.append({
+            "id": house.id,
+            "title": house.title,
+            "summary": house.summary,
+            "capacity": house.capacity,
+            "bedrooms": house.bedrooms,
+            "address": house.address,
+            "base_price": house.base_price,
+            "hero_image_url": house.hero_image.file.url if house.hero_image else None,
+            "booked_dates_json": json.dumps(booked_dates),
+        })
+
+    form = BookingForm()
+    return render(request, "booking/booking_page.html", {
+        "form": form,
+        "houses": houses_data,
+    })
 
 
 @require_POST
