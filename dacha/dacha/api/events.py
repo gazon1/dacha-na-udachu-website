@@ -2,16 +2,15 @@
 Events API — RSVP, carpool, taxi, attendees, ical.
 """
 import base64
-import uuid
-from datetime import date, datetime
+import json
+from datetime import datetime
 
 from django.db import transaction
-from django.db.models import Sum, Value, Q
+from django.db.models import Value
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
-from ninja import Router, Field
+from ninja import Router
 from ninja.pagination import paginate
-from pydantic import BaseModel
 
 from events.forms import (
     RSVPForm,
@@ -156,47 +155,10 @@ def _taxi_to_out(t: TaxiPool) -> TaxiPoolOut:
     )
 
 
-# ─── Event listing ─────────────────────────────────────────────────────────────
+# ─── Event helpers ────────────────────────────────────────────────────────────
 
-@router.get("/", response=list[EventOut])
-def list_events(request, upcoming: bool = True):
-    """List upcoming or past events with stats."""
-    now = timezone.now().date()
-    qs = EventPage.objects.with_stats().live().public()
-    if upcoming:
-        qs = qs.filter(start_date__gte=now).order_by("start_date")
-    else:
-        qs = qs.filter(start_date__lt=now).order_by("-start_date")
-    return [
-        EventOut(
-            id=e.id,
-            title=e.title,
-            slug=e.slug,
-            start_date=e.start_date,
-            end_date=e.end_date,
-            start_time=str(e.start_time) if e.start_time else None,
-            venue=e.venue or "",
-            venue_notes=e.venue_notes or "",
-            map_link=e.map_link or "",
-            summary=e.summary or "",
-            show_countdown=e.show_countdown,
-            expected_temperature=e.expected_temperature or "",
-            weather_note=e.weather_note or "",
-            special_tag=e.special_tag or "",
-            rsvp_capacity=e.rsvp_capacity,
-            going_count=e.going_count or 0,
-            maybe_count=e.maybe_count or 0,
-            total_attending=e.total_attending_db or 0,
-            url=e.url,
-        )
-        for e in qs
-    ]
-
-
-@router.get("/{event_id}/", response=EventOut)
-def get_event(request, event_id: int):
-    """Get a single event with aggregate stats."""
-    e = EventPage.objects.with_stats().get(pk=event_id)
+def _event_to_out(e: EventPage) -> EventOut:
+    """Unified EventPage → EventOut mapper."""
     return EventOut(
         id=e.id,
         title=e.title,
@@ -220,6 +182,27 @@ def get_event(request, event_id: int):
     )
 
 
+# ─── Event listing ─────────────────────────────────────────────────────────────
+
+@router.get("/", response=list[EventOut])
+def list_events(request, upcoming: bool = True):
+    """List upcoming or past events with stats."""
+    now = timezone.now().date()
+    qs = EventPage.objects.with_stats().live().public()
+    if upcoming:
+        qs = qs.filter(start_date__gte=now).order_by("start_date")
+    else:
+        qs = qs.filter(start_date__lt=now).order_by("-start_date")
+    return [_event_to_out(e) for e in qs]
+
+
+@router.get("/{event_id}/", response=EventOut)
+def get_event(event_id: int):
+    """Get a single event with aggregate stats."""
+    e = EventPage.objects.with_stats().get(pk=event_id)
+    return _event_to_out(e)
+
+
 # ─── RSVP ─────────────────────────────────────────────────────────────────────
 
 @router.get("/{event_id}/rsvp/me", response=RSVPMEOut)
@@ -231,7 +214,7 @@ def rsvp_me(request, event_id: int):
 
     try:
         rsvp = EventRSVP.objects.get(id=rsvp_id, event_id=event_id)
-        if rsvp.secret_key == secret_key:
+        if str(rsvp.secret_key) == secret_key:
             return RSVPMEOut(
                 voted=True,
                 id=rsvp.id,
@@ -265,7 +248,7 @@ def submit_rsvp(request, event_id: int, data: RSVPSubmitIn):
         ).first()
 
         if existing:
-            if data.secret_key and data.secret_key != existing.secret_key:
+            if data.secret_key and data.secret_key != str(existing.secret_key):
                 return {"error": "Неверный ключ"}, 403
             old_status = existing.status
             existing.status = data.status
@@ -302,11 +285,9 @@ def submit_rsvp(request, event_id: int, data: RSVPSubmitIn):
                     event.promote_first_waiting()
 
     # Set cookie
-    from django.http import HttpResponse as DjangoHttpResponse
-    response = DjangoHttpResponse()
-    _set_rsvp_cookie(response, event_id, rsvp.secret_key, rsvp.id)
+    response = HttpResponse()
+    _set_rsvp_cookie(response, event_id, str(rsvp.secret_key), rsvp.id)
     response["Content-Type"] = "application/json"
-    import json
     response.write(json.dumps({
         "id": rsvp.id,
         "name": rsvp.name,
@@ -336,17 +317,15 @@ def cancel_rsvp(request, event_id: int):
         except EventRSVP.DoesNotExist:
             return {"error": "RSVP не найден"}, 404
 
-        if rsvp.secret_key != key:
+        if str(rsvp.secret_key) != key:
             return {"error": "Неверный ключ"}, 403
 
         was_confirmed = rsvp.status in ("going", "maybe")
         rsvp.delete()
 
         if was_confirmed:
-            event = EventPage.objects.get(pk=event_id)
-            event.promote_first_waiting()
+            EventPage.objects.filter(pk=event_id).first().promote_first_waiting()
 
-    from django.http import HttpResponse
     response = HttpResponse(status=204)
     _clear_rsvp_cookie(response, event_id)
     return response
@@ -363,11 +342,9 @@ def claim_rsvp(request, event_id: int, data: RSVPClaimIn):
     except EventRSVP.DoesNotExist:
         return {"error": "RSVP не найден"}, 404
 
-    from django.http import HttpResponse
     response = HttpResponse()
-    _set_rsvp_cookie(response, event_id, rsvp.secret_key, rsvp.id)
+    _set_rsvp_cookie(response, event_id, str(rsvp.secret_key), rsvp.id)
     response["Content-Type"] = "application/json"
-    import json
     response.write(json.dumps({
         "id": rsvp.id,
         "name": rsvp.name,
@@ -407,7 +384,6 @@ def get_carpool_section(request, event_id: int):
 @router.post("/{event_id}/carpool/drivers/")
 def add_driver(request, event_id: int, data: DriverIn):
     """Add a driver offer."""
-    event = EventPage.objects.get(pk=event_id)
     form_data = {
         "name": data.name,
         "phone": data.phone,
@@ -428,7 +404,7 @@ def add_driver(request, event_id: int, data: DriverIn):
         return {"error": "Ошибка валидации", "details": dict(form.errors)}, 400
 
     driver = form.save(commit=False)
-    driver.event = event
+    driver.event_id = event_id
     driver.save()
     return _driver_to_out(driver)
 
@@ -436,7 +412,6 @@ def add_driver(request, event_id: int, data: DriverIn):
 @router.post("/{event_id}/carpool/requests/")
 def add_carpool_request(request, event_id: int, data: CarpoolRequestIn):
     """Add a ride request (looking for a ride)."""
-    event = EventPage.objects.get(pk=event_id)
     form_data = {
         "name": data.name,
         "phone": data.phone,
@@ -452,7 +427,7 @@ def add_carpool_request(request, event_id: int, data: CarpoolRequestIn):
         return {"error": "Ошибка валидации", "details": dict(form.errors)}, 400
 
     carpool = form.save(commit=False)
-    carpool.event = event
+    carpool.event_id = event_id
     carpool.save()
     return _request_to_out(carpool)
 
@@ -460,7 +435,6 @@ def add_carpool_request(request, event_id: int, data: CarpoolRequestIn):
 @router.post("/{event_id}/carpool/taxi-pools/")
 def add_taxi_pool(request, event_id: int, data: TaxiPoolIn):
     """Create a shared taxi pool."""
-    event = EventPage.objects.get(pk=event_id)
     form_data = {
         "organizer": data.organizer,
         "telegram": data.telegram or "",
@@ -477,7 +451,7 @@ def add_taxi_pool(request, event_id: int, data: TaxiPoolIn):
         return {"error": "Ошибка валидации", "details": dict(form.errors)}, 400
 
     pool = form.save(commit=False)
-    pool.event = event
+    pool.event_id = event_id
     pool.save()
     return _taxi_to_out(pool)
 
@@ -581,7 +555,9 @@ def join_taxi(request, event_id: int, pool_id: int, data: TaxiPassengerIn):
 @router.get("/{event_id}/ical/")
 def event_ical(request, event_id: int):
     """Generate .ics calendar file for an event."""
-    event = EventPage.objects.get(pk=event_id)
+    event = EventPage.objects.only(
+        "start_date", "end_date", "start_time", "slug", "title", "venue",
+    ).get(pk=event_id)
     start = datetime.combine(event.start_date, event.start_time or datetime.min.time())
     end = datetime.combine(
         event.end_date or event.start_date,

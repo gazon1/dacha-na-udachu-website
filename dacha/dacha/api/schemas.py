@@ -350,7 +350,7 @@ class EventOut(BaseModel):
     going_count: int
     maybe_count: int
     total_attending: int
-    url: str
+    url: str | None
 
 
 class AttendeeOut(BaseModel):
