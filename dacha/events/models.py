@@ -2,13 +2,13 @@ import datetime
 import uuid
 
 from django.db import models
-from django.db.models import F, Count, Q
+from django.db.models import F, Count, Q, Sum, Value
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django_ratelimit.decorators import ratelimit
 
 from wagtail import blocks
-from wagtail.models import Page
+from wagtail.models import Page, PageManager, PageQuerySet
 from wagtail.contrib.routable_page.models import RoutablePageMixin, route
 from wagtail import fields
 from wagtail.admin.panels import FieldPanel
@@ -310,7 +310,29 @@ class TaxiPassenger(models.Model):
         return f"{self.name} — {self.seats} мест в такси"
 
 
+class EventPageQuerySet(PageQuerySet):
+    def with_stats(self):
+        """Annotate with RSVP counts and total attendees in a single query."""
+        return self.annotate(
+            _going_count=Count("rsvps", filter=Q(rsvps__status="going")),
+            _maybe_count=Count("rsvps", filter=Q(rsvps__status="maybe")),
+            _total_attendees=(
+                Sum(F("rsvps__guests_count") + Value(1),
+                    filter=Q(rsvps__status__in=["going", "maybe"]))
+            ) or 0,
+        )
+
+
+class EventPageManager(PageManager):
+    def get_queryset(self):
+        return EventPageQuerySet(self.model, using=self._db)
+
+    def with_stats(self):
+        return self.get_queryset().with_stats()
+
+
 class EventPage(RoutablePageMixin, Page):
+    objects = EventPageManager()
     start_date = models.DateField("Дата начала")
     end_date = models.DateField("Дата окончания", null=True, blank=True)
     start_time = models.TimeField("Время начала", null=True, blank=True)
@@ -373,19 +395,6 @@ class EventPage(RoutablePageMixin, Page):
         if self.start_date:
             return self.start_date.isoformat()
         return None
-
-    @classmethod
-    def with_stats(cls):
-        """Annotate with RSVP counts and total attendees in a single query."""
-        from django.db.models import Sum, Value
-        return cls.objects.annotate(
-            _going_count=Count("rsvps", filter=Q(rsvps__status="going")),
-            _maybe_count=Count("rsvps", filter=Q(rsvps__status="maybe")),
-            _total_attendees=Sum(
-                F("rsvps__guests_count") + Value(1),
-                filter=Q(rsvps__status__in=["going", "maybe"]),
-            ) or 0,
-        )
 
     @property
     def total_attending(self):
