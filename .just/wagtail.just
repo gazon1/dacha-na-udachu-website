@@ -36,7 +36,7 @@ context-wagtail-full:
         --ext '.py' --aggressive -v
 
     echo "🎨 Extracting JS/CSS/HTML context..."
-    sing context -o {{ workspace_dir }}/tmp/wagtail_js.txt -l javascript {{ workspace_dir }}/frontend/src \
+    sing context -o {{ workspace_dir }}/tmp/wagtail_js.txt -l javascript {{ workspace_dir }}/dacha/web \
         --ext '.js' --ext '.css' --aggressive -v
 
     echo "📄 Extracting templates..."

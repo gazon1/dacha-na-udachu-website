@@ -207,23 +207,41 @@ def get_event(event_id: int):
 
 @router.get("/{event_id}/rsvp/me", response=RSVPMEOut)
 def rsvp_me(request, event_id: int):
-    """Read current user's RSVP from cookie."""
+    """Read current user's RSVP from cookie or X-User-Token header."""
+    # Try cookie first
     secret_key, rsvp_id = _parse_rsvp_cookie(request, event_id)
-    if not secret_key or not rsvp_id:
-        return RSVPMEOut(voted=False)
+    if secret_key and rsvp_id:
+        try:
+            rsvp = EventRSVP.objects.get(id=rsvp_id, event_id=event_id)
+            if str(rsvp.secret_key) == secret_key:
+                return RSVPMEOut(
+                    voted=True,
+                    id=rsvp.id,
+                    name=rsvp.name,
+                    status=rsvp.status,
+                    secret_key=rsvp.secret_key,
+                )
+        except EventRSVP.DoesNotExist:
+            pass
 
-    try:
-        rsvp = EventRSVP.objects.get(id=rsvp_id, event_id=event_id)
-        if str(rsvp.secret_key) == secret_key:
-            return RSVPMEOut(
-                voted=True,
-                id=rsvp.id,
-                name=rsvp.name,
-                status=rsvp.status,
-                secret_key=rsvp.secret_key,
-            )
-    except EventRSVP.DoesNotExist:
-        pass
+    # Fallback: try X-User-Token header
+    token = request.headers.get("X-User-Token", "")
+    if token:
+        from core.models import UserAccount
+        try:
+            account = UserAccount.objects.get(token=token)
+            rsvp = EventRSVP.objects.filter(event_id=event_id, user_account=account).first()
+            if rsvp:
+                return RSVPMEOut(
+                    voted=True,
+                    id=rsvp.id,
+                    name=rsvp.name,
+                    status=rsvp.status,
+                    secret_key=rsvp.secret_key,
+                )
+        except UserAccount.DoesNotExist:
+            pass
+
     return RSVPMEOut(voted=False)
 
 
@@ -232,6 +250,16 @@ def submit_rsvp(request, event_id: int, data: RSVPSubmitIn):
     """Create or update an RSVP, set httpOnly cookie, return JSON."""
     event = EventPage.objects.get(pk=event_id)
     response_data: dict = {}
+
+    # Resolve UserAccount from X-User-Token header (optional)
+    user_account = None
+    token = request.headers.get("X-User-Token", "")
+    if token:
+        from core.models import UserAccount
+        try:
+            user_account = UserAccount.objects.get(token=token)
+        except UserAccount.DoesNotExist:
+            pass
 
     form_data = {
         "name": data.name,
@@ -253,7 +281,9 @@ def submit_rsvp(request, event_id: int, data: RSVPSubmitIn):
             old_status = existing.status
             existing.status = data.status
             existing.guests_count = data.guests_count
-            existing.save(update_fields=["status", "guests_count"])
+            if user_account:
+                existing.user_account = user_account
+            existing.save(update_fields=["status", "guests_count", "user_account"])
             rsvp = existing
             created = False
         else:
@@ -273,6 +303,7 @@ def submit_rsvp(request, event_id: int, data: RSVPSubmitIn):
                 name=data.name,
                 status=effective_status,
                 guests_count=data.guests_count,
+                user_account=user_account,
             )
             created = True
 

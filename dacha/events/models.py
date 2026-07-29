@@ -47,6 +47,13 @@ class EventRSVP(models.Model):
     guests_count = models.PositiveIntegerField("Гости", default=0)
     # Secret key returned once on creation; required to update/delete this RSVP.
     secret_key = models.CharField(max_length=64, default=uuid.uuid4, editable=False)
+    # Linked UserAccount (optional — enables RSVP recovery without cookie)
+    user_account = models.ForeignKey(
+        "core.UserAccount",
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="rsvps",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

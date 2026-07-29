@@ -5,12 +5,12 @@ interface UserIdentity {
   name: string;
   phone: string;
   telegram: string;
+  token?: string;
 }
 
 interface UserState {
   identity: UserIdentity | null;
-  eventId: number | null;
-  setIdentity: (name: string, phone: string, telegram: string) => void;
+  setIdentity: (name: string, phone: string, telegram: string, token?: string) => void;
   clearIdentity: () => void;
 }
 
@@ -18,9 +18,10 @@ export const useUserStore = create<UserState>()(
   persist(
     (set) => ({
       identity: null,
-      eventId: null,
-      setIdentity: (name, phone, telegram) =>
-        set({ identity: { name, phone, telegram } }),
+      setIdentity: (name, phone, telegram, token) =>
+        set((state) => ({
+          identity: { name, phone, telegram, token: token ?? state.identity?.token },
+        })),
       clearIdentity: () => set({ identity: null }),
     }),
     { name: "dacha-user-identity" }

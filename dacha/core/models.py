@@ -1,5 +1,29 @@
+import uuid
 from django.db import models
 from wagtail.admin.panels import FieldPanel
+
+
+class UserAccount(models.Model):
+    """Lightweight account for RSVP identity — no password, auth via token."""
+    name = models.CharField("Имя", max_length=100)
+    phone = models.CharField("Телефон", max_length=20)
+    token = models.UUIDField("Токен", default=uuid.uuid4, unique=True, db_index=True)
+    created_at = models.DateTimeField("Создан", auto_now_add=True)
+
+    panels = [
+        FieldPanel("name"),
+        FieldPanel("phone"),
+    ]
+
+    class Meta:
+        verbose_name = "Аккаунт"
+        verbose_name_plural = "Аккаунты"
+        constraints = [
+            models.UniqueConstraint(fields=["name", "phone"], name="unique_name_phone"),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.phone})"
 
 
 class NewsletterSignup(models.Model):

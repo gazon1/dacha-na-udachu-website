@@ -1,10 +1,9 @@
 "use client";
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import toast from "react-hot-toast";
 import {
   fetchCarpoolSection,
   addDriver,
@@ -15,9 +14,10 @@ import {
   type CarpoolSection,
 } from "@/lib/events";
 import { useUserStore } from "@/stores/user";
+import { useAppMutation } from "@/hooks/useAppMutation";
+import { PHONE_RE, TELEGRAM_RE } from "@/lib/validators";
 
-const PHONE_RE = /^\+\d{11,15}$/;
-const TELEGRAM_RE = /^[a-zA-Z0-9_]{5,32}$/;
+// ── Schemas ──────────────────────────────────────────────────────────────────
 
 const driverSchema = z.object({
   name: z.string().min(1),
@@ -58,22 +58,27 @@ const taxiSchema = z.object({
   notes: z.string().optional(),
 });
 
+const joinSchema = z.object({
+  name: z.string().min(1),
+  phone: z.string().regex(PHONE_RE),
+  telegram: z.string().regex(TELEGRAM_RE).optional().or(z.literal("")),
+  pickup_location: z.string().min(1),
+  seats: z.number().int().min(1).max(8),
+  notes: z.string().optional(),
+});
+
 type DriverForm = z.infer<typeof driverSchema>;
 type RequestForm = z.infer<typeof requestSchema>;
 type TaxiForm = z.infer<typeof taxiSchema>;
-
-interface DriversSectionProps {
-  eventId: number;
-}
+type JoinForm = z.infer<typeof joinSchema>;
 
 type Tab = "cars" | "search" | "taxi";
 
-export function DriversSection({ eventId }: DriversSectionProps) {
+export function DriversSection({ eventId }: { eventId: number }) {
   const [tab, setTab] = useState<Tab>("cars");
   const [showDriverModal, setShowDriverModal] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [showTaxiModal, setShowTaxiModal] = useState(false);
-  const queryClient = useQueryClient();
 
   const { data: section, isLoading } = useQuery<CarpoolSection>({
     queryKey: ["carpool", eventId],
@@ -81,40 +86,25 @@ export function DriversSection({ eventId }: DriversSectionProps) {
     refetchInterval: 15000,
   });
 
-  const driverMut = useMutation({
+  const driverMut = useAppMutation({
     mutationFn: (d: DriverForm) => addDriver(eventId, d as Parameters<typeof addDriver>[1]),
-    onSuccess: (r) => {
-      if ("error" in r) { toast.error(r.error); return; }
-      toast.success("Водитель добавлен!");
-      queryClient.invalidateQueries({ queryKey: ["carpool", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["event", eventId] });
-      setShowDriverModal(false);
-    },
-    onError: () => toast.error("Ошибка"),
+    queryKeysToInvalidate: [["carpool", eventId], ["event", eventId]],
+    successMessage: "Водитель добавлен!",
+    onSuccessCallback: () => setShowDriverModal(false),
   });
 
-  const requestMut = useMutation({
+  const requestMut = useAppMutation({
     mutationFn: (d: RequestForm) => addCarpoolRequest(eventId, d as Parameters<typeof addCarpoolRequest>[1]),
-    onSuccess: (r) => {
-      if ("error" in r) { toast.error(r.error); return; }
-      toast.success("Запрос отправлен!");
-      queryClient.invalidateQueries({ queryKey: ["carpool", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["event", eventId] });
-      setShowRequestModal(false);
-    },
-    onError: () => toast.error("Ошибка"),
+    queryKeysToInvalidate: [["carpool", eventId], ["event", eventId]],
+    successMessage: "Запрос отправлен!",
+    onSuccessCallback: () => setShowRequestModal(false),
   });
 
-  const taxiMut = useMutation({
+  const taxiMut = useAppMutation({
     mutationFn: (d: TaxiForm) => addTaxiPool(eventId, d as Parameters<typeof addTaxiPool>[1]),
-    onSuccess: (r) => {
-      if ("error" in r) { toast.error(r.error); return; }
-      toast.success("Такси-пул создан!");
-      queryClient.invalidateQueries({ queryKey: ["carpool", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["event", eventId] });
-      setShowTaxiModal(false);
-    },
-    onError: () => toast.error("Ошибка"),
+    queryKeysToInvalidate: [["carpool", eventId], ["event", eventId]],
+    successMessage: "Такси-пул создан!",
+    onSuccessCallback: () => setShowTaxiModal(false),
   });
 
   const section_data = section ?? { drivers: [], carpool_requests: [], taxi_pools: [] };
@@ -190,19 +180,19 @@ export function DriversSection({ eventId }: DriversSectionProps) {
       )}
       {showRequestModal && (
         <Modal title="Найти попутчика" onClose={() => setShowRequestModal(false)}>
-          <RequestForm onSubmit={requestMut.mutate} isPending={requestMut.isPending} />
+          <RequestFormEl onSubmit={requestMut.mutate} isPending={requestMut.isPending} />
         </Modal>
       )}
       {showTaxiModal && (
         <Modal title="Создать такси-пул" onClose={() => setShowTaxiModal(false)}>
-          <TaxiForm onSubmit={taxiMut.mutate} isPending={taxiMut.isPending} />
+          <TaxiFormEl onSubmit={taxiMut.mutate} isPending={taxiMut.isPending} />
         </Modal>
       )}
     </div>
   );
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
+// ── Modal ─────────────────────────────────────────────────────────────────────
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
@@ -220,21 +210,16 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   );
 }
 
+// ── Cards ─────────────────────────────────────────────────────────────────────
+
 function DriverCard({ driver, eventId }: { driver: import("@/lib/events").Driver; eventId: number }) {
   const [joining, setJoining] = useState(false);
-  const queryClient = useQueryClient();
 
-  const joinMut = useMutation({
-    mutationFn: (data: { name: string; phone: string; telegram?: string; pickup_location: string; seats: number; notes?: string }) =>
-      joinRide(eventId, driver.id, data),
-    onSuccess: (r) => {
-      if ("error" in r) { toast.error(r.error); return; }
-      toast.success("Присоединились!");
-      queryClient.invalidateQueries({ queryKey: ["carpool", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["event", eventId] });
-      setJoining(false);
-    },
-    onError: () => toast.error("Ошибка"),
+  const joinMut = useAppMutation({
+    mutationFn: (d: JoinForm) => joinRide(eventId, driver.id, d as Parameters<typeof joinRide>[2]),
+    queryKeysToInvalidate: [["carpool", eventId], ["event", eventId]],
+    successMessage: "Присоединились!",
+    onSuccessCallback: () => setJoining(false),
   });
 
   if (driver.is_cancelled) return null;
@@ -260,7 +245,7 @@ function DriverCard({ driver, eventId }: { driver: import("@/lib/events").Driver
           Присоединиться
         </button>
       ) : (
-        <JoinForm onSubmit={joinMut.mutate} isPending={joinMut.isPending} onCancel={() => setJoining(false)} />
+        <JoinFormEl onSubmit={joinMut.mutate} isPending={joinMut.isPending} onCancel={() => setJoining(false)} />
       )}
     </div>
   );
@@ -288,19 +273,12 @@ function RequestCard({ request }: { request: import("@/lib/events").CarpoolReque
 
 function TaxiPoolCard({ pool, eventId }: { pool: import("@/lib/events").TaxiPool; eventId: number }) {
   const [joining, setJoining] = useState(false);
-  const queryClient = useQueryClient();
 
-  const joinMut = useMutation({
-    mutationFn: (data: { name: string; phone: string; telegram?: string; seats: number; notes?: string }) =>
-      joinTaxi(eventId, pool.id, data),
-    onSuccess: (r) => {
-      if ("error" in r) { toast.error(r.error); return; }
-      toast.success("Присоединились!");
-      queryClient.invalidateQueries({ queryKey: ["carpool", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["event", eventId] });
-      setJoining(false);
-    },
-    onError: () => toast.error("Ошибка"),
+  const joinMut = useAppMutation({
+    mutationFn: (d: JoinForm) => joinTaxi(eventId, pool.id, d as Parameters<typeof joinTaxi>[2]),
+    queryKeysToInvalidate: [["carpool", eventId], ["event", eventId]],
+    successMessage: "Присоединились!",
+    onSuccessCallback: () => setJoining(false),
   });
 
   return (
@@ -322,20 +300,21 @@ function TaxiPoolCard({ pool, eventId }: { pool: import("@/lib/events").TaxiPool
           Присоединиться
         </button>
       ) : (
-        <JoinForm onSubmit={joinMut.mutate} isPending={joinMut.isPending} onCancel={() => setJoining(false)} />
+        <JoinFormEl onSubmit={joinMut.mutate} isPending={joinMut.isPending} onCancel={() => setJoining(false)} />
       )}
     </div>
   );
 }
 
-function JoinForm({ onSubmit, isPending, onCancel }: {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onSubmit: (d: any) => void;
+// ── Forms ─────────────────────────────────────────────────────────────────────
+
+function JoinFormEl({ onSubmit, isPending, onCancel }: {
+  onSubmit: (d: JoinForm) => void;
   isPending: boolean;
   onCancel: () => void;
 }) {
   const identity = useUserStore((s) => s.identity);
-  const { register, handleSubmit } = useForm<{ name: string; phone: string; telegram: string; pickup_location: string; seats: number; notes: string }>({
+  const { register, handleSubmit } = useForm<JoinForm>({
     defaultValues: {
       seats: 1,
       name: identity?.name ?? "",
@@ -363,8 +342,7 @@ function JoinForm({ onSubmit, isPending, onCancel }: {
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function DriverForm({ onSubmit, isPending }: { onSubmit: (d: any) => void; isPending: boolean }) {
+function DriverForm({ onSubmit, isPending }: { onSubmit: (d: DriverForm) => void; isPending: boolean }) {
   const identity = useUserStore((s) => s.identity);
   const { register, handleSubmit, formState: { errors } } = useForm<DriverForm>({
     resolver: zodResolver(driverSchema),
@@ -397,8 +375,7 @@ function DriverForm({ onSubmit, isPending }: { onSubmit: (d: any) => void; isPen
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function RequestForm({ onSubmit, isPending }: { onSubmit: (d: any) => void; isPending: boolean }) {
+function RequestFormEl({ onSubmit, isPending }: { onSubmit: (d: RequestForm) => void; isPending: boolean }) {
   const identity = useUserStore((s) => s.identity);
   const { register, handleSubmit } = useForm<RequestForm>({
     resolver: zodResolver(requestSchema),
@@ -418,11 +395,11 @@ function RequestForm({ onSubmit, isPending }: { onSubmit: (d: any) => void; isPe
       <input {...register("pickup_location")} placeholder="Откуда забрать" className="form-input" />
       <input type="number" {...register("seats_needed", { valueAsNumber: true })} placeholder="Сколько мест" className="form-input" min={1} max={8} />
       <label className="flex items-center gap-2 text-sm text-base-content/70">
-        <input type="checkbox" {...register("can_share_gas")} className="checkbox checkbox-primary checkbox-sm" />
+        <input type="checkbox" {...register("can_share_gas")} className="accent-primary w-4 h-4" />
         Могу поделиться бензином
       </label>
       <label className="flex items-center gap-2 text-sm text-base-content/70">
-        <input type="checkbox" {...register("flexible_time")} className="checkbox checkbox-primary checkbox-sm" />
+        <input type="checkbox" {...register("flexible_time")} className="accent-primary w-4 h-4" />
         Время гибкое
       </label>
       <input {...register("notes")} placeholder="Заметки" className="form-input" />
@@ -433,10 +410,9 @@ function RequestForm({ onSubmit, isPending }: { onSubmit: (d: any) => void; isPe
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function TaxiForm({ onSubmit, isPending }: { onSubmit: (d: any) => void; isPending: boolean }) {
+function TaxiFormEl({ onSubmit, isPending }: { onSubmit: (d: TaxiForm) => void; isPending: boolean }) {
   const identity = useUserStore((s) => s.identity);
-  const { register, handleSubmit, formState: { errors } } = useForm<TaxiForm>({
+  const { register, handleSubmit } = useForm<TaxiForm>({
     resolver: zodResolver(taxiSchema),
     defaultValues: {
       service: "Яндекс",
