@@ -12,6 +12,12 @@ from core.sitemaps import EventPageSitemap, NewsPageSitemap
 from wagtail.admin import urls as wagtailadmin_urls
 from wagtail import urls as wagtail_urls
 from wagtail.documents import urls as wagtaildocs_urls
+from wagtail.api.v2.router import WagtailAPIRouter
+from wagtail.api.v2.views import PagesAPIViewSet
+from wagtail.images.api.v2.views import ImagesAPIViewSet
+from wagtail.documents.api.v2.views import DocumentsAPIViewSet
+
+from dacha.api import api as ninja_api  # Django Ninja headless API
 
 from search import views as search_views
 import booking.urls as booking_urls
@@ -65,10 +71,18 @@ def handler403(request, exception=None):
     return HttpResponseForbidden("Доступ запрещён")
 
 
+# Wagtail headless API v2 — pages, images, documents
+wagtail_api_router = WagtailAPIRouter("wagtailapi_v2")
+wagtail_api_router.register_endpoint("pages", PagesAPIViewSet)
+wagtail_api_router.register_endpoint("images", ImagesAPIViewSet)
+wagtail_api_router.register_endpoint("documents", DocumentsAPIViewSet)
+
 urlpatterns = [
     path("django-admin/", admin.site.urls),
     path("admin/", include(wagtailadmin_urls)),
     path("documents/", include(wagtaildocs_urls)),
+    path("api/", ninja_api.urls),  # Django Ninja — booking, events, newsletter, pages
+    path("api/v2/", wagtail_api_router.urls),  # Wagtail headless API
     path("search/", search_views.search, name="search"),
     path("booking/", include(booking_urls)),
     path("events/", include(events_urls)),

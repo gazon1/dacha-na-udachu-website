@@ -45,6 +45,12 @@ INSTALLED_APPS = [
     "taggit",
     "django_filters",
     "django_tables2",
+    # Headless API
+    "django_htmx",  # was in MIDDLEWARE but not here — needed for {% htmx_script %} tag
+    "corsheaders",
+    "rest_framework",
+    # Wagtail API v2 — headless page content
+    "wagtail.api.v2",
     # Wagtail — after django.contrib.auth but before local apps
     "wagtail.contrib.forms",
     "wagtail.contrib.sitemaps",
@@ -59,6 +65,7 @@ INSTALLED_APPS = [
     "wagtail.admin",
     "wagtail",
     "wagtail.contrib.settings",
+    "wagtail_headless_preview",
     # Local — core first (AUTH_USER_MODEL)
     "core",
     "home",
@@ -75,7 +82,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # static file serving
     "csp.middleware.CSPMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -85,6 +94,16 @@ MIDDLEWARE = [
     "django_htmx.middleware.HtmxMiddleware",
     "wagtail.contrib.redirects.middleware.RedirectMiddleware",
 ]
+
+# CORS — allow Next.js dev server and production domain
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+CORS_ALLOW_CREDENTIALS = True
+
+# Cross-origin resource sharing for Next.js
+CORS_PREFLIGHT_MAX_AGE = 86400
 
 ROOT_URLCONF = "dacha.urls"
 
@@ -258,6 +277,17 @@ WAGTAILSEARCH_BACKENDS = {
 # Base URL to use when referring to full URLs within the Wagtail admin backend -
 # e.g. in notification emails. Don't include '/admin' or a trailing slash
 WAGTAILADMIN_BASE_URL = os.environ.get("WAGTAILADMIN_BASE_URL", "https://dacha.maxdrobin.ru")
+
+# Wagtail API v2 — headless page content for Next.js
+WAGTAILAPI_BASE_URL = os.environ.get("WAGTAILAPI_BASE_URL", WAGTAILADMIN_BASE_URL)
+WAGTAILAPI_SEARCH_ENABLED = True
+WAGTAILAPI_LIMIT_MAX = 100
+
+# Wagtail headless preview — Next.js preview URL
+WAGTAIL_HEADLESS_PREVIEW_URL = os.environ.get(
+    "WAGTAIL_HEADLESS_PREVIEW_URL",
+    "http://localhost:3000/preview",
+)
 
 # Allowed file extensions for documents in the document library.
 # This can be omitted to allow all files, but note that this may present a security risk

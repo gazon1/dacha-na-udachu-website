@@ -47,21 +47,28 @@ SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 
-# CSP — Content Security Policy
-CSP_DEFAULT_SRC = ("'self'",)
-CSP_SCRIPT_SRC = ("'self'", "'nonce'")
-CSP_STYLE_SRC = ("'self'", "'unsafe-inline'", "https://fonts.googleapis.com")
-CSP_FONT_SRC = ("'self'", "https://fonts.gstatic.com")
-CSP_IMG_SRC = ("'self'", "data:", "https:", "blob:")
-CSP_CONNECT_SRC = ("'self'",)
-CSP_FRAME_ANCESTORS = ("'none'",)
-CSP_BASE_URI = ("'self'",)
-CSP_FORM_ACTION = ("'self'",)
+# CSP — Content Security Policy (django-csp 4.x format)
+CONTENT_SECURITY_POLICY = {
+    "default-src": ("'self'",),
+    "script-src": ("'self'", "'nonce'"),
+    "style-src": ("'self'", "'unsafe-inline'", "https://fonts.googleapis.com"),
+    "font-src": ("'self'", "https://fonts.gstatic.com"),
+    "img-src": ("'self'", "data:", "https:", "blob:"),
+    "connect-src": ("'self'",),
+    "frame-ancestors": ("'none'",),
+    "base-uri": ("'self'",),
+    "form-action": ("'self'",),
+}
 
 # CSRF
 CSRF_TRUSTED_ORIGINS = os.environ.get(
     "CSRF_TRUSTED_ORIGINS", "https://dacha.maxdrobin.ru"
 ).split(",")
+
+# CORS — Next.js production domain
+_cors_env = os.environ.get("CORS_ALLOWED_ORIGINS", "https://dacha.maxdrobin.ru")
+CORS_ALLOWED_ORIGINS = [origin.strip() for origin in _cors_env.split(",") if origin.strip()]
+CORS_ALLOW_CREDENTIALS = True
 
 # ALLOWED_HOSTS
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "dacha.maxdrobin.ru").split(",")

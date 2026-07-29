@@ -9,6 +9,7 @@ from django_ratelimit.decorators import ratelimit
 
 from wagtail import blocks
 from wagtail.models import Page, PageManager, PageQuerySet
+from wagtail.api import APIField
 from wagtail.contrib.routable_page.models import RoutablePageMixin, route
 from wagtail import fields
 from wagtail.admin.panels import FieldPanel
@@ -128,7 +129,6 @@ class EventDriver(models.Model):
         return self.seats_taken_raw()
 
     def seats_taken_raw(self):
-        from django.db.models import Sum
         result = self.passengers.filter(status="confirmed").aggregate(s=Sum("seats"))
         return result["s"] or 0
 
@@ -139,7 +139,6 @@ class EventDriver(models.Model):
     @classmethod
     def with_carpool_stats(cls):
         """Annotate with seat counts from confirmed passengers."""
-        from django.db.models import Sum
         return cls.objects.annotate(
             _seats_confirmed=Sum(
                 "passengers__seats",
@@ -262,7 +261,7 @@ class TaxiPool(models.Model):
         annotated = getattr(self, "_passengers_seats", None)
         if annotated is not None:
             return annotated
-        return self.passengers_count_raw
+        return self.passengers_count_raw()
 
     def passengers_count_raw(self):
         from django.db.models import Sum
@@ -276,7 +275,6 @@ class TaxiPool(models.Model):
     @classmethod
     def with_taxi_stats(cls):
         """Annotate with seat counts from active passengers."""
-        from django.db.models import Sum
         return cls.objects.annotate(
             _passengers_seats=Sum(
                 "passengers__seats",
@@ -383,6 +381,27 @@ class EventPage(RoutablePageMixin, Page):
         FieldPanel("special_tag"),
         FieldPanel("rsvp_capacity"),
         FieldPanel("body"),
+    ]
+
+    api_fields = [
+        APIField("start_date"),
+        APIField("end_date"),
+        APIField("start_time"),
+        APIField("venue"),
+        APIField("venue_notes"),
+        APIField("map_link"),
+        APIField("hero_image"),
+        APIField("summary"),
+        APIField("show_countdown"),
+        APIField("expected_temperature"),
+        APIField("weather_note"),
+        APIField("special_tag"),
+        APIField("rsvp_capacity"),
+        APIField("body"),
+        APIField("countdown_target"),
+        APIField("going_count"),
+        APIField("maybe_count"),
+        APIField("total_attending_db"),
     ]
 
     def get_template(self, request, *args, **kwargs):

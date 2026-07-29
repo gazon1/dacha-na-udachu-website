@@ -1,5 +1,6 @@
 from django.db import models
 from wagtail.models import Page
+from wagtail.api import APIField
 from wagtail import fields
 from wagtail.admin.panels import FieldPanel
 from wagtail.images.blocks import ImageChooserBlock
@@ -36,6 +37,17 @@ class HousePage(Page):
         FieldPanel("base_price"),
         FieldPanel("booking_enabled"),
         FieldPanel("body"),
+    ]
+
+    api_fields = [
+        APIField("summary"),
+        APIField("hero_image"),
+        APIField("capacity"),
+        APIField("bedrooms"),
+        APIField("address"),
+        APIField("base_price"),
+        APIField("booking_enabled"),
+        APIField("body"),
     ]
 
 

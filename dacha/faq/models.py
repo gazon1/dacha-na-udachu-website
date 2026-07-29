@@ -1,5 +1,6 @@
 from django.db import models
 from wagtail.models import Page
+from wagtail.api import APIField
 from wagtail import fields
 from wagtail.admin.panels import FieldPanel
 from dacha.blocks import RichTextBlock, FaqBlock
@@ -17,4 +18,9 @@ class FAQPage(Page):
     content_panels = Page.content_panels + [
         FieldPanel("intro"),
         FieldPanel("faq_items"),
+    ]
+
+    api_fields = [
+        APIField("intro"),
+        APIField("faq_items"),
     ]

@@ -29,7 +29,11 @@ dependencies = [
     # New dependencies
     "django-filter>=25.1",
     "django-tables2>=2.7",
-
+    # JSON API — headless frontend
+    "django-ninja>=1.0",
+    "django-cors-headers>=4.0",
+    # Wagtail headless preview (so /admin/ preview opens in Next.js)
+    "wagtail-headless-preview>=0.5",
 ]
 
 [project.optional-dependencies]

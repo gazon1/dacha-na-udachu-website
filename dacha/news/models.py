@@ -1,5 +1,6 @@
 from django.db import models
 from wagtail.models import Page
+from wagtail.api import APIField
 from wagtail import fields
 from wagtail.admin.panels import FieldPanel
 from dacha.blocks import HeadingBlock, RichTextBlock, ImageBlock
@@ -36,6 +37,14 @@ class NewsPage(Page):
         if self.date:
             return self.date.strftime("%d.%m.%Y")
         return ""
+
+    api_fields = [
+        APIField("date"),
+        APIField("main_image"),
+        APIField("summary"),
+        APIField("formatted_date"),
+        APIField("body"),
+    ]
 
 
 class NewsIndexPage(Page):
