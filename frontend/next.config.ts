@@ -22,12 +22,11 @@ const nextConfig: NextConfig = {
       // Django Ninja API + Wagtail headless API
       { source: "/api/:path*", destination: `${BACKEND_URL}/api/:path*` },
 
-      // Wagtail admin — exact + wildcard to cover both /admin and /admin/:path*
-      { source: "/admin", destination: `${BACKEND_URL}/admin/` },
-      { source: "/admin/:path*", destination: `${BACKEND_URL}/admin/:path*` },
-      { source: "/cms", destination: `${BACKEND_URL}/admin/` },
-      { source: "/cms/:path*", destination: `${BACKEND_URL}/admin/:path*` },
-      { source: "/django-admin/:path*", destination: `${BACKEND_URL}/django-admin/:path*` },
+      // Admin URLs go directly to Django on port 8071 (exposed in compose).
+      // No rewrites needed — Django serves them at http://localhost:8071
+
+      { source: "/admin/login", destination: `${BACKEND_URL}/admin/login/` },
+      { source: "/admin/login/", destination: `${BACKEND_URL}/admin/login/` },
 
       // Static assets served by Django
       { source: "/documents/:path*", destination: `${BACKEND_URL}/documents/:path*` },
