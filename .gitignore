@@ -434,6 +434,7 @@ Crawler/Configuration/config.yaml
 .beads/*
 config.yaml
 .claude.json
+.agent
 .dolt/*
 .doltcfg/*
 tmp/*
@@ -454,3 +455,6 @@ scripts/parser_config.yaml
 .env.*
 */logs/
 dacha/db.sqlite3-journal
+
+
+dacha/media

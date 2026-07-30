@@ -283,12 +283,15 @@ WAGTAILSEARCH_BACKENDS = {
     }
 }
 
+# Base URL for the site — single source of truth for all hardcoded URLs
+SITE_URL = os.environ.get("NEXT_PUBLIC_SITE_URL", "https://dacha.maxdrobin.ru")
+
 # Base URL to use when referring to full URLs within the Wagtail admin backend -
 # e.g. in notification emails. Don't include '/admin' or a trailing slash
-WAGTAILADMIN_BASE_URL = os.environ.get("WAGTAILADMIN_BASE_URL", "https://dacha.maxdrobin.ru")
+WAGTAILADMIN_BASE_URL = os.environ.get("WAGTAILADMIN_BASE_URL", SITE_URL)
 
 # Wagtail API v2 — headless page content for Next.js
-WAGTAILAPI_BASE_URL = os.environ.get("WAGTAILAPI_BASE_URL", WAGTAILADMIN_BASE_URL)
+WAGTAILAPI_BASE_URL = os.environ.get("WAGTAILAPI_BASE_URL", SITE_URL)
 WAGTAILAPI_SEARCH_ENABLED = True
 WAGTAILAPI_LIMIT_MAX = 100
 

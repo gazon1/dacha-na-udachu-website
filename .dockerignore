@@ -99,3 +99,6 @@ WebCrawler.Tests/
 **/.vscode/
 **/.git/
 **/node_modules/
+**/.next/
+dacha/web/node_modules/
+dacha/web/.next/

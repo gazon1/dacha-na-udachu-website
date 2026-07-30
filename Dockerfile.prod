@@ -1,94 +1,71 @@
-# =============================================================================
-# Multi-stage production Dockerfile for dacha.maxdrobin.ru
-# Stage 1 — node: build frontend assets
-# Stage 2 — python: install dependencies
-# Stage 3 — runtime: non-root, no node, minimal image
-# =============================================================================
+# ==============================================================================
+# 🐳 DACHA PRODUCTION DOCKERFILE
+# Build:  docker build -f Dockerfile.prod -t dacha .
+# Run:    docker compose -f docker-compose.prod.yml up
+#
+# Host-side management: just prod-* (/.just/dacha.just)
+# Container CMD:        just prod-serve (runs gunicorn directly)
+# ==============================================================================
 
-# ---- Stage 1: Node / Vite build ----
-FROM node:22-alpine AS node-stage
-
-WORKDIR /workspace
-
-COPY package.json package-lock.json* ./
-RUN npm ci
-
-COPY frontend/ ./frontend/
-COPY vite.config.js ./
-RUN npm run build
-
-# ---- Stage 2: Python dependencies ----
-FROM python:3.12-slim-bookworm AS python-stage
+FROM python:3.12-slim-bookworm AS base
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy
+    UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    gettext \
-    libpq-dev \
-    gcc \
-    libjpeg-dev \
-    zlib1g-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+# Build args for Next.js (passed via --build-arg from docker-compose or CLI)
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_WAGTAIL_API_URL
+ARG NEXT_PUBLIC_SITE_URL
+ARG NEXT_PUBLIC_TELEGRAM_BOT_USERNAME
 
 WORKDIR /workspace
 
-COPY pyproject.toml uv.lock* ./
-RUN uv sync --frozen --no-dev --no-install-project --no-editable \
-    && uv pip install --system --no-deps \
-    $(find .venv/lib -name "*.py" -path "*/site-packages/wagtail*" | sed 's|/site-packages/||' | sed 's|\.py$||' | sort -u | tr '/' '.' | sed 's|\.$||') || true
-
-# Install all deps for production (no dev)
-RUN uv sync --frozen --no-dev
-
-# ---- Stage 3: Runtime (non-root, no node) ----
-FROM python:3.12-slim-bookworm AS runtime
-
-ENV DEBIAN_FRONTEND=noninteractive \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
-
-# Runtime-only packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     gettext \
     libpq5 \
+    libpq-dev \
+    gcc \
     libjpeg62-turbo \
-    && rm -rf /var/lib/apt/lists/*
+    libjpeg-dev \
+    zlib1g-dev \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists* \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists* \
+    && curl -fsSL https://just.systems/install.sh | bash -s -- --to /usr/local/bin
 
-# Create non-root user
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
 RUN groupadd --gid 1000 appgroup \
-    && useradd --uid 1000 --gid 1000 --shell /bin/bash appuser
+    && useradd --uid 1000 --gid 1000 --shell /bin/bash appuser \
+    && mkdir -p /home/appuser && chown appuser:appgroup /home/appuser
+
+# Copy everything (node_modules, .venv, .next excluded via .dockerignore)
+COPY . /workspace
+
+# Install Python deps (from dacha/ where pyproject.toml lives)
+WORKDIR /workspace/dacha
+RUN uv sync --frozen --no-dev
+
+# Build frontend
+WORKDIR /workspace/dacha/web
+RUN echo "NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}" >> .env.local && \
+    echo "NEXT_PUBLIC_WAGTAIL_API_URL=${NEXT_PUBLIC_WAGTAIL_API_URL}" >> .env.local && \
+    echo "NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}" >> .env.local && \
+    echo "NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=${NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}" >> .env.local
+RUN npm ci && npm run build
 
 WORKDIR /workspace
 
-# Copy installed Python packages from stage 2
-COPY --from=python-stage /workspace/.venv /workspace/.venv
-ENV PATH="/workspace/.venv/bin:$PATH"
+RUN mkdir -p /workspace/.uv_cache && chown -R appuser:appgroup /workspace
 
-# Copy built frontend assets
-COPY --from=node-stage /workspace/dacha/dacha/static /workspace/dacha/dacha/static
-
-# Copy project source
-COPY . /workspace/
-
-# Collect static files
-RUN python manage.py collectstatic --noinput
-
-# Switch to non-root
-RUN chown -R appuser:appgroup /workspace
-
+ENV PATH="/workspace/dacha/.venv/bin:/usr/local/bin:$PATH"
+ENV UV_CACHE_DIR=/workspace/.uv_cache
 USER appuser
 
-EXPOSE 8000
-
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:8000/health/ || exit 1
-
-CMD ["gunicorn", "dacha.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--access-logfile", "-", "--error-logfile", "-"]
+# NOTE: EXPOSE, entrypoint and CMD are in docker-compose.prod.yml

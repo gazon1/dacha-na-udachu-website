@@ -31,13 +31,21 @@ if _redis_url:
         "LOCATION": _redis_url,
     }
 
-# Security settings
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-SECURE_HSTS_SECONDS = 31536000
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
+# Security settings — disable for local DEBUG mode
+DEBUG_PROD = os.environ.get("DEBUG_PROD", "false").lower() in ("1", "true", "yes")
+if not DEBUG_PROD:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+else:
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    SECURE_HSTS_SECONDS = 0
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    SECURE_HSTS_PRELOAD = False
 
 # CSP — Content Security Policy (django-csp 4.x format)
 CONTENT_SECURITY_POLICY = {
@@ -55,11 +63,11 @@ CONTENT_SECURITY_POLICY = {
 
 # CSRF
 CSRF_TRUSTED_ORIGINS = os.environ.get(
-    "CSRF_TRUSTED_ORIGINS", "https://dacha.maxdrobin.ru"
+    "CSRF_TRUSTED_ORIGINS", SITE_URL
 ).split(",")
 
 # CORS — Next.js production domain
-_cors_env = os.environ.get("CORS_ALLOWED_ORIGINS", "https://dacha.maxdrobin.ru")
+_cors_env = os.environ.get("CORS_ALLOWED_ORIGINS", SITE_URL)
 CORS_ALLOWED_ORIGINS = [origin.strip() for origin in _cors_env.split(",") if origin.strip()]
 CORS_ALLOW_CREDENTIALS = True
 

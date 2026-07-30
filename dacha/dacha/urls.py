@@ -54,8 +54,9 @@ def health_check(request):
 
 
 def robots_txt(request):
+    site_url = settings.SITE_URL.rstrip("/")
     return HttpResponse(
-        "User-agent: *\nAllow: /\n\nSitemap: https://dacha.maxdrobin.ru/sitemap.xml\n",
+        f"User-agent: *\nAllow: /\n\nSitemap: {site_url}/sitemap.xml\n",
         content_type="text/plain",
     )
 
@@ -102,6 +103,5 @@ if settings.DEBUG:
 urlpatterns = urlpatterns + [
     # CMS UI — redirect /cms/ to Wagtail admin
     path("cms/", lambda _: __import__("django").shortcuts.redirect("/admin/", permanent=False)),
-    # Redirect root to Next.js in dev (Django is API-only; Next.js serves frontend)
-    path("", lambda _: __import__("django").shortcuts.redirect("http://localhost:3000", permanent=False)),
+    path("", lambda _: __import__("django").shortcuts.redirect(settings.SITE_URL, permanent=False)),
 ]

@@ -70,6 +70,10 @@ def create_site_structure(apps, schema_editor):
         # Delete welcome page first if exists
         welcome = Page.objects.filter(depth=2, slug='home').first()
         if welcome:
+            # Update any sites referencing the welcome page to point to root first
+            root = Page.objects.filter(depth=1).first()
+            if root:
+                Site.objects.filter(root_page=welcome).update(root_page=root)
             with connection.cursor() as cursor:
                 cursor.execute('DELETE FROM wagtailcore_page WHERE id = %s', [welcome.id])
 
