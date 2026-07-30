@@ -10,8 +10,9 @@ WORKDIR /app
 # Copy package files first for dependency caching
 COPY package*.json ./
 COPY package-lock.json* ./
-
-RUN npm ci --ignore-scripts
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \ 
+    && npm ci --ignore-scripts
 
 # Copy source code
 COPY . .
