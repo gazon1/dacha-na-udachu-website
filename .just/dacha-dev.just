@@ -7,9 +7,9 @@
 OS := if os() == "macos" { "darwin" } else { "linux" }
 
 # Paths
-PROJECT_DIR := "/workspace/dacha"
-WEB_DIR := PROJECT_DIR + "/web"
-FRONTEND_DIR := PROJECT_DIR
+PROJECT_DIR := "/workspace/backend"
+WEB_DIR := "/workspace/frontend"
+FRONTEND_DIR := WEB_DIR
 
 # Environment
 DOTENV := env("DOTENV", ".env")

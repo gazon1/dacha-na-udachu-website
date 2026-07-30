@@ -1,9 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  turbopack: {
-    root: "/workspace/dacha/web",
-  },
+  // Turbopack auto-detects project root from next.config.ts location
 };
 
 export default nextConfig;

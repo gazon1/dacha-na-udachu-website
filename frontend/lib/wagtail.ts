@@ -37,12 +37,17 @@ export async function fetchPreviewDraft(
 
 /** Resolve a URL path to a Wagtail page detail URL. */
 export async function resolvePage(path: string): Promise<{ id: number; type: string; url: string } | null> {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/pages/resolve/?html_path=${encodeURIComponent(path)}`,
-    { next: { revalidate: 60 } }
-  );
-  if (!res.ok) return null;
-  return res.json();
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/pages/resolve/?html_path=${encodeURIComponent(path)}`,
+      { next: { revalidate: 60 } }
+    );
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    // Backend unreachable during build — return null and render on client
+    return null;
+  }
 }
 
 /** Fetch a single page by its detail URL. */

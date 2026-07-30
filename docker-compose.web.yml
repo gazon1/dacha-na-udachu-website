@@ -40,8 +40,8 @@ services:
       # Named volume: survives container restart, survives rebuild
       # V1.1 will replace this with S3-compatible storage
       - media_data:/workspace/media
-      # Static assets (built by Dockerfile from node-stage)
-      - static_data:/workspace/dacha/dacha/static
+      # Static files (CSS, admin, fonts — collected by collectstatic)
+      - static_data:/workspace/backend/static
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
       interval: 30s

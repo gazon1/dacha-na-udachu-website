@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const ADMIN_PATHS = ["/admin", "/cms"];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Only redirect if not already on the backend host

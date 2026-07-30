@@ -210,7 +210,7 @@ prod-setup: prod-validate prod-up prod-migrate prod-check
 # Used by Dockerfile CMD: just prod-serve
 
 [group('dacha')]
-[working-directory("/workspace/dacha")]
+[working-directory("/workspace/backend")]
 [doc('Run gunicorn inside container (used by Dockerfile CMD)')]
 prod-serve:
     #!/usr/bin/env bash

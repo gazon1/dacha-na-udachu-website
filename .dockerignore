@@ -100,5 +100,6 @@ WebCrawler.Tests/
 **/.git/
 **/node_modules/
 **/.next/
-dacha/web/node_modules/
-dacha/web/.next/
+frontend/node_modules/
+frontend/.next/
+backend/.venv/

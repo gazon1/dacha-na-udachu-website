@@ -1,0 +1,23 @@
+# Environment files (use docker-compose args/env instead)
+.env.local
+.env.development
+.env.test
+
+# Development files
+*.md
+CLAUDE.md
+AGENTS.md
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build outputs (we rebuild in Docker)
+.next/

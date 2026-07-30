@@ -103,5 +103,21 @@ if settings.DEBUG:
 urlpatterns = urlpatterns + [
     # CMS UI — redirect /cms/ to Wagtail admin
     path("cms/", lambda _: __import__("django").shortcuts.redirect("/admin/", permanent=False)),
-    path("", lambda _: __import__("django").shortcuts.redirect(settings.SITE_URL, permanent=False)),
 ]
+
+# Редиректим на внешний фронтенд только если он реально используется
+if settings.DEBUG:
+    _root_redirect = settings.SITE_URL.rstrip("/")
+    urlpatterns += [
+        path("", lambda request: __import__("django").shortcuts.redirect(
+            _root_redirect, permanent=False
+        ) if request.get_host() != __import__("urllib.parse", fromlist=["urlparse"]).urlparse(_root_redirect).netloc else __import__("django").http.HttpResponseNotFound("No frontend configured")
+        ),
+    ]
+else:
+    # Если фронтенда нет, отдаем главную страницу Wagtail (или ваш дефолтный роутинг)
+    from wagtail.models import Page
+    from wagtail.views import serve as wagtail_serve
+    urlpatterns += [
+        path("", lambda request: wagtail_serve(request, "/")),
+    ]

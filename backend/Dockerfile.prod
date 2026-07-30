@@ -5,6 +5,8 @@
 #
 # Host-side management: just prod-* (/.just/dacha.just)
 # Container CMD:        just prod-serve (runs gunicorn directly)
+#
+# Note: Next.js frontend is built separately in the frontend service
 # ==============================================================================
 
 FROM python:3.12-slim-bookworm AS base
@@ -14,12 +16,6 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1
-
-# Build args for Next.js (passed via --build-arg from docker-compose or CLI)
-ARG NEXT_PUBLIC_API_URL
-ARG NEXT_PUBLIC_WAGTAIL_API_URL
-ARG NEXT_PUBLIC_SITE_URL
-ARG NEXT_PUBLIC_TELEGRAM_BOT_USERNAME
 
 WORKDIR /workspace
 
@@ -34,9 +30,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zlib1g-dev \
     ca-certificates \
     && rm -rf /var/lib/apt/lists* \
-    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get install -y --no-install-recommends nodejs \
-    && rm -rf /var/lib/apt/lists* \
     && curl -fsSL https://just.systems/install.sh | bash -s -- --to /usr/local/bin
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
@@ -45,26 +38,18 @@ RUN groupadd --gid 1000 appgroup \
     && useradd --uid 1000 --gid 1000 --shell /bin/bash appuser \
     && mkdir -p /home/appuser && chown appuser:appgroup /home/appuser
 
-# Copy everything (node_modules, .venv, .next excluded via .dockerignore)
+# Copy everything
 COPY . /workspace
 
-# Install Python deps (from dacha/ where pyproject.toml lives)
-WORKDIR /workspace/dacha
+# Install Python deps (from backend/ where pyproject.toml lives)
+WORKDIR /workspace/backend
 RUN uv sync --frozen --no-dev
-
-# Build frontend
-WORKDIR /workspace/dacha/web
-RUN echo "NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}" >> .env.local && \
-    echo "NEXT_PUBLIC_WAGTAIL_API_URL=${NEXT_PUBLIC_WAGTAIL_API_URL}" >> .env.local && \
-    echo "NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}" >> .env.local && \
-    echo "NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=${NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}" >> .env.local
-RUN npm ci && npm run build
 
 WORKDIR /workspace
 
 RUN mkdir -p /workspace/.uv_cache && chown -R appuser:appgroup /workspace
 
-ENV PATH="/workspace/dacha/.venv/bin:/usr/local/bin:$PATH"
+ENV PATH="/workspace/backend/.venv/bin:/usr/local/bin:$PATH"
 ENV UV_CACHE_DIR=/workspace/.uv_cache
 USER appuser
 

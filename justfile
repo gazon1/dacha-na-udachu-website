@@ -28,12 +28,12 @@ default:
 
 # ---- SETUP ----
 [doc("Install Python dev dependencies via uv")]
-[working-directory("/workspace/dacha")]
+[working-directory("/workspace/backend")]
 install:
     uv sync --extra dev
 
-[doc("Install frontend Node dependencies (Next.js at /workspace/dacha/web/)")]
-[working-directory("/workspace/dacha/web")]
+[doc("Install frontend Node dependencies (Next.js at /workspace/frontend/)")]
+[working-directory("/workspace/frontend")]
 install-node:
     npm ci
 
@@ -42,26 +42,26 @@ setup: install install-node frontend-build
 
 
 # ---- FRONTEND ----
-[doc("Build Next.js frontend (output: /workspace/dacha/web/.next/)")]
-[working-directory("/workspace/dacha/web")]
+[doc("Build Next.js frontend (output: /workspace/frontend/.next/)")]
+[working-directory("/workspace/frontend")]
 frontend-build:
     npm run build
 
 [doc("Start Next.js dev server with hot reload")]
-[working-directory("/workspace/dacha/web")]
+[working-directory("/workspace/frontend")]
 frontend-dev:
     npm run dev
 
 
 # ---- LINT & FORMAT ----
 [doc("Run all linters (ruff)")]
-[working-directory("/workspace/dacha")]
+[working-directory("/workspace/backend")]
 lint:
     uv run ruff check .
     uv run ruff format --check .
 
 [doc("Auto-fix linting issues")]
-[working-directory("/workspace/dacha")]
+[working-directory("/workspace/backend")]
 lint-fix:
     uv run ruff check --fix .
     uv run ruff format .
@@ -69,53 +69,53 @@ lint-fix:
 
 # ---- TESTS ----
 [doc("Run test suite with coverage")]
-[working-directory("/workspace/dacha")]
+[working-directory("/workspace/backend")]
 test:
     uv run pytest --cov --cov-report=term-missing --cov-fail-under=70
 
 [doc("Run tests without coverage (fast)")]
-[working-directory("/workspace/dacha")]
+[working-directory("/workspace/backend")]
 test-quick:
     uv run pytest -v
 
 
 # ---- DATABASE ----
 [doc("Apply all migrations")]
-[working-directory: "/workspace/dacha"]
+[working-directory: "/workspace/backend"]
 migrate:
     uv run python manage.py migrate
 
 [doc("Create migrations for changed apps")]
-[working-directory: "/workspace/dacha"]
+[working-directory: "/workspace/backend"]
 makemigrations *apps:
     uv run python manage.py makemigrations {{apps}}
 
 [doc("Check for uncommitted migrations")]
-[working-directory: "/workspace/dacha"]
+[working-directory: "/workspace/backend"]
 migration-check:
     uv run python manage.py makemigrations --check --dry-run
 
 
 # ---- DJANGO ----
 [doc("Run Django system checks")]
-[working-directory("/workspace/dacha")]
+[working-directory("/workspace/backend")]
 check:
     uv run python manage.py check
 
 [doc("Run Django production deployment checks")]
-[working-directory("/workspace/dacha")]
+[working-directory("/workspace/backend")]
 check-deploy:
     uv run python manage.py check --deploy --settings=dacha.settings.production
 
 
 [doc("Start Django development server")]
-[working-directory: "/workspace/dacha"]
+[working-directory: "/workspace/backend"]
 runserver:
     uv run python manage.py runserver 0.0.0.0:8001
 
 
 # ---- LOCAL DEV ----
-[working-directory("/workspace/dacha")]
+[working-directory("/workspace/backend")]
 [doc("Full local dev startup: makemigrations + migrate + runserver (Next.js: just frontend-dev)")]
 dev: makemigrations migrate runserver
 
@@ -147,11 +147,11 @@ docker-push:
 
 
 # ---- PRODUCTION ENTRYPOINT ----
-[working-directory("/workspace/dacha")]
+[working-directory("/workspace/backend")]
 [doc("Production container entrypoint: migrate → createsuperuser → collectstatic → gunicorn")]
 entrypoint: migrate create-superuser collectstatic run-gunicorn
 
-[working-directory("/workspace/dacha")]
+[working-directory("/workspace/backend")]
 create-superuser:
     #!/bin/bash
     if [ "$DJANGO_SUPERUSER_USERNAME" ] && [ "$DJANGO_SUPERUSER_PASSWORD" ]; then
@@ -163,12 +163,12 @@ create-superuser:
             || echo "Superuser already exists or failed to create"
     fi
 
-[working-directory("/workspace/dacha")]
+[working-directory("/workspace/backend")]
 collectstatic:
     echo "Collecting static files..."
     python manage.py collectstatic --noinput
 
-[working-directory("/workspace/dacha")]
+[working-directory("/workspace/backend")]
 run-gunicorn:
     echo "Starting Gunicorn..."
     exec gunicorn dacha.wsgi:application --bind 0.0.0.0:8000 --workers 3 --access-logfile - --error-logfile -
@@ -176,13 +176,13 @@ run-gunicorn:
 
 # ---- INTERNATIONALISATION ----
 [doc("Extract and compile translation messages")]
-[working-directory("/workspace/dacha")]
+[working-directory("/workspace/backend")]
 i18n: i18n-extract i18n-compile
 
-[working-directory("/workspace/dacha")]
+[working-directory("/workspace/backend")]
 i18n-extract:
     uv run python manage.py makemessages -l ru -l en
 
-[working-directory("/workspace/dacha")]
+[working-directory("/workspace/backend")]
 i18n-compile:
     uv run python manage.py compilemessages
