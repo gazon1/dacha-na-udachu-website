@@ -18,6 +18,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.prod
+    image: dacha-web:latest 
     restart: always
     environment:
       - DJANGO_SETTINGS_MODULE=dacha.settings.production
@@ -75,6 +76,7 @@ services:
         # Public origin — browser-baked at build time. Must end without trailing slash.
         NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
         NEXT_PUBLIC_TELEGRAM_BOT_USERNAME: ${NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}
+    image: dacha-frontend:latest
     restart: always
     environment:
       # Server-only (not NEXT_PUBLIC_*). Read at runtime by Next.js rewrites.
