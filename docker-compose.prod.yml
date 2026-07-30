@@ -58,8 +58,6 @@ services:
       start_period: 60s
     expose:
       - "8000"
-    ports:
-      - "8071:8000"
     working_dir: /workspace/backend
     command:
       - sh
@@ -88,8 +86,6 @@ services:
     depends_on:
       web:
         condition: service_healthy
-    ports:
-      - "3000:3000"
     healthcheck:
       test: ["CMD", "node", "healthcheck.js"]
       interval: 30s
