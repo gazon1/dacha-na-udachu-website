@@ -3,7 +3,7 @@
  * All page content comes from Django's /api/v2/pages/ endpoint.
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_WAGTAIL_API_URL ?? "http://localhost:8000/api/v2";
+import { api, apiUrl } from "./api";
 
 export interface WagtailPage {
   id: number;
@@ -26,48 +26,52 @@ export async function fetchPreviewDraft(
   contentType: string,
   token: string
 ): Promise<{ id: number; title: string; type: string; url: string } | null> {
-  const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
   const params = new URLSearchParams({ content_type: contentType, token });
-  const res = await fetch(`${base}/api/preview/draft/?${params}`, {
-    next: { revalidate: 0 }, // always fetch fresh draft
-  });
-  if (!res.ok) return null;
-  return res.json();
+  const res = await api.get<{ id: number; title: string; type: string; url: string }>(
+    `/api/preview/draft/?${params}`,
+    { next: { revalidate: 0 } }
+  );
+  return res ?? null;
 }
 
 /** Resolve a URL path to a Wagtail page detail URL. */
-export async function resolvePage(path: string): Promise<{ id: number; type: string; url: string } | null> {
+export async function resolvePage(
+  path: string
+): Promise<{ id: number; type: string; url: string } | null> {
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/pages/resolve/?html_path=${encodeURIComponent(path)}`,
+    return await api.get<{ id: number; type: string; url: string }>(
+      `/api/pages/resolve/?html_path=${encodeURIComponent(path)}`,
       { next: { revalidate: 60 } }
     );
-    if (!res.ok) return null;
-    return res.json();
   } catch {
-    // Backend unreachable during build — return null and render on client
     return null;
   }
 }
 
 /** Fetch a single page by its detail URL. */
-export async function fetchPage<T extends WagtailPage = WagtailPage>(detailUrl: string): Promise<T | null> {
-  // detailUrl from resolvePage is /api/v2/pages/N/ — already the path under API_BASE.
-  // Prepend origin only; do NOT double-prepend the /api/v2 prefix.
-  const origin = API_BASE.replace(/\/api\/v2$/, "");
-  const url = detailUrl.startsWith("/") ? `${origin}${detailUrl}` : detailUrl;
-  const res = await fetch(url, { next: { revalidate: 60 } });
-  if (!res.ok) return null;
-  return res.json();
+export async function fetchPage<T extends WagtailPage = WagtailPage>(
+  detailUrl: string
+): Promise<T | null> {
+  // detailUrl is /api/v2/pages/N/ — prepend SITE_URL
+  const url = detailUrl.startsWith("/") ? apiUrl(detailUrl) : detailUrl;
+  try {
+    return await api.get<T>(url, { next: { revalidate: 60 } });
+  } catch {
+    return null;
+  }
 }
 
 /** Fetch a page by its numeric ID. */
-export async function fetchPageById<T extends WagtailPage = WagtailPage>(id: number): Promise<T | null> {
-  return fetchPage<T>(`${API_BASE}/pages/${id}/`);
+export async function fetchPageById<
+  T extends WagtailPage = WagtailPage
+>(id: number): Promise<T | null> {
+  return fetchPage<T>(`/api/v2/pages/${id}/`);
 }
 
 /** Fetch pages of a specific type. */
-export async function fetchPagesByType<T extends WagtailPage = WagtailPage>(
+export async function fetchPagesByType<
+  T extends WagtailPage = WagtailPage
+>(
   type: string,
   options?: { fields?: string; limit?: number; offset?: number }
 ): Promise<{ items: T[]; total: number } | null> {
@@ -76,14 +80,20 @@ export async function fetchPagesByType<T extends WagtailPage = WagtailPage>(
   if (options?.limit) params.set("limit", String(options.limit));
   if (options?.offset) params.set("offset", String(options.offset));
 
-  const res = await fetch(`${API_BASE}/pages/?${params}`, { next: { revalidate: 60 } });
-  if (!res.ok) return null;
-  return res.json();
+  try {
+    return await api.get<{ items: T[]; total: number }>(
+      `/api/v2/pages/?${params}`,
+      { next: { revalidate: 60 } }
+    );
+  } catch {
+    return null;
+  }
 }
 
 /** Fetch the site root page (homepage at /). */
-export async function fetchRootPage<T extends WagtailPage = WagtailPage>(): Promise<T | null> {
-  // Use resolve endpoint to find the homepage, since Wagtail root is not page ID 1
+export async function fetchRootPage<
+  T extends WagtailPage = WagtailPage
+>(): Promise<T | null> {
   const resolved = await resolvePage("/");
   if (!resolved) return null;
   return fetchPage<T>(resolved.url);

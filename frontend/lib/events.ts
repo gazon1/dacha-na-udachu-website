@@ -2,6 +2,8 @@
  * Events API client — proxies Django Ninja /api/events/ endpoints.
  */
 
+import { api } from "./api";
+
 export interface Event {
   id: number;
   title: string;
@@ -110,7 +112,7 @@ export interface RSVPState {
   secret_key?: string;
 }
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// ─── Internal helpers ─────────────────────────────────────────────────────────
 
 function getCsrfToken(): string {
   if (typeof document === "undefined") return "";
@@ -118,166 +120,230 @@ function getCsrfToken(): string {
   return match ? match[1] : "";
 }
 
-async function apiFetch(path: string, options?: RequestInit): Promise<Response> {
-  const isMutation = options?.method && options.method !== "GET";
-  return fetch(`${BASE}${path}`, {
-    ...options,
-    credentials: "include", // session cookie sent automatically
-    headers: {
-      "Content-Type": "application/json",
-      ...(isMutation ? { "X-CSRFToken": getCsrfToken() } : {}),
-      ...(options?.headers ?? {}),
-    },
+/** Auth-aware fetch for mutations — sends CSRF token and session cookie. */
+async function apiMut<T>(
+  path: string,
+  data?: unknown
+): Promise<T> {
+  return api.post<T>(path, data, {
+    credentials: "include",
+    headers: { "X-CSRFToken": getCsrfToken() },
   });
 }
 
-/** Extract error message from any Django Ninja response shape. */
-async function parseError(res: Response): Promise<string> {
+/** Auth-aware fetch for reads — sends session cookie. */
+async function apiAuth<T>(path: string): Promise<T> {
+  return api.get<T>(path, { credentials: "include" });
+}
+
+// ─── Events listing ────────────────────────────────────────────────────────────
+
+export async function fetchEvents(upcoming = true): Promise<Event[]> {
   try {
-    const body = await res.json();
-    // Status(400, {error: "..."}) → serialized as {status_code: N, value: {...}}
-    if (body?.value?.error) return body.value.error;
-    // Plain {error: "..."}
-    if (body?.error) return body.error;
-    // Fallback: show status text
-    return res.statusText || `Ошибка ${res.status}`;
+    return await api.get<Event[]>(
+      `/api/events/?upcoming=${upcoming}`,
+      { next: { revalidate: 60 } }
+    );
   } catch {
-    return res.statusText || `Ошибка ${res.status}`;
+    return [];
   }
 }
 
-// ── Events listing ─────────────────────────────────────────────────────────────
-
-export async function fetchEvents(upcoming = true): Promise<Event[]> {
-  const res = await fetch(`${BASE}/api/events/?upcoming=${upcoming}`, { next: { revalidate: 60 } });
-  if (!res.ok) return [];
-  return res.json();
-}
-
 export async function fetchEvent(id: number): Promise<Event | null> {
-  const res = await fetch(`${BASE}/api/events/${id}/`, { next: { revalidate: 60 } });
-  if (!res.ok) return null;
-  return res.json();
+  try {
+    return await api.get<Event>(`/api/events/${id}/`, {
+      next: { revalidate: 60 },
+    });
+  } catch {
+    return null;
+  }
 }
 
-// ── RSVP ───────────────────────────────────────────────────────────────────────
+// ─── RSVP ─────────────────────────────────────────────────────────────────────
 
 export async function fetchMyRSVP(eventId: number): Promise<RSVPState> {
-  const res = await apiFetch(`/api/events/${eventId}/rsvp/me`);
-  if (!res.ok) return { voted: false };
-  return res.json();
+  try {
+    return await apiAuth<RSVPState>(`/api/events/${eventId}/rsvp/me`);
+  } catch {
+    return { voted: false };
+  }
 }
 
-export async function submitRSVP(eventId: number, data: {
-  name: string;
-  status: string;
-  guests_count: number;
-  secret_key?: string;
-}): Promise<{ id?: number; name?: string; status?: string; error?: string }> {
-  const res = await apiFetch(`/api/events/${eventId}/rsvp/`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-  if (res.ok) return res.json();
-  return { error: await parseError(res) };
+export async function submitRSVP(
+  eventId: number,
+  data: {
+    name: string;
+    status: string;
+    guests_count: number;
+    secret_key?: string;
+  }
+): Promise<{ id?: number; name?: string; status?: string; error?: string }> {
+  try {
+    return await apiMut<{
+      id: number;
+      name?: string;
+      status?: string;
+    }>(`/api/events/${eventId}/rsvp/`, data);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
 }
 
-export async function cancelRSVP(eventId: number): Promise<{ error?: string }> {
-  const res = await apiFetch(`/api/events/${eventId}/rsvp/cancel/`, { method: "POST" });
-  if (res.ok) return {};
-  return { error: await parseError(res) };
+export async function cancelRSVP(
+  eventId: number
+): Promise<{ error?: string }> {
+  try {
+    await apiMut(`/api/events/${eventId}/rsvp/cancel/`);
+    return {};
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
 }
 
-export async function claimRSVP(eventId: number, secretKey: string): Promise<{
-  id?: number;
-  name?: string;
-  status?: string;
-  error?: string;
-}> {
-  const res = await apiFetch(`/api/events/${eventId}/rsvp/claim/`, {
-    method: "POST",
-    body: JSON.stringify({ secret_key: secretKey }),
-  });
-  if (res.ok) return res.json();
-  return { error: await parseError(res) };
+export async function claimRSVP(
+  eventId: number,
+  secretKey: string
+): Promise<{ id?: number; name?: string; status?: string; error?: string }> {
+  try {
+    return await apiMut<{ id: number; name?: string; status?: string }>(
+      `/api/events/${eventId}/rsvp/claim/`,
+      { secret_key: secretKey }
+    );
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
 }
 
-// ── Attendees ─────────────────────────────────────────────────────────────────
+// ─── Attendees ───────────────────────────────────────────────────────────────
 
 export async function fetchAttendees(eventId: number): Promise<Attendee[]> {
-  const res = await apiFetch(`/api/events/${eventId}/attendees/`);
-  if (!res.ok) return [];
-  return res.json();
+  try {
+    return await apiAuth<Attendee[]>(`/api/events/${eventId}/attendees/`);
+  } catch {
+    return [];
+  }
 }
 
-// ── Carpool ───────────────────────────────────────────────────────────────────
+// ─── Carpool ─────────────────────────────────────────────────────────────────
 
-export async function fetchCarpoolSection(eventId: number): Promise<CarpoolSection> {
-  const res = await apiFetch(`/api/events/${eventId}/carpool/`);
-  if (!res.ok) return { drivers: [], carpool_requests: [], taxi_pools: [] };
-  return res.json();
+export async function fetchCarpoolSection(
+  eventId: number
+): Promise<CarpoolSection> {
+  try {
+    return await apiAuth<CarpoolSection>(`/api/events/${eventId}/carpool/`);
+  } catch {
+    return { drivers: [], carpool_requests: [], taxi_pools: [] };
+  }
 }
 
-export async function addDriver(eventId: number, data: Omit<Driver, "id" | "seats_taken" | "seats_available" | "is_cancelled" | "is_verified" | "cancel_token" | "created_at">): Promise<Driver | { error: string }> {
-  const res = await apiFetch(`/api/events/${eventId}/carpool/drivers/`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-  if (res.ok) return res.json();
-  return { error: await parseError(res) };
+export async function addDriver(
+  eventId: number,
+  data: Omit<
+    Driver,
+    | "id"
+    | "seats_taken"
+    | "seats_available"
+    | "is_cancelled"
+    | "is_verified"
+    | "cancel_token"
+    | "created_at"
+  >
+): Promise<Driver | { error: string }> {
+  try {
+    return await apiMut<Driver>(`/api/events/${eventId}/carpool/drivers/`, data);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
 }
 
-export async function addCarpoolRequest(eventId: number, data: Omit<CarpoolRequest, "id" | "is_active" | "created_at">): Promise<CarpoolRequest | { error: string }> {
-  const res = await apiFetch(`/api/events/${eventId}/carpool/requests/`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-  if (res.ok) return res.json();
-  return { error: await parseError(res) };
+export async function addCarpoolRequest(
+  eventId: number,
+  data: Omit<CarpoolRequest, "id" | "is_active" | "created_at">
+): Promise<CarpoolRequest | { error: string }> {
+  try {
+    return await apiMut<CarpoolRequest>(
+      `/api/events/${eventId}/carpool/requests/`,
+      data
+    );
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
 }
 
-export async function addTaxiPool(eventId: number, data: Omit<TaxiPool, "id" | "passengers_count" | "spots_left" | "is_active" | "created_at">): Promise<TaxiPool | { error: string }> {
-  const res = await apiFetch(`/api/events/${eventId}/carpool/taxi-pools/`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-  if (res.ok) return res.json();
-  return { error: await parseError(res) };
+export async function addTaxiPool(
+  eventId: number,
+  data: Omit<
+    TaxiPool,
+    | "id"
+    | "passengers_count"
+    | "spots_left"
+    | "is_active"
+    | "created_at"
+  >
+): Promise<TaxiPool | { error: string }> {
+  try {
+    return await apiMut<TaxiPool>(
+      `/api/events/${eventId}/carpool/taxi-pools/`,
+      data
+    );
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
 }
 
-export async function joinRide(eventId: number, driverId: number, data: {
-  name: string;
-  phone: string;
-  telegram?: string;
-  pickup_location: string;
-  seats: number;
-  notes?: string;
-}): Promise<TaxiPassenger | { error: string }> {
-  const res = await apiFetch(`/api/events/${eventId}/drivers/${driverId}/join`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-  if (res.ok) return res.json();
-  return { error: await parseError(res) };
+export async function joinRide(
+  eventId: number,
+  driverId: number,
+  data: {
+    name: string;
+    phone: string;
+    telegram?: string;
+    pickup_location: string;
+    seats: number;
+    notes?: string;
+  }
+): Promise<TaxiPassenger | { error: string }> {
+  try {
+    return await apiMut<TaxiPassenger>(
+      `/api/events/${eventId}/drivers/${driverId}/join`,
+      data
+    );
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
 }
 
-export async function joinTaxi(eventId: number, poolId: number, data: {
-  name: string;
-  phone: string;
-  telegram?: string;
-  seats: number;
-  notes?: string;
-}): Promise<TaxiPassenger | { error: string }> {
-  const res = await apiFetch(`/api/events/${eventId}/taxi-pools/${poolId}/join`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-  if (res.ok) return res.json();
-  return { error: await parseError(res) };
+export async function joinTaxi(
+  eventId: number,
+  poolId: number,
+  data: {
+    name: string;
+    phone: string;
+    telegram?: string;
+    seats: number;
+    notes?: string;
+  }
+): Promise<TaxiPassenger | { error: string }> {
+  try {
+    return await apiMut<TaxiPassenger>(
+      `/api/events/${eventId}/taxi-pools/${poolId}/join`,
+      data
+    );
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
 }
 
-export async function cancelDriver(eventId: number, driverId: number, token = ""): Promise<Driver | { error: string }> {
-  const res = await apiFetch(`/api/events/${eventId}/drivers/${driverId}/cancel?token=${token}`, { method: "POST" });
-  if (res.ok) return res.json();
-  return { error: await parseError(res) };
+export async function cancelDriver(
+  eventId: number,
+  driverId: number,
+  token = ""
+): Promise<Driver | { error: string }> {
+  try {
+    return await apiMut<Driver>(
+      `/api/events/${eventId}/drivers/${driverId}/cancel${token ? `?token=${token}` : ""}`
+    );
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
 }

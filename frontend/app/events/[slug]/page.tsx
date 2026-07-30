@@ -14,7 +14,8 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   // Find event by slug — fetch events list
-  const events = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/events/?upcoming=true`).then(r => r.json()).catch(() => []);
+  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const events = await fetch(`${SITE_URL}/api/events/?upcoming=true`).then(r => r.json()).catch(() => []);
   const event = events.find((e: { slug: string }) => e.slug === slug);
   if (!event) return {};
   return {
@@ -28,8 +29,9 @@ export default async function EventPage({ params }: Props) {
   const { slug } = await params;
 
   // Find event by slug
+  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const events = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/events/?upcoming=true`,
+    `${SITE_URL}/api/events/?upcoming=true`,
     { next: { revalidate: 60 } }
   ).then(r => r.json()).catch(() => []);
   const event = events.find((e: { slug: string }) => e.slug === slug);
@@ -131,7 +133,7 @@ export default async function EventPage({ params }: Props) {
       {/* .ics download */}
       <div className="mt-8">
         <a
-          href={`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/events/${event.id}/ical/`}
+          href={`${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/api/events/${event.id}/ical/`}
           download
           className="btn-ghost inline-flex items-center gap-2 text-sm"
         >

@@ -1,19 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const ADMIN_PATHS = ["/admin", "/cms"];
-
+// Thin rewrite layer — /admin and /cms are now served via next.config.ts rewrites
+// so the browser stays on the same origin. This handler only swaps /cms → /admin.
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Only redirect if not already on the backend host
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-  const backendOrigin = backendUrl.replace(/\/+$/, "");
-  if (request.nextUrl.origin === backendOrigin) {
-    return NextResponse.next();
-  }
-
-  if (ADMIN_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
-    return NextResponse.redirect(`${backendOrigin}${pathname}/`);
+  if (pathname === "/cms" || pathname.startsWith("/cms/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname.replace(/^\/cms/, "/admin");
+    return NextResponse.rewrite(url);
   }
 
   return NextResponse.next();

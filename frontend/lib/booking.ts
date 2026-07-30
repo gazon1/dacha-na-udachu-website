@@ -2,6 +2,8 @@
  * Booking API client — proxies Django Ninja endpoints.
  */
 
+import { api } from "./api";
+
 export interface House {
   id: number;
   title: string;
@@ -33,12 +35,18 @@ export interface Availability {
   booked_dates: DateRange[];
 }
 
+function getCsrfToken(): string {
+  if (typeof document === "undefined") return "";
+  const match = document.cookie.match(/csrftoken=([^;]+)/);
+  return match ? match[1] : "";
+}
+
 export async function fetchHouses(): Promise<House[]> {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/booking/houses/`
-  );
-  if (!res.ok) return [];
-  return res.json();
+  try {
+    return await api.get<House[]>("/api/booking/houses/");
+  } catch {
+    return [];
+  }
 }
 
 export async function fetchAvailability(
@@ -50,11 +58,13 @@ export async function fetchAvailability(
   if (checkIn) params.set("check_in", checkIn);
   if (checkOut) params.set("check_out", checkOut);
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/booking/availability/?${params}`
-  );
-  if (!res.ok) return { available: true, booked_dates: [] };
-  return res.json();
+  try {
+    return await api.get<Availability>(
+      `/api/booking/availability/?${params}`
+    );
+  } catch {
+    return { available: true, booked_dates: [] };
+  }
 }
 
 export async function fetchQuote(
@@ -74,11 +84,11 @@ export async function fetchQuote(
     });
   }
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/booking/quote/?${params}`
-  );
-  if (!res.ok) return null;
-  return res.json();
+  try {
+    return await api.get<BookingQuote>(`/api/booking/quote/?${params}`);
+  } catch {
+    return null;
+  }
 }
 
 export async function submitBooking(data: {
@@ -91,28 +101,13 @@ export async function submitBooking(data: {
   guest_num: number;
   options?: Record<string, boolean>;
 }): Promise<{ id?: number; error?: string }> {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/booking/submit/`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": getCsrfToken(),
-      },
-      credentials: "include",
-      body: JSON.stringify(data),
-    }
-  );
-
-  if (res.ok) {
-    return (await res.json()) as { id: number };
+  try {
+    return await api.post<{ id: number }>(
+      "/api/booking/submit/",
+      data,
+      { credentials: "include", headers: { "X-CSRFToken": getCsrfToken() } }
+    );
+  } catch (e) {
+    return { error: (e as Error).message || "Ошибка бронирования" };
   }
-  const err = await res.json().catch(() => ({ error: "Ошибка" }));
-  return { error: err.error ?? "Ошибка бронирования" };
-}
-
-function getCsrfToken(): string {
-  if (typeof document === "undefined") return "";
-  const match = document.cookie.match(/csrftoken=([^;]+)/);
-  return match ? match[1] : "";
 }

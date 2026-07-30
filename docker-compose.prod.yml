@@ -22,9 +22,17 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=dacha.settings.production
       - SECRET_KEY=${SECRET_KEY}
-      - DEBUG=0
-      - ALLOWED_HOSTS=localhost,web,frontend,127.0.0.1
-      - CSRF_TRUSTED_ORIGINS=http://localhost:3000,http://frontend:3000,http://127.0.0.1:3000
+      - DEBUG=${DEBUG:-0}
+      # DEBUG_PROD=1 disables SECURE_SSL_REDIRECT for local plain-HTTP runs (no TLS terminator).
+      # Leave unset or set to 0 in Coolify — Caddy provides X-Forwarded-Proto: https.
+      - DEBUG_PROD=${DEBUG_PROD:-0}
+      # Comma-separated. Must include the public hostname.
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+      # Scheme+host(s) for CSRF and CORS validation.
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      # Used to generate absolute URLs in Wagtail emails / preview links.
+      - WAGTAILADMIN_BASE_URL=${WAGTAILADMIN_BASE_URL}
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -33,14 +41,9 @@ services:
       - DJANGO_SUPERUSER_USERNAME=${ADMIN_USERNAME}
       - DJANGO_SUPERUSER_EMAIL=${ADMIN_EMAIL}
       - DJANGO_SUPERUSER_PASSWORD=${ADMIN_PASSWORD}
-      - WAGTAILADMIN_BASE_URL=http://localhost:3000
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME}
       - TELEGRAM_AUTH_MAX_AGE_SECONDS=${TELEGRAM_AUTH_MAX_AGE_SECONDS:-300}
-      - NEXT_PUBLIC_API_URL=http://web:8000
-      - NEXT_PUBLIC_WAGTAIL_API_URL=http://web:8000/api/v2
-      - NEXT_PUBLIC_SITE_URL=http://localhost:3000
-      - NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=${NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}
     depends_on:
       db:
         condition: service_healthy
@@ -53,30 +56,33 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
-    ports:
-      - "8071:8000"
     expose:
       - "8000"
     working_dir: /workspace/backend
-    command: ["sh", "-c", "python manage.py migrate && python manage.py collectstatic --noinput && exec gunicorn dacha.wsgi:application --bind 0.0.0.0:8000 --workers 3 --access-logfile - --error-logfile -"]
+    command:
+      - sh
+      - -c
+      - python manage.py migrate && python manage.py collectstatic --noinput && exec gunicorn dacha.wsgi:application --bind 0.0.0.0:8000 --workers 3 --access-logfile - --error-logfile -
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile.frontend
       args:
-        NEXT_PUBLIC_API_URL: http://web:8000
-        NEXT_PUBLIC_WAGTAIL_API_URL: http://web:8000/api/v2
-        NEXT_PUBLIC_SITE_URL: http://localhost:3000
+        # Public origin — browser-baked at build time. Must end without trailing slash.
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
         NEXT_PUBLIC_TELEGRAM_BOT_USERNAME: ${NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}
     restart: always
     environment:
-      - NEXT_PUBLIC_API_URL=http://web:8000
-      - NEXT_PUBLIC_WAGTAIL_API_URL=http://web:8000/api/v2
-      - NEXT_PUBLIC_SITE_URL=http://localhost:3000
+      # Server-only (not NEXT_PUBLIC_*). Read at runtime by Next.js rewrites.
+      # Not baked into the client bundle.
+      - BACKEND_URL=http://web:8000
+      # Public — browser-baked at build time.
+      - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
       - NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=${NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}
     depends_on:
-      - web
+      web:
+        condition: service_healthy
     ports:
       - "3000:3000"
     healthcheck:

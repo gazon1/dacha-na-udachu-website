@@ -14,7 +14,7 @@ export function SearchContent() {
     queryFn: async () => {
       if (!q) return null;
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/search/?q=${encodeURIComponent(q)}`
+        `/search/?q=${encodeURIComponent(q)}`
       );
       if (!res.ok) return null;
       return res.json();
