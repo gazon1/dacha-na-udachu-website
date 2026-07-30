@@ -58,8 +58,6 @@ services:
       start_period: 60s
     expose:
       - "8000"
-    ports:
-      - "8000:8000"
     working_dir: /workspace/backend
     command:
       - sh
