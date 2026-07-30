@@ -49,7 +49,6 @@ services:
     #     condition: service_healthy
     volumes:
       - media_data:/workspace/media
-      - static_data:/workspace/staticfiles
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
       interval: 30s
@@ -98,7 +97,5 @@ services:
 volumes:
   media_data:
     name: dacha_media_v1
-  static_data:
-    name: dacha_static_v1
   # postgres_data:
     # name: dacha_postgres_v1
