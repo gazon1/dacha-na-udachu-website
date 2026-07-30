@@ -3,9 +3,6 @@
 # Build:  docker build -f Dockerfile.prod -t dacha .
 # Run:    docker compose -f docker-compose.prod.yml up
 #
-# Host-side management: just prod-* (/.just/dacha.just)
-# Container CMD:        just prod-serve (runs gunicorn directly)
-#
 # Note: Next.js frontend is built separately in the frontend service
 # ==============================================================================
 
@@ -29,25 +26,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libjpeg-dev \
     zlib1g-dev \
     ca-certificates \
-    && rm -rf /var/lib/apt/lists* \
-    && curl -fsSL https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+    && rm -rf /var/lib/apt/lists*
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 RUN groupadd --gid 1000 appgroup \
-    && useradd --uid 1000 --gid 1000 --shell /bin/bash appuser \
-    && mkdir -p /home/appuser && chown appuser:appgroup /home/appuser
+    && useradd --uid 1000 --gid 1000 --shell /bin/bash --home /workspace appuser \
+    && chown -R appuser:appgroup /workspace
 
-# Copy everything
-COPY . /workspace
+# Copy everything to /workspace/backend (matches build context ./backend)
+COPY . /workspace/backend
 
-# Install Python deps (from backend/ where pyproject.toml lives)
+# Install Python deps
 WORKDIR /workspace/backend
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev && chown -R appuser:appgroup /workspace/backend/.venv
 
-WORKDIR /workspace
-
-RUN mkdir -p /workspace/.uv_cache && chown -R appuser:appgroup /workspace
+RUN mkdir -p /workspace/.uv_cache
 
 ENV PATH="/workspace/backend/.venv/bin:/usr/local/bin:$PATH"
 ENV UV_CACHE_DIR=/workspace/.uv_cache

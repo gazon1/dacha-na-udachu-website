@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Turbopack auto-detects project root from next.config.ts location
+  // Use webpack instead of Turbopack for stability
 };
 
 export default nextConfig;
