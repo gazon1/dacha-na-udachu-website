@@ -41,7 +41,8 @@ export async function resolvePage(
   try {
     return await api.get<{ id: number; type: string; url: string }>(
       `/api/pages/resolve/?html_path=${encodeURIComponent(path)}`,
-      { next: { revalidate: 60 } }
+      // next.revalidate must NOT be set here — resolvePage is called from server
+      // components during SSR, not as a cached fetch
     );
   } catch {
     return null;

@@ -16,6 +16,7 @@ RUN npm ci --ignore-scripts
 # Copy source code
 COPY next.config.ts ./
 COPY proxy.ts ./
+COPY healthcheck.js ./
 COPY tsconfig.json ./
 COPY tailwind.config.* ./
 COPY postcss.config.mjs ./
@@ -27,14 +28,15 @@ COPY ./public ./public
 COPY ./stores ./stores
 COPY ./src ./src
 
-# Build-time env vars (written to .next/)
-ARG NEXT_PUBLIC_API_URL
-ARG NEXT_PUBLIC_WAGTAIL_API_URL
+# Build-time args:
+#   BACKEND_URL      — server-only (not NEXT_PUBLIC_*), used by next.config.ts rewrites.
+#   NEXT_PUBLIC_*    — browser-baked into the client bundle.
+ARG BACKEND_URL
 ARG NEXT_PUBLIC_SITE_URL
 ARG NEXT_PUBLIC_TELEGRAM_BOT_USERNAME
 
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-ENV NEXT_PUBLIC_WAGTAIL_API_URL=${NEXT_PUBLIC_WAGTAIL_API_URL}
+# BACKEND_URL is server-only — only needed as process.env during build, not in client bundle.
+ENV BACKEND_URL=${BACKEND_URL}
 ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
 ENV NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=${NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}
 

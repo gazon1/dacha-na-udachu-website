@@ -22,10 +22,10 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=dacha.settings.production
       - SECRET_KEY=${SECRET_KEY}
-      - DEBUG=${DEBUG:-0}
+      - DEBUG=${DEBUG}
       # DEBUG_PROD=1 disables SECURE_SSL_REDIRECT for local plain-HTTP runs (no TLS terminator).
       # Leave unset or set to 0 in Coolify — Caddy provides X-Forwarded-Proto: https.
-      - DEBUG_PROD=${DEBUG_PROD:-0}
+      - DEBUG_PROD=${DEBUG_PROD}
       # Comma-separated. Must include the public hostname.
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
       # Scheme+host(s) for CSRF and CORS validation.
@@ -69,6 +69,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.frontend
       args:
+        # Server-only build arg — baked into next.config.ts server bundle.
+        BACKEND_URL: http://web:8000
         # Public origin — browser-baked at build time. Must end without trailing slash.
         NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
         NEXT_PUBLIC_TELEGRAM_BOT_USERNAME: ${NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}
@@ -86,7 +88,7 @@ services:
     ports:
       - "3000:3000"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      test: ["CMD", "node", "healthcheck.js"]
       interval: 30s
       timeout: 10s
       retries: 3

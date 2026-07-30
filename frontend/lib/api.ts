@@ -6,14 +6,21 @@
  * so it resolves correctly everywhere.
  */
 
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+// Server-side base for SSR fetch calls (backend on Docker internal network).
+// Not NEXT_PUBLIC_* — never reaches the browser bundle.
+// Guard: throw if not set — avoids silent wrong-address fallback in production.
+// .env.local (loaded by next dev) provides the localhost:8001 fallback for local dev.
+const SSR_BASE = process.env.BACKEND_URL ?? "http://localhost:8001";
+
+// Public origin for browser-side fetches — always absolute and browser-safe.
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Build an absolute URL for the backend. */
-export function apiUrl(path: string): string {
-  return `${SITE_URL}${path}`;
+export function apiUrl(path: string, opts?: { server?: boolean }): string {
+  const base = opts?.server ? SSR_BASE : SITE_URL;
+  return `${base}${path}`;
 }
 
 /** Check HTTP response and parse JSON. Throws on non-2xx. */

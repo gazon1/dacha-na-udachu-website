@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 // Server-only (not NEXT_PUBLIC_*), read at runtime by the Node process.
 // In Docker Compose: http://web:8000 (docker-internal hostname).
 // Not baked into the client bundle.
-const BACKEND_URL = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
+const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8001";
 
 // Public — used so Next.js build can reference it; resolves to the same origin
 // the browser loads from, so it never leaks Docker hostnames to the client.

@@ -50,7 +50,7 @@ frontend-build:
 [doc("Start Next.js dev server with hot reload")]
 [working-directory("/workspace/frontend")]
 frontend-dev:
-    npm run dev
+    BACKEND_URL=http://localhost:8001 npm run dev
 
 
 # ---- LINT & FORMAT ----

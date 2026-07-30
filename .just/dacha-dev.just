@@ -18,8 +18,8 @@ DJANGO_SETTINGS := env("DJANGO_SETTINGS_MODULE", "dacha.settings.dev")
 
 # ---- HELPERS ----
 
-[group('dev')]
 [doc('Show current environment status')]
+[group('dev')]
 dev-status:
     #!/usr/bin/env bash
     echo "Python: $(python --version 2>&1)"
@@ -33,20 +33,20 @@ dev-status:
 
 # ---- PYTHON / UV ----
 
-[group('dev')]
 [doc('Install/update Python dependencies via uv')]
+[group('dev')]
 [working-directory(PROJECT_DIR)]
 dev-install:
     uv sync --extra dev
 
-[group('dev')]
 [doc('Sync without dev extras (production-like)')]
+[group('dev')]
 [working-directory(PROJECT_DIR)]
 dev-install-prod:
     uv sync --no-dev
 
-[group('dev')]
 [doc('Add a Python dependency')]
+[group('dev')]
 dev-dep PKG='':
     #!/usr/bin/env bash
     if [ -z "{{ PKG }}" ]; then
@@ -56,8 +56,8 @@ dev-dep PKG='':
     cd {{ PROJECT_DIR }}
     uv add {{ PKG }}
 
-[group('dev')]
 [doc('Add a dev-only dependency')]
+[group('dev')]
 dev-dep-dev PKG='':
     #!/usr/bin/env bash
     if [ -z "{{ PKG }}" ]; then
@@ -69,52 +69,52 @@ dev-dep-dev PKG='':
 
 # ---- FRONTEND / NODE ----
 
-[group('dev')]
 [doc('Install Node dependencies for Next.js')]
+[group('dev')]
 [working-directory(WEB_DIR)]
 dev-install-node:
     npm ci
 
-[group('dev')]
 [doc('Build Next.js for production')]
+[group('dev')]
 [working-directory(WEB_DIR)]
 dev-build:
     npm run build
 
-[group('dev')]
 [doc('Build Next.js with type checking')]
+[group('dev')]
 [working-directory(WEB_DIR)]
 dev-build-check:
     npm run build -- --no-lint 2>&1 || npm run build
 
-[group('dev')]
 [doc('Type-check Next.js (no emit)')]
+[group('dev')]
 [working-directory(WEB_DIR)]
 dev-tsc:
     npx tsc --noEmit
 
 # ---- DJANGO ----
 
-[group('dev')]
 [doc('Run Django system checks')]
+[group('dev')]
 [working-directory(PROJECT_DIR)]
 dev-check:
     uv run python manage.py check
 
-[group('dev')]
 [doc('Run Django deployment checks')]
+[group('dev')]
 [working-directory(PROJECT_DIR)]
 dev-check-deploy:
     uv run python manage.py check --deploy --settings=dacha.settings.production
 
-[group('dev')]
 [doc('Run all migrations')]
+[group('dev')]
 [working-directory(PROJECT_DIR)]
 dev-migrate:
     uv run python manage.py migrate
 
-[group('dev')]
 [doc('Create migrations for APP')]
+[group('dev')]
 [working-directory(PROJECT_DIR)]
 dev-makemigrations APP='':
     #!/usr/bin/env bash
@@ -125,34 +125,34 @@ dev-makemigrations APP='':
         uv run python manage.py makemigrations {{ APP }}
     fi
 
-[group('dev')]
 [doc('Show migration status')]
+[group('dev')]
 [working-directory(PROJECT_DIR)]
 dev-showmigrations:
     uv run python manage.py showmigrations
 
-[group('dev')]
 [doc('Create Django superuser')]
+[group('dev')]
 [working-directory(PROJECT_DIR)]
 dev-createsuperuser:
     uv run python manage.py createsuperuser
 
-[group('dev')]
 [doc('Collect static files')]
+[group('dev')]
 [working-directory(PROJECT_DIR)]
 dev-collectstatic:
     uv run python manage.py collectstatic --noinput
 
 # ---- LINT & FORMAT ----
 
-[group('dev')]
 [doc('Run ruff linter')]
+[group('dev')]
 [working-directory(PROJECT_DIR)]
 dev-lint:
     uv run ruff check .
 
-[group('dev')]
 [doc('Auto-fix lint issues')]
+[group('dev')]
 [working-directory(PROJECT_DIR)]
 dev-lint-fix:
     uv run ruff check --fix .
@@ -160,40 +160,40 @@ dev-lint-fix:
 
 # ---- TESTS ----
 
-[group('dev')]
 [doc('Run tests with coverage')]
+[group('dev')]
 [working-directory(PROJECT_DIR)]
 dev-test:
     uv run pytest --cov --cov-report=term-missing --cov-fail-under=60 -v
 
-[group('dev')]
 [doc('Run tests fast (no coverage)')]
+[group('dev')]
 [working-directory(PROJECT_DIR)]
 dev-test-fast:
     uv run pytest -v
 
-[group('dev')]
 [doc('Run only tests for changed files')]
+[group('dev')]
 [working-directory(PROJECT_DIR)]
 dev-test-changed:
     uv run pytest -v --changed-files
 
 # ---- DEV SERVERS ----
 
-[group('dev')]
 [doc('Start Django dev server on :8001')]
+[group('dev')]
 [working-directory(PROJECT_DIR)]
 dev-runserver:
     uv run python manage.py runserver 0.0.0.0:8001
 
-[group('dev')]
 [doc('Start Next.js dev server (http://localhost:3000)')]
+[group('dev')]
 [working-directory(WEB_DIR)]
 dev-frontend-dev:
     npm run dev
 
-[group('dev')]
 [doc('Start both Django + Next.js (two terminals)')]
+[group('dev')]
 dev-start:
     #!/usr/bin/env bash
     echo "Starting Django on :8001..."
@@ -206,22 +206,22 @@ dev-start:
 
 # ---- I18N ----
 
-[group('dev')]
 [doc('Extract translation strings')]
+[group('dev')]
 [working-directory(PROJECT_DIR)]
 dev-i18n-extract:
     uv run python manage.py makemessages -l ru -l en
 
-[group('dev')]
 [doc('Compile translation .mo files')]
+[group('dev')]
 [working-directory(PROJECT_DIR)]
 dev-i18n-compile:
     uv run python manage.py compilemessages
 
 # ---- CLEANUP ----
 
-[group('dev')]
 [doc('Remove Python cache files')]
+[group('dev')]
 [working-directory(PROJECT_DIR)]
 dev-clean-py:
     find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
@@ -229,21 +229,21 @@ dev-clean-py:
     find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
     rm -rf {{ PROJECT_DIR }}/.venv/__pycache__ 2>/dev/null || true
 
-[group('dev')]
 [doc('Remove Next.js build artifacts')]
+[group('dev')]
 [working-directory(WEB_DIR)]
 dev-clean-next:
     rm -rf .next
     rm -rf node_modules/.cache 2>/dev/null || true
 
-[group('dev')]
 [doc('Remove all build artifacts (Python + Node)')]
+[group('dev')]
 dev-clean: dev-clean-py dev-clean-next
 
 # ---- FULL SETUP ----
 
-[group('dev')]
 [doc('First-time setup: deps + migrate + superuser')]
+[group('dev')]
 dev-setup: dev-install dev-install-node dev-migrate dev-createsuperuser
     @echo ""
     @echo "✅ Setup complete!"
