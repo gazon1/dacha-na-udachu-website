@@ -1,6 +1,8 @@
 from .base import *
 import os
 
+STATIC_ROOT = "/workspace/staticfiles"
+
 DEBUG = False
 
 # SECRET_KEY — must be set via environment in production
