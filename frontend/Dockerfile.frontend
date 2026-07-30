@@ -14,19 +14,7 @@ COPY package-lock.json* ./
 RUN npm ci --ignore-scripts
 
 # Copy source code
-COPY next.config.ts ./
-COPY proxy.ts ./
-COPY healthcheck.js ./
-COPY tsconfig.json ./
-COPY tailwind.config.* ./
-COPY postcss.config.mjs ./
-COPY ./app ./app
-COPY ./components ./components
-COPY ./hooks ./hooks
-COPY ./lib ./lib
-COPY ./public ./public
-COPY ./stores ./stores
-COPY ./src ./src
+COPY . .
 
 # Build-time args:
 #   BACKEND_URL      — server-only (not NEXT_PUBLIC_*), used by next.config.ts rewrites.

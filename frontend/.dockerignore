@@ -1,12 +1,8 @@
 # Environment files (use docker-compose args/env instead)
-.env.local
-.env.development
-.env.test
+.env*
 
 # Development files
 *.md
-CLAUDE.md
-AGENTS.md
 
 # IDE
 .vscode/
@@ -20,4 +16,8 @@ AGENTS.md
 npm-debug.log*
 
 # Build outputs (we rebuild in Docker)
-.next/
+.next
+node_modules
+.git
+
+Dockerfile*

@@ -22,8 +22,10 @@ const nextConfig: NextConfig = {
       // Django Ninja API + Wagtail headless API
       { source: "/api/:path*", destination: `${BACKEND_URL}/api/:path*` },
 
-      // Wagtail admin
+      // Wagtail admin — exact + wildcard to cover both /admin and /admin/:path*
+      { source: "/admin", destination: `${BACKEND_URL}/admin/` },
       { source: "/admin/:path*", destination: `${BACKEND_URL}/admin/:path*` },
+      { source: "/cms", destination: `${BACKEND_URL}/admin/` },
       { source: "/cms/:path*", destination: `${BACKEND_URL}/admin/:path*` },
       { source: "/django-admin/:path*", destination: `${BACKEND_URL}/django-admin/:path*` },
 
