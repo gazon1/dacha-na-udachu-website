@@ -45,4 +45,7 @@ const nextConfig = {
   },
 }
 
-export default withPayload(nextConfig)
+export default withPayload(nextConfig, {
+  // Skip bundling 1000+ Payload server modules in dev — speeds up `next dev`.
+  devBundleServerPackages: false,
+})

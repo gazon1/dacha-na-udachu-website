@@ -1,6 +1,7 @@
 import { getPayloadClient } from '@/lib/payload'
 
-export const dynamic = 'force-dynamic'
+// ISR: revalidate every 60s — listings don't need to be live.
+export const revalidate = 60
 
 export default async function NewsPage() {
   const payload = await getPayloadClient()

@@ -1,7 +1,8 @@
 import { getPayloadClient } from '@/lib/payload'
 import { BlockRenderer } from '@/lib/blocks-registry'
 
-export const dynamic = 'force-dynamic'
+// Single FAQ page — ISR is fine.
+export const revalidate = 60
 
 export default async function FaqPage() {
   const payload = await getPayloadClient()

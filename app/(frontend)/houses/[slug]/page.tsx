@@ -2,7 +2,9 @@ import { notFound } from 'next/navigation'
 import { getPayloadClient } from '@/lib/payload'
 import { BlockRenderer } from '@/lib/blocks-registry'
 
-export const dynamic = 'force-dynamic'
+// ISR: revalidate every 60s. adminOrPublished access controls visibility
+// per-request via cookies, so we still keep dynamic-rendering semantics.
+export const revalidate = 60
 
 type Props = {
   params: Promise<{ slug: string }>

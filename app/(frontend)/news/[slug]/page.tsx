@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation'
 import { getPayloadClient } from '@/lib/payload'
 import { BlockRenderer } from '@/lib/blocks-registry'
 
-export const dynamic = 'force-dynamic'
+// ISR: revalidate every 60s. Access control honors publish/draft per request.
+export const revalidate = 60
 
 type Props = {
   params: Promise<{ slug: string }>
