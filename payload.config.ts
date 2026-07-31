@@ -68,6 +68,13 @@ export default buildConfig({
     },
     // Shared transaction isolation for multi-step Local API calls.
     transactionOptions: { isolationLevel: "read committed" },
+    // Auto-sync schema on first connect. Convenient for first deploy
+    // and small projects — creates/updates tables from the schema in
+    // payload.config.ts without running `payload migrate`.
+    // Trade-off: not safe for zero-downtime prod — can drop columns.
+    // For multi-instance deploys, switch to proper migrations
+    // (pnpm payload migrate:create + run `migrate` service).
+    push: true,
   }),
 
   // --- Bin scripts ---
