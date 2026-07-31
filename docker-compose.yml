@@ -9,9 +9,9 @@ services:
       # Derived from POSTGRES_* — kept in compose so password rotation
       # touches only .env, not the connection string.
       - PAYLOAD_PUBLIC_SERVER_URL=https://${PUBLIC_HOST}
-    depends_on:
-      db:
-        condition: service_healthy
+    # depends_on:
+      # db:
+        # condition: service_healthy
     volumes:
       - media_data:/app/media
     # Override the Dockerfile default CMD so the runtime contract lives
