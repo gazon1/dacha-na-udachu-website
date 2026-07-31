@@ -58,11 +58,14 @@ services:
     volumes:
       - media_data:/workspace/media
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
-      interval: 30s
+      # /health/ is a lightweight Django view — no Wagtail, no DB queries.
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health/"]
+      interval: 15s
       timeout: 10s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      # collectstatic + first migrate can take a while on cold start;
+      # gunicorn itself boots in <15 s once the one-shot commands finish.
+      start_period: 120s
     expose:
       - "8000"
     working_dir: /workspace/backend
@@ -97,10 +100,15 @@ services:
       web:
         condition: service_healthy
     healthcheck:
+      # /api/health is an instant Next.js route — no SSR, no Wagtail fetch.
+      # healthcheck.js has its own internal retries for cold-start tolerance.
       test: ["CMD", "node", "healthcheck.js"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      interval: 15s
+      timeout: 20s
+      retries: 5
+      # Next.js cold compile + first DB lookup can take 60–120 s on first
+      # deploy; subsequent restarts are <10 s.
+      start_period: 180s
 
   # ----- TLS terminator + reverse proxy (replaces Coolify's external Caddy) -----
   caddy:
@@ -118,9 +126,13 @@ services:
       - caddy_config:/config
     depends_on:
       web:
-        condition: service_healthy
+        # service_started (not service_healthy): Caddy starts as soon as the
+        # web container process is up. It will retry failed upstream requests
+        # automatically. Strict service_healthy caused Caddy to never start
+        # when either healthcheck flapped during cold start.
+        condition: service_started
       frontend:
-        condition: service_healthy
+        condition: service_started
 
 volumes:
   media_data:
