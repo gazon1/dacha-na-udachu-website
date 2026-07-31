@@ -9,10 +9,13 @@
  *   if (!limiter(req)) return Response.json({ error: 'rate_limited' }, { status: 429 })
  */
 
-type KeyFn = (req: Request) => string
+// Minimal shape we need — works for both standard Request and PayloadRequest.
+type RequestLike = Pick<Request, 'headers'>
+
+type KeyFn = (req: RequestLike) => string
 
 export type Limiter = {
-  check: (req: Request) => boolean
+  check: (req: RequestLike) => boolean
   reset: () => void
 }
 
@@ -53,7 +56,7 @@ export function createLimiter(opts: {
   }
 }
 
-export function getIp(req: Request): string {
+export function getIp(req: RequestLike): string {
   const xff = req.headers.get('x-forwarded-for')
   if (xff) return xff.split(',')[0].trim()
   return req.headers.get('x-real-ip') || 'unknown'
