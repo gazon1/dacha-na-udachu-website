@@ -14,10 +14,21 @@ export const News: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'date', 'author'],
+    enableListViewSelectAPI: true,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
+    listSearchableFields: ['title', 'author', 'summary'],
+    description: 'Новости и анонсы.',
+    group: 'Контент',
     livePreview: {
       url: ({ data }) => `/news/${data?.slug ?? ''}`,
+      breakpoints: [
+        { name: 'mobile', width: 375, height: 667, label: 'Mobile' },
+        { name: 'tablet', width: 768, height: 1024, label: 'Tablet' },
+        { name: 'desktop', width: 1440, height: 900, label: 'Desktop' },
+      ],
     },
   },
+  forceSelect: { body: true },
   access: {
     read: () => true,
   },
@@ -49,7 +60,7 @@ export const News: CollectionConfig = {
   fields: [
     { name: 'slug', type: 'text', required: true, unique: true, index: true, maxLength: 100 },
     { name: 'title', type: 'text', required: true, maxLength: 200 },
-    { name: 'date', type: 'date', required: true },
+    { name: 'date', type: 'date', required: true, index: true },
     { name: 'author', type: 'text', maxLength: 100 },
     {
       name: 'mainImage',

@@ -10,8 +10,14 @@ export const EventDrivers: CollectionConfig = {
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['event', 'name', 'departureDate', 'seatsTotal'],
+    enableListViewSelectAPI: true,
+    pagination: { defaultLimit: 50, limits: [25, 50, 100, 250] },
+    listSearchableFields: ['name', 'telegram', 'phone', 'carModel', 'departureLocation'],
+    description: 'Водители, готовые подвезти участников на событие.',
+    group: 'Заявки',
   },
   access: {
+    // Public CRUD for now — Phase 5 will tighten.
     read: () => true,
     create: () => true,
     update: () => true,
@@ -23,6 +29,7 @@ export const EventDrivers: CollectionConfig = {
       type: 'relationship',
       relationTo: 'events',
       required: true,
+      index: true,
     },
     { name: 'name', type: 'text', required: true, maxLength: 100 },
     { name: 'telegram', type: 'text', maxLength: 100 },
@@ -30,7 +37,7 @@ export const EventDrivers: CollectionConfig = {
     { name: 'carModel', type: 'text', maxLength: 100 },
     { name: 'carType', type: 'text', maxLength: 50 },
     { name: 'seatsTotal', type: 'number', defaultValue: 4, min: 1 },
-    { name: 'departureDate', type: 'date', required: true },
+    { name: 'departureDate', type: 'date', required: true, index: true },
     { name: 'departureTime', type: 'text', maxLength: 20 },
     { name: 'departureLocation', type: 'text', required: true, maxLength: 200 },
     { name: 'returnDate', type: 'date' },

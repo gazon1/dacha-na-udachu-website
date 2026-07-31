@@ -11,8 +11,14 @@ export const EventRsvps: CollectionConfig = {
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['event', 'name', 'status', 'guestsCount', 'secretKey'],
+    enableListViewSelectAPI: true,
+    pagination: { defaultLimit: 50, limits: [25, 50, 100, 250] },
+    listSearchableFields: ['name', 'secretKey'],
+    description: 'RSVP на события — создаются через /api/events/:id/rsvp.',
+    group: 'Заявки',
   },
   access: {
+    // Public CRUD for now — Phase 5 will tighten to isAdmin / isAdminOrOwner.
     read: () => true,
     create: () => true,
     update: () => true, // RSVP updates via secret_key
@@ -24,12 +30,14 @@ export const EventRsvps: CollectionConfig = {
       type: 'relationship',
       relationTo: 'events',
       required: true,
+      index: true,
     },
     { name: 'name', type: 'text', required: true, maxLength: 100 },
     {
       name: 'status',
       type: 'select',
       defaultValue: 'going',
+      index: true,
       options: [
         { label: 'Going', value: 'going' },
         { label: 'Maybe', value: 'maybe' },
@@ -51,6 +59,23 @@ export const EventRsvps: CollectionConfig = {
       type: 'relationship',
       relationTo: 'users',
       admin: { description: 'Optional Telegram user link (for "save RSVP" feature)' },
+    },
+    {
+      // Virtual — human-readable summary string for admin and dashboards.
+      name: 'attendeeSummary',
+      type: 'text',
+      virtual: true,
+      access: { read: () => true },
+      hooks: {
+        afterRead: [
+          ({ siblingData }) => {
+            const name = (siblingData?.name as string) ?? ''
+            const guests = (siblingData?.guestsCount as number) ?? 1
+            if (guests > 1) return `${name} + ${guests - 1} гостя`
+            return name
+          },
+        ],
+      },
     },
   ],
 }

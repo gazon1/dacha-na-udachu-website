@@ -10,8 +10,14 @@ export const CarpoolRequests: CollectionConfig = {
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['event', 'name', 'seatsNeeded', 'isActive'],
+    enableListViewSelectAPI: true,
+    pagination: { defaultLimit: 50, limits: [25, 50, 100, 250] },
+    listSearchableFields: ['name', 'telegram', 'phone', 'pickupLocation'],
+    description: 'Запросы «ищу попутку» — кто не может быть водителем.',
+    group: 'Заявки',
   },
   access: {
+    // Public CRUD for now — Phase 5 will tighten.
     read: () => true,
     create: () => true,
     update: () => true,
@@ -23,6 +29,7 @@ export const CarpoolRequests: CollectionConfig = {
       type: 'relationship',
       relationTo: 'events',
       required: true,
+      index: true,
     },
     { name: 'name', type: 'text', required: true, maxLength: 100 },
     { name: 'telegram', type: 'text', maxLength: 100 },
@@ -32,6 +39,11 @@ export const CarpoolRequests: CollectionConfig = {
     { name: 'flexibleTime', type: 'checkbox', defaultValue: true },
     { name: 'canShareGas', type: 'checkbox', defaultValue: false },
     { name: 'notes', type: 'textarea' },
-    { name: 'isActive', type: 'checkbox', defaultValue: true },
+    {
+      name: 'isActive',
+      type: 'checkbox',
+      defaultValue: true,
+      index: true,
+    },
   ],
 }

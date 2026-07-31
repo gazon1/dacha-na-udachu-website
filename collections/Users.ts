@@ -20,10 +20,26 @@ export const Users: CollectionConfig = {
       sameSite: 'Lax',
       secure: process.env.NODE_ENV === 'production',
     },
+    maxLoginAttempts: 7,
+    lockTime: 10 * 60 * 1000, // 10 min
   },
   admin: {
     useAsTitle: 'telegramId',
     defaultColumns: ['telegramId', 'firstName', 'lastName', 'role'],
+    enableListViewSelectAPI: true,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
+    listSearchableFields: ['telegramId', 'firstName', 'lastName', 'telegramUsername'],
+    description: 'Telegram-authenticated users.',
+    group: 'Система',
+  },
+  // When other collections populate a User, only fetch these fields by default.
+  // Saves payload on every read.
+  defaultPopulate: {
+    telegramId: true,
+    firstName: true,
+    lastName: true,
+    telegramPhotoUrl: true,
+    role: true,
   },
   access: {
     read: () => true, // anyone can read user profiles (for RSVP lookups, etc.)
@@ -145,11 +161,15 @@ export const Users: CollectionConfig = {
       name: 'role',
       type: 'select',
       defaultValue: 'user',
+      index: true,
       options: [
         { label: 'User', value: 'user' },
         { label: 'Admin', value: 'admin' },
       ],
       required: true,
+      // Save role into the JWT so access-control functions don't need to
+      // hit the DB on every request.
+      saveToJWT: true,
     },
   ],
 }

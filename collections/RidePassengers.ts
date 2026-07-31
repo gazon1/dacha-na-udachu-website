@@ -10,8 +10,14 @@ export const RidePassengers: CollectionConfig = {
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['driver', 'name', 'seats', 'status'],
+    enableListViewSelectAPI: true,
+    pagination: { defaultLimit: 50, limits: [25, 50, 100, 250] },
+    listSearchableFields: ['name', 'telegram', 'phone'],
+    description: 'Пассажиры, записавшиеся к водителю.',
+    group: 'Заявки',
   },
   access: {
+    // Public CRUD for now — Phase 5 will tighten.
     read: () => true,
     create: () => true,
     update: () => true,
@@ -23,6 +29,7 @@ export const RidePassengers: CollectionConfig = {
       type: 'relationship',
       relationTo: 'event-drivers',
       required: true,
+      index: true,
     },
     { name: 'name', type: 'text', required: true, maxLength: 100 },
     { name: 'telegram', type: 'text', maxLength: 100 },
@@ -34,6 +41,7 @@ export const RidePassengers: CollectionConfig = {
       name: 'status',
       type: 'select',
       defaultValue: 'pending',
+      index: true,
       options: [
         { label: 'Pending', value: 'pending' },
         { label: 'Confirmed', value: 'confirmed' },

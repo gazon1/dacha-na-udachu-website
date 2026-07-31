@@ -13,12 +13,17 @@ export const FAQ: CollectionConfig = {
   slug: 'faq',
   admin: {
     useAsTitle: 'title',
+    enableListViewSelectAPI: true,
+    pagination: { defaultLimit: 10, limits: [10, 25, 50] },
+    description: 'Страница FAQ — обычно один документ со slug "faq".',
+    group: 'Контент',
   },
   access: {
     read: () => true,
   },
   versions: {
     drafts: { autosave: true },
+    maxPerDoc: 5,
   },
   hooks: {
     afterChange: [

@@ -22,9 +22,31 @@ export const Events: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'startDate', 'venue', 'rsvpCapacity'],
+    enableListViewSelectAPI: true,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
+    listSearchableFields: ['title', 'venue', 'summary', 'specialTag'],
+    description: 'Мероприятия с RSVP, попутками и такси.',
+    group: 'Контент',
     livePreview: {
       url: ({ data }) => `/events/${data?.slug ?? ''}`,
+      breakpoints: [
+        { name: 'mobile', width: 375, height: 667, label: 'Mobile' },
+        { name: 'tablet', width: 768, height: 1024, label: 'Tablet' },
+        { name: 'desktop', width: 1440, height: 900, label: 'Desktop' },
+      ],
     },
+  },
+  forceSelect: { body: true },
+  // When other collections (e.g. EventRsvps) populate an Event,
+  // only fetch these fields by default. Saves payload on every read.
+  // Override per-query with `populate` if you need more.
+  defaultPopulate: {
+    title: true,
+    slug: true,
+    startDate: true,
+    endDate: true,
+    venue: true,
+    rsvpCapacity: true,
   },
   access: {
     read: () => true,
@@ -57,7 +79,7 @@ export const Events: CollectionConfig = {
   fields: [
     { name: 'slug', type: 'text', required: true, unique: true, index: true, maxLength: 100 },
     { name: 'title', type: 'text', required: true, maxLength: 200 },
-    { name: 'startDate', type: 'date', required: true },
+    { name: 'startDate', type: 'date', required: true, index: true },
     { name: 'endDate', type: 'date' },
     { name: 'startTime', type: 'text', maxLength: 20 }, // simple "HH:MM" or null
     { name: 'venue', type: 'textarea' },
@@ -73,7 +95,12 @@ export const Events: CollectionConfig = {
     { name: 'expectedTemperature', type: 'text', maxLength: 20 },
     { name: 'weatherNote', type: 'text', maxLength: 100 },
     { name: 'specialTag', type: 'text', maxLength: 50 },
-    { name: 'rsvpCapacity', type: 'number', min: 1 },
+    {
+      name: 'rsvpCapacity',
+      type: 'number',
+      min: 1,
+      admin: { description: 'Сколько человек подтвердили участие' },
+    },
     {
       name: 'body',
       type: 'blocks',

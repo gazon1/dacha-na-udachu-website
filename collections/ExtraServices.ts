@@ -11,6 +11,11 @@ export const ExtraServices: CollectionConfig = {
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['name', 'price', 'isActive', 'order'],
+    enableListViewSelectAPI: true,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
+    listSearchableFields: ['name', 'slug'],
+    description: 'Дополнительные услуги (баня, мангал, рыбалка и т.п.).',
+    group: 'Справочники',
   },
   access: {
     read: () => true,
@@ -19,7 +24,7 @@ export const ExtraServices: CollectionConfig = {
     { name: 'slug', type: 'text', required: true, unique: true, index: true, maxLength: 50 },
     { name: 'name', type: 'text', required: true, maxLength: 100 },
     { name: 'price', type: 'number', defaultValue: 0, min: 0 },
-    { name: 'isActive', type: 'checkbox', defaultValue: true },
-    { name: 'order', type: 'number', defaultValue: 0 },
+    { name: 'isActive', type: 'checkbox', defaultValue: true, index: true },
+    { name: 'order', type: 'number', defaultValue: 0, index: true },
   ],
 }

@@ -8,6 +8,14 @@ import type { CollectionConfig } from 'payload'
  */
 export const Media: CollectionConfig = {
   slug: 'media',
+  admin: {
+    useAsTitle: 'filename',
+    enableListViewSelectAPI: true,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
+    listSearchableFields: ['alt', 'caption', 'filename'],
+    description: 'Загруженные медиа-файлы (картинки, PDF, видео).',
+    group: 'Контент',
+  },
   access: {
     read: () => true, // public read; restrict via signed URLs if needed
   },
@@ -19,9 +27,16 @@ export const Media: CollectionConfig = {
       { name: 'hero', width: 1920, height: 1080, position: 'centre' },
     ],
     mimeTypes: ['image/*', 'application/pdf', 'video/mp4'],
+    adminThumbnail: 'thumbnail',
   },
   fields: [
-    { name: 'alt', type: 'text', required: true, maxLength: 200 },
+    {
+      name: 'alt',
+      type: 'text',
+      required: true,
+      maxLength: 200,
+      admin: { description: 'Alt-text для доступности (обязательно)' },
+    },
     { name: 'caption', type: 'text', maxLength: 500 },
   ],
 }
