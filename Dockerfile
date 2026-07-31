@@ -14,7 +14,7 @@ RUN npm ci
 
 # Build Payload types + Next.js build
 COPY . .
-RUN npm run build
+RUN NEXT_TELEMETRY_DISABLED=1 npx next build --debug
 
 # Cleanup — strip everything the runtime image does not need.
 # Done in the builder so the runtime stage can use a single `COPY`.
