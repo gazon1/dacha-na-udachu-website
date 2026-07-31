@@ -20,7 +20,8 @@ RUN NEXT_TELEMETRY_DISABLED=1 npx next build --debug --no-lint
 # Cleanup — strip everything the runtime image does not need.
 # Done in the builder so the runtime stage can use a single `COPY`.
 # `scripts/` is kept so the `seed` one-shot service in docker-compose can
-# call `pnpm seed` on deploy.
+# call `pnpm seed` on deploy. `src/` is kept so `payload migrate` can find
+# src/migrations/ at runtime.
 RUN rm -rf \
         .git \
         .claude \
@@ -29,7 +30,6 @@ RUN rm -rf \
         .idea \
         backend \
         media \
-        src \
         tests \
         tmp \
         Dockerfile* \
