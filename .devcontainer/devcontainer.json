@@ -1,8 +1,6 @@
 {
   "name": "Django CMS Dev",
-  "dockerComposeFile": [
-    "compose.yml"
-  ],
+  "dockerComposeFile": ["compose.yml"],
   "service": "web",
   "remoteUser": "max",
   "workspaceFolder": "/workspace",
@@ -40,7 +38,10 @@
         "zhuangtongfa.material-theme",
         "gitpocalypse.angeldoc-vscode",
         "Anthropic.claude-code",
-        "matthewpi.caddyfile-support"
+        "matthewpi.caddyfile-support",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "bradlc.vscode-tailwindcss"
       ],
       "settings": {
         // --- PYTHON & ИНТЕРПРЕТАТОР ---
@@ -55,23 +56,17 @@
           }
         },
         // Путь к ruff (системный, так как ставили глобально)
-        "ruff.path": [
-          "/workspace/.venv/bin/ruff"
-        ],
+        "ruff.path": ["/workspace/.venv/bin/ruff"],
         "ruff.configuration": "/workspace/pyproject.toml",
         "ruff.trace.server": "verbose",
         // --- MYPY ---
-        "mypy-type-checker.args": [
-          "--config-file=/workspace/pyproject.toml"
-        ],
-        "mypy-type-checker.interpreter": [
-          "/workspace/.venv/bin/python"
-        ],
+        "mypy-type-checker.args": ["--config-file=/workspace/pyproject.toml"],
+        "mypy-type-checker.interpreter": ["/workspace/.venv/bin/python"],
         // --- TERMINAL (Zsh & Fonts) ---
         "terminal.integrated.defaultProfile.linux": "zsh",
         "terminal.integrated.fontFamily": "MesloLGS NF, 'Droid Sans Mono', 'monospace', monospace",
         // --- ПРОЧЕЕ ---
-        "makefile.configureOnOpen": false,
+        "makefile.configureOnOpen": false
       }
     }
   }
