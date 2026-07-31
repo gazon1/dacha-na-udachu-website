@@ -154,6 +154,13 @@ class Migration(migrations.Migration):
     dependencies = [
         ('home', '0001_initial'),
         ('news', '0001_initial'),
+        # Data migration references HousesIndexPage, EventsIndexPage, FAQPage
+        # and NewsIndexPage. Without these in dependencies Django may try to
+        # run this migration before the corresponding tables exist, causing
+        # "no such table" errors and inconsistent migration history.
+        ('houses', '0001_initial'),
+        ('events', '0001_initial'),
+        ('faq', '0001_initial'),
     ]
 
     operations = [
