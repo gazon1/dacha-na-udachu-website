@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { verifyTelegramAuth } from '../lib/telegram-verify'
+import { isAdmin, isAdminOrSelf } from '../lib/access'
 
 /**
  * Users collection — Telegram-authenticated users.
@@ -41,8 +42,12 @@ export const Users: CollectionConfig = {
     telegramPhotoUrl: true,
     role: true,
   },
+  // Public read (RSVP lookups etc). Admin OR self can update.
   access: {
-    read: () => true, // anyone can read user profiles (for RSVP lookups, etc.)
+    read: () => true,
+    create: isAdmin,
+    update: isAdminOrSelf,
+    delete: isAdmin,
   },
   endpoints: [
     {

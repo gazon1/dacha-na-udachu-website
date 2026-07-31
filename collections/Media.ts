@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { isAdmin } from '../lib/access'
 
 /**
  * Media collection — uploaded files (images, documents).
@@ -16,8 +17,12 @@ export const Media: CollectionConfig = {
     description: 'Загруженные медиа-файлы (картинки, PDF, видео).',
     group: 'Контент',
   },
+  // Public read; admin-only writes.
   access: {
-    read: () => true, // public read; restrict via signed URLs if needed
+    read: () => true,
+    create: isAdmin,
+    update: isAdmin,
+    delete: isAdmin,
   },
   upload: {
     staticDir: 'media', // relative to project root; Drizzle writes here

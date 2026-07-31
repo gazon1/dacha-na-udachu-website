@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { isAdmin } from '../lib/access'
 import { newsletterEndpoints } from './endpoints/newsletter'
 
 /**
@@ -17,12 +18,12 @@ export const NewsletterSignups: CollectionConfig = {
     description: 'PII — подписчики на рассылку. Подписка через /api/newsletter-signups/subscribe.',
     group: 'Заявки',
   },
-  // Public write only via custom endpoint — direct collection CRUD is admin-only.
+  // PII — only admin reads. Public write via custom endpoint.
   access: {
-    read: () => false,
+    read: isAdmin,
     create: () => false,
-    update: () => false,
-    delete: () => false,
+    update: isAdmin,
+    delete: isAdmin,
   },
   endpoints: newsletterEndpoints,
   fields: [

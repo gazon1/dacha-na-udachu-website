@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 import { revalidatePath } from 'next/cache'
 
+import { adminOrPublished, isAdmin } from '../lib/access'
 import { ParagraphBlock, FAQItemBlock } from './blocks'
 
 /**
@@ -19,7 +20,10 @@ export const FAQ: CollectionConfig = {
     group: 'Контент',
   },
   access: {
-    read: () => true,
+    read: adminOrPublished,
+    create: isAdmin,
+    update: isAdmin,
+    delete: isAdmin,
   },
   versions: {
     drafts: { autosave: true },

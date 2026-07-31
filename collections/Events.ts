@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 import { revalidatePath } from 'next/cache'
 
+import { adminOrPublished, isAdmin } from '../lib/access'
 import {
   HeadingBlock,
   ParagraphBlock,
@@ -49,7 +50,12 @@ export const Events: CollectionConfig = {
     rsvpCapacity: true,
   },
   access: {
-    read: () => true,
+    // Anonymous: published only. Admin: everything.
+    read: adminOrPublished,
+    // Only via custom endpoints / admin UI — no direct API write.
+    create: isAdmin,
+    update: isAdmin,
+    delete: isAdmin,
   },
   versions: {
     drafts: { autosave: true },

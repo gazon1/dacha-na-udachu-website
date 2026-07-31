@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 import { revalidatePath } from 'next/cache'
 
+import { adminOrPublished, isAdmin } from '../lib/access'
 import { HeadingBlock, ParagraphBlock, ImageBlock } from './blocks'
 
 /**
@@ -30,7 +31,11 @@ export const News: CollectionConfig = {
   },
   forceSelect: { body: true },
   access: {
-    read: () => true,
+    // Anonymous: published only. Admin: everything.
+    read: adminOrPublished,
+    create: isAdmin,
+    update: isAdmin,
+    delete: isAdmin,
   },
   versions: {
     drafts: { autosave: true },

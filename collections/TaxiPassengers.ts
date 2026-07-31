@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { isAdminOrOwner } from '../lib/access'
 
 /**
  * TaxiPassengers collection — passengers in shared taxis.
@@ -17,11 +18,10 @@ export const TaxiPassengers: CollectionConfig = {
     group: 'Заявки',
   },
   access: {
-    // Public CRUD for now — Phase 5 will tighten.
     read: () => true,
     create: () => true,
-    update: () => true,
-    delete: () => true,
+    update: isAdminOrOwner,
+    delete: isAdminOrOwner,
   },
   fields: [
     {

@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { isAdmin } from '../lib/access'
 import { bookingEndpoints } from './endpoints/booking'
 
 /**
@@ -18,9 +19,9 @@ export const Bookings: CollectionConfig = {
     description: 'PII — заявки на бронирование. Создаются через /api/bookings/submit.',
     group: 'Заявки',
   },
-  // Public submit only via custom endpoints — direct collection CRUD is admin-only.
+  // PII — only admin reads. Submits go through custom endpoints.
   access: {
-    read: () => true,
+    read: isAdmin,
     create: () => false,
     update: () => false,
     delete: () => false,

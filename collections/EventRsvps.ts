@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { isAdmin } from '../lib/access'
 import { eventsRsvpEndpoints } from './endpoints/events-rsvp'
 
 /**
@@ -18,9 +19,10 @@ export const EventRsvps: CollectionConfig = {
     description: 'RSVP на события — создаются через /api/event-rsvps/submit.',
     group: 'Заявки',
   },
-  // Public CRUD only via custom endpoints — direct collection CRUD is admin-only.
+  // PII — only admin reads. Writes go through custom endpoints (which set the
+  // rsvp cookie and use secretKey for ownership).
   access: {
-    read: () => true,
+    read: isAdmin,
     create: () => false,
     update: () => false,
     delete: () => false,

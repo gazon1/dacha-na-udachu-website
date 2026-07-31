@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { isAdmin } from '../lib/access'
 
 /**
  * ExtraServices collection — bookable add-ons (banya, manhal, fishing, etc).
@@ -17,8 +18,12 @@ export const ExtraServices: CollectionConfig = {
     description: 'Дополнительные услуги (баня, мангал, рыбалка и т.п.).',
     group: 'Справочники',
   },
+  // Public read on the frontend. Only admin writes.
   access: {
     read: () => true,
+    create: isAdmin,
+    update: isAdmin,
+    delete: isAdmin,
   },
   fields: [
     { name: 'slug', type: 'text', required: true, unique: true, index: true, maxLength: 50 },

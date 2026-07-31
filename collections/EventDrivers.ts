@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { isAdminOrOwner } from '../lib/access'
 
 /**
  * EventDrivers collection — carpool driver offers.
@@ -16,12 +17,13 @@ export const EventDrivers: CollectionConfig = {
     description: 'Водители, готовые подвезти участников на событие.',
     group: 'Заявки',
   },
+  // Public read (so passengers can browse drivers). Writes via secret token
+  // holder or admin.
   access: {
-    // Public CRUD for now — Phase 5 will tighten.
     read: () => true,
     create: () => true,
-    update: () => true,
-    delete: () => true,
+    update: isAdminOrOwner,
+    delete: isAdminOrOwner,
   },
   fields: [
     {
