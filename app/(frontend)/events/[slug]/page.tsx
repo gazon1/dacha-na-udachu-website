@@ -6,8 +6,9 @@ import { RsvpWidget } from '@/components/event/RsvpWidget'
 import { CarpoolSection } from '@/components/event/CarpoolSection'
 import { AttendeesList, type Attendee } from '@/components/event/AttendeesList'
 
-// ISR: revalidate every 60s. Access control honors publish/draft per request.
-export const revalidate = 60
+// Force runtime render so the Docker build doesn't need a live DB.
+// Access control honors publish/draft per request.
+export const dynamic = 'force-dynamic'
 
 type HeroImage = {
   alt?: string

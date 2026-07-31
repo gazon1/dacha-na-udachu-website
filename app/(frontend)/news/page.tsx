@@ -1,8 +1,10 @@
 import { getPayloadClient } from '@/lib/payload'
 import { NewsGrid, type NewsCard } from '@/components/news/NewsGrid'
 
-// ISR: revalidate every 60s — listings don't need to be live.
-export const revalidate = 60
+// Force runtime render so the Docker build doesn't need a live DB.
+// Trade-off: every request hits Postgres. Cheap for small sites; add
+// CDN caching headers (Cache-Control) if traffic grows.
+export const dynamic = 'force-dynamic'
 
 export default async function NewsPage() {
   const payload = await getPayloadClient()

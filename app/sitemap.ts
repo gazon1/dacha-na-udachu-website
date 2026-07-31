@@ -1,6 +1,11 @@
 import type { MetadataRoute } from 'next'
 import { getPayloadClient } from '@/lib/payload'
 
+// Force runtime generation — without this Next.js would try to prerender
+// sitemap at build time, which requires a live DB. In Docker, the builder
+// stage has no DB, so the build would fail with "relation 'news' does not exist".
+export const dynamic = 'force-dynamic'
+
 const SITE_URL =
   process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
 

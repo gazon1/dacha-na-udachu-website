@@ -2,9 +2,10 @@ import { notFound } from 'next/navigation'
 import { getPayloadClient } from '@/lib/payload'
 import { BlockRenderer } from '@/lib/blocks-registry'
 
-// ISR: revalidate every 60s. adminOrPublished access controls visibility
-// per-request via cookies, so we still keep dynamic-rendering semantics.
-export const revalidate = 60
+// Force runtime render so the Docker build doesn't need a live DB.
+// adminOrPublished access controls visibility per-request via cookies,
+// which is the original reason these routes were already near-dynamic.
+export const dynamic = 'force-dynamic'
 
 type Props = {
   params: Promise<{ slug: string }>

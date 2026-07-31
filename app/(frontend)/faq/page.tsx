@@ -1,8 +1,10 @@
 import { getPayloadClient } from '@/lib/payload'
 import { BlockRenderer } from '@/lib/blocks-registry'
 
-// Single FAQ page — ISR is fine.
-export const revalidate = 60
+// Force runtime render so the Docker build doesn't need a live DB.
+// Trade-off: every request hits Postgres. Cheap for small sites; add
+// CDN caching headers (Cache-Control) if traffic grows.
+export const dynamic = 'force-dynamic'
 
 export default async function FaqPage() {
   const payload = await getPayloadClient()
