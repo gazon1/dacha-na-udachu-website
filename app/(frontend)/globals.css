@@ -2,7 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom theme — preserved from old frontend */
+/* Material Symbols — outline variant, no JS font-loading delay */
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap');
+
 :root {
   --bg-base-100: #0a0a0a;
   --bg-base-200: #1a1a1a;
@@ -11,4 +13,39 @@
   --color-primary: #d4a574;
 }
 
-/* Placeholder — real Tailwind config will be copied from old project */
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    font-feature-settings: 'kern', 'liga', 'calt';
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-playfair), Georgia, serif;
+    letter-spacing: -0.01em;
+  }
+
+  /* Material Symbols base */
+  .material-symbols-outlined {
+    font-variation-settings:
+      'FILL' 0,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 24;
+    user-select: none;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-base-200/60 backdrop-blur border border-base-300/50 rounded-2xl;
+  }
+
+  .container-narrow {
+    @apply max-w-6xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+}

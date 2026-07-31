@@ -52,6 +52,10 @@ export default buildConfig({
   cors: [process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3000'],
   csrf: [process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3000'],
 
+  // --- Performance ---
+  // Auto-indexes all sortable top-level fields (saves a lot of manual index: true).
+  indexSortableFields: true,
+
   // --- Database ---
   db: postgresAdapter({
     pool: {
@@ -59,6 +63,8 @@ export default buildConfig({
         process.env.DATABASE_URI ||
         'postgres://postgres:postgres@localhost:5432/dacha_payload',
     },
+    // Shared transaction isolation for multi-step Local API calls.
+    transactionOptions: { isolationLevel: 'read committed' },
   }),
 
   // --- Editor ---
