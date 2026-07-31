@@ -1,14 +1,20 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { fetchPreviewDraft } from "@/lib/wagtail";
+import { fetchPreviewDraft, fetchPage, type WagtailPage } from "@/lib/wagtail";
 import { BlockRenderer } from "@/components/blocks/registry";
-import type { WagtailPage } from "@/lib/wagtail";
 
 interface Props {
   searchParams: Promise<{ content_type?: string; token?: string }>;
 }
 
-export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+interface PageBlock {
+  type: string;
+  value: unknown;
+}
+
+export async function generateMetadata({
+  searchParams,
+}: Props): Promise<Metadata> {
   const { content_type, token } = await searchParams;
   if (!content_type || !token) return {};
 
@@ -20,15 +26,16 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
 export default async function PreviewPage({ searchParams }: Props) {
   const { content_type, token } = await searchParams;
-
-  if (!content_type || !token) {
-    notFound();
-  }
+  if (!content_type || !token) notFound();
 
   const draft = await fetchPreviewDraft(content_type, token);
-  if (!draft) {
-    notFound();
-  }
+  if (!draft) notFound();
+
+  // Fetch the actual draft page content (body blocks) for rendering.
+  const page = await fetchPage<WagtailPage & { body?: PageBlock[] }>(
+    draft.url
+  );
+  const blocks = page?.body ?? [];
 
   return (
     <div className="min-h-screen">
@@ -38,7 +45,13 @@ export default async function PreviewPage({ searchParams }: Props) {
         <span className="text-yellow-200/60">({draft.type})</span>
       </div>
       <div className="p-4">
-        {/* Rendered via /api/v2/pages/{id}/ for full page content */}
+        {blocks.length > 0 ? (
+          <BlockRenderer blocks={blocks} />
+        ) : (
+          <p className="text-base-content/60 text-sm">
+            Нет контента для превью.
+          </p>
+        )}
       </div>
     </div>
   );

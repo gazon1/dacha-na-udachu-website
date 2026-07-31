@@ -58,6 +58,10 @@ class NewsIndexPage(Page):
         FieldPanel("intro"),
     ]
 
+    api_fields = [
+        APIField("intro"),
+    ]
+
     def get_context(self, request):
         from django.core.paginator import Paginator
         context = super().get_context(request)

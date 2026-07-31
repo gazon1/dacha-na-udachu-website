@@ -1,9 +1,12 @@
 /**
  * Typed API helper for Next.js → Django Ninja / Wagtail.
  *
- * Uses SITE_URL as base so fetch works in both browser AND SSR (undici) contexts.
- * NEXT_PUBLIC_SITE_URL is browser-baked at build time to the public frontend origin,
- * so it resolves correctly everywhere.
+ * Uses SSR_BASE (BACKEND_URL) for SSR fetches — Docker-internal address,
+ * fast and bypasses Caddy. Uses SITE_URL (NEXT_PUBLIC_SITE_URL) for
+ * browser-side fetches.
+ *
+ * Default for api.get/post/delete is `server: true` — safe for server
+ * components. Pass `{ server: false }` explicitly for browser-side fetches.
  */
 
 // Server-side base for SSR fetch calls (backend on Docker internal network).
@@ -42,16 +45,26 @@ export async function checkRes<T>(res: Response): Promise<T> {
 // ─── Generic fetch helpers ────────────────────────────────────────────────────
 
 export const api = {
-  get<T>(path: string, init?: RequestInit): Promise<T> {
-    return fetch(apiUrl(path), init).then(checkRes<T>);
+  /**
+   * GET. Default `opts.server = true` → SSR fetches go to Docker-internal
+   * BACKEND_URL. Pass `{ server: false }` for browser-side fetches that
+   * must hit the public origin.
+   */
+  get<T>(
+    path: string,
+    init?: RequestInit,
+    opts?: { server?: boolean }
+  ): Promise<T> {
+    return fetch(apiUrl(path, opts ?? { server: true }), init).then(checkRes<T>);
   },
 
   post<T>(
     path: string,
     data?: unknown,
-    init?: RequestInit
+    init?: RequestInit,
+    opts?: { server?: boolean }
   ): Promise<T> {
-    return fetch(apiUrl(path), {
+    return fetch(apiUrl(path, opts ?? { server: true }), {
       method: "POST",
       headers: data ? { "Content-Type": "application/json" } : undefined,
       body: data ? JSON.stringify(data) : undefined,
@@ -59,7 +72,14 @@ export const api = {
     }).then(checkRes<T>);
   },
 
-  delete<T>(path: string, init?: RequestInit): Promise<T> {
-    return fetch(apiUrl(path), { method: "DELETE", ...init }).then(checkRes<T>);
+  delete<T>(
+    path: string,
+    init?: RequestInit,
+    opts?: { server?: boolean }
+  ): Promise<T> {
+    return fetch(apiUrl(path, opts ?? { server: true }), {
+      method: "DELETE",
+      ...init,
+    }).then(checkRes<T>);
   },
 };

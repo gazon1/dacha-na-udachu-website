@@ -702,6 +702,10 @@ class EventsIndexPage(Page):
         FieldPanel("intro"),
     ]
 
+    api_fields = [
+        APIField("intro"),
+    ]
+
     def get_context(self, request):
         from django.utils import timezone
         from django_tables2 import RequestConfig

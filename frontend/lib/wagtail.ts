@@ -1,9 +1,12 @@
 /**
  * Wagtail API client for Next.js.
  * All page content comes from Django's /api/v2/pages/ endpoint.
+ *
+ * All SSR fetches go through `api.get(..., { server: true })` which targets
+ * BACKEND_URL (the Docker-internal address) instead of the public origin.
  */
 
-import { api, apiUrl } from "./api";
+import { api } from "./api";
 
 export interface WagtailPage {
   id: number;
@@ -27,13 +30,17 @@ export async function fetchPreviewDraft(
   token: string
 ): Promise<{ id: number; title: string; type: string; url: string } | null> {
   const params = new URLSearchParams({ content_type: contentType, token });
-  const res = await api.get<{ id: number; title: string; type: string; url: string }>(
-    `/api/preview/draft/?${params}`,
-    // Draft preview must always hit Wagtail — never cache an editor's
-    // unreleased state.
-    { cache: "no-store" }
-  );
-  return res ?? null;
+  try {
+    return await api.get<{ id: number; title: string; type: string; url: string }>(
+      `/api/preview/draft/?${params}`,
+      // Draft preview must always hit Wagtail — never cache an editor's
+      // unreleased state.
+      { cache: "no-store" },
+      { server: true }
+    );
+  } catch {
+    return null;
+  }
 }
 
 /** Resolve a URL path to a Wagtail page detail URL. */
@@ -46,28 +53,31 @@ export async function resolvePage(
       // CRITICAL: explicitly opt out of caching. Without this option, Next.js
       // App Router's fetch() defaults to force-cache and this response would
       // be cached forever (until redeploy), making the homepage and catch-all
-      // routes stale until restart. See README / plan notes.
-      { cache: "no-store" }
+      // routes stale until restart.
+      { cache: "no-store" },
+      { server: true }
     );
   } catch {
     return null;
   }
 }
 
-/** Fetch a single page by its detail URL. */
+/** Fetch a single page by its detail URL (relative, e.g. "/api/v2/pages/3/"). */
 export async function fetchPage<T extends WagtailPage = WagtailPage>(
   detailUrl: string
 ): Promise<T | null> {
-  // detailUrl is /api/v2/pages/N/ — prepend SITE_URL
-  const url = detailUrl.startsWith("/") ? apiUrl(detailUrl) : detailUrl;
   try {
-    return await api.get<T>(url, {
-      // 5 min TTL as a safety net — primary invalidation path is the
-      // webhook from /workspace/backend/dacha/signals.py → /api/revalidate.
-      // Tag "wagtail" lets a generic revalidateTag("wagtail", …) wipe all
-      // page data in one call.
-      next: { revalidate: 300, tags: ["wagtail"] },
-    });
+    return await api.get<T>(
+      detailUrl,
+      {
+        // 5 min TTL as a safety net — primary invalidation path is the
+        // webhook from /workspace/backend/dacha/signals.py → /api/revalidate.
+        // Tag "wagtail" lets a generic revalidateTag("wagtail", …) wipe all
+        // page data in one call.
+        next: { revalidate: 300, tags: ["wagtail"] },
+      },
+      { server: true }
+    );
   } catch {
     return null;
   }
@@ -96,9 +106,65 @@ export async function fetchPagesByType<
     return await api.get<{ items: T[]; total: number }>(
       `/api/v2/pages/?${params}`,
       {
-        // See fetchPage — 5 min TTL safety net + "wagtail" tag for invalidation.
         next: { revalidate: 300, tags: ["wagtail"] },
-      }
+      },
+      { server: true }
+    );
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Find an index page by its (type, slug) pair.
+ *
+ * Uses Wagtail's built-in v2 filter `?type=...&slug=...` — canonical way to
+ * resolve an index page by URL slug rather than by numeric ID (which can
+ * shift if pages are deleted). Returns the first match (items[0]).
+ */
+export async function fetchIndexBySlug<
+  T extends WagtailPage = WagtailPage
+>(
+  type: string,
+  slug: string,
+  options?: { fields?: string }
+): Promise<T | null> {
+  const params = new URLSearchParams({ type, slug });
+  if (options?.fields) params.set("fields", options.fields);
+  try {
+    const res = await api.get<{ items: T[]; total: number }>(
+      `/api/v2/pages/?${params}`,
+      { next: { revalidate: 300, tags: ["wagtail"] } },
+      { server: true }
+    );
+    return res?.items?.[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch children of a parent page, filtered by child type.
+ *
+ * Uses Wagtail's built-in `?child_of=<id>` filter — no custom APIField
+ * serializer needed (modeled after the nextjs-loves-wagtail tutorial).
+ */
+export async function fetchChildren<
+  T extends WagtailPage = WagtailPage
+>(
+  parentId: number,
+  childType: string,
+  options?: { fields?: string; limit?: number; offset?: number }
+): Promise<{ items: T[]; total: number } | null> {
+  const params = new URLSearchParams({ type: childType, child_of: String(parentId) });
+  if (options?.fields) params.set("fields", options.fields);
+  if (options?.limit) params.set("limit", String(options.limit));
+  if (options?.offset) params.set("offset", String(options.offset));
+  try {
+    return await api.get<{ items: T[]; total: number }>(
+      `/api/v2/pages/?${params}`,
+      { next: { revalidate: 300, tags: ["wagtail"] } },
+      { server: true }
     );
   } catch {
     return null;
