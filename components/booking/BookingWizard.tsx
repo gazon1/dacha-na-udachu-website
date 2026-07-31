@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
+import { DateRangePicker } from './DateRangePicker'
 
 type House = {
   id: string
@@ -34,8 +35,6 @@ export function BookingWizard({ houses, extras, preselectedHouseSlug }: Props) {
   const [house, setHouse] = useState<House | undefined>(initialHouse)
   const [checkIn, setCheckIn] = useState('')
   const [checkOut, setCheckOut] = useState('')
-  const [availability, setAvailability] = useState<boolean | null>(null)
-  const [checking, setChecking] = useState(false)
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [telegram, setTelegram] = useState('')
@@ -45,26 +44,6 @@ export function BookingWizard({ houses, extras, preselectedHouseSlug }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successId, setSuccessId] = useState<string | null>(null)
-
-  const checkAvailability = useCallback(async () => {
-    if (!house || !checkIn || !checkOut) return
-    setChecking(true)
-    setAvailability(null)
-    try {
-      const params = new URLSearchParams({
-        house: house.slug,
-        checkIn,
-        checkOut,
-      })
-      const res = await fetch(`/api/bookings/availability?${params}`)
-      const data = await res.json()
-      setAvailability(data.available === true)
-    } catch {
-      setAvailability(false)
-    } finally {
-      setChecking(false)
-    }
-  }, [house, checkIn, checkOut])
 
   const toggleExtra = (slug: string) => {
     setSelectedExtras((prev) => {
@@ -200,48 +179,18 @@ export function BookingWizard({ houses, extras, preselectedHouseSlug }: Props) {
         {step === 2 && house && (
           <div>
             <h2 className="text-2xl font-serif font-bold mb-4">Выберите даты</h2>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <label className="form-control">
-                <span className="label-text">Заезд</span>
-                <input
-                  type="date"
-                  className="input input-bordered"
-                  value={checkIn}
-                  onChange={(e) => setCheckIn(e.target.value)}
-                  onBlur={checkAvailability}
-                  required
-                />
-              </label>
-              <label className="form-control">
-                <span className="label-text">Выезд</span>
-                <input
-                  type="date"
-                  className="input input-bordered"
-                  value={checkOut}
-                  onChange={(e) => setCheckOut(e.target.value)}
-                  onBlur={checkAvailability}
-                  required
-                />
-              </label>
-            </div>
-            {checking && (
-              <p className="text-sm text-base-content/60 mt-3">
-                <span className="loading loading-spinner loading-xs" /> Проверяем
-                доступность…
-              </p>
-            )}
-            {availability === true && (
-              <p className="text-sm text-success mt-3 flex items-center gap-1">
-                <span className="material-symbols-outlined">check_circle</span>
-                Эти даты свободны
-              </p>
-            )}
-            {availability === false && (
-              <p className="text-sm text-error mt-3 flex items-center gap-1">
-                <span className="material-symbols-outlined">error</span>
-                Эти даты заняты — выберите другие
-              </p>
-            )}
+            <DateRangePicker
+              houseSlug={house.slug}
+              initialRange={
+                checkIn && checkOut
+                  ? { from: checkIn, to: checkOut }
+                  : undefined
+              }
+              onChange={(range) => {
+                setCheckIn(range?.from ?? '')
+                setCheckOut(range?.to ?? '')
+              }}
+            />
             <div className="flex gap-2 justify-between mt-6">
               <button
                 type="button"
@@ -253,12 +202,7 @@ export function BookingWizard({ houses, extras, preselectedHouseSlug }: Props) {
               <button
                 type="button"
                 className="btn btn-primary"
-                disabled={
-                  !checkIn ||
-                  !checkOut ||
-                  availability === false ||
-                  checking
-                }
+                disabled={!checkIn || !checkOut}
                 onClick={() => setStep(3)}
               >
                 Дальше

@@ -40,6 +40,10 @@ const AvailabilitySchema = z.object({
   checkOut: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 })
 
+const BlockedSchema = z.object({
+  house: z.union([z.number(), z.string()]),
+})
+
 /**
  * Booking endpoints — POST /api/bookings/submit, /quote, /availability.
  * The :id slugs come from the collection config (path: '/bookings/submit').
@@ -275,6 +279,62 @@ export const bookingEndpoints: Endpoint[] = [
         depth: 0,
       })
       return Response.json({ available: overlap.totalDocs === 0 })
+    },
+  },
+
+  {
+    // Returns all currently-booked date ranges for a house so the calendar
+    // picker can disable those days. Filters out cancelled/unconfirmed holes
+    // by checking against `checkIn`/`checkOut` only — admin can flip
+    // `isConfirmed` without freeing the dates from the picker.
+    path: '/blocked',
+    method: 'get',
+    handler: async (req) => {
+      const url = new URL(req.url ?? 'http://localhost:3000')
+      const params = Object.fromEntries(url.searchParams.entries())
+      const parsed = BlockedSchema.safeParse({ house: params.house })
+      if (!parsed.success) {
+        return Response.json(
+          { error: 'invalid_input', details: parsed.error.flatten() },
+          { status: 400 },
+        )
+      }
+      const { house } = parsed.data
+      const isId = typeof house === 'number'
+      const houseRes = await req.payload.find({
+        collection: 'houses',
+        where: isId
+          ? { id: { equals: house } }
+          : { slug: { equals: String(house) } },
+        limit: 1,
+        depth: 0,
+      })
+      const houseDoc = houseRes.docs[0]
+      if (!houseDoc) {
+        return Response.json({ error: 'house_not_found' }, { status: 404 })
+      }
+      // Fetch all bookings that end in the future (or recently) so we don't
+      // ship a 5-year history. Limit 200 is generous for any real house.
+      const today = new Date().toISOString().slice(0, 10)
+      const bookingsRes = await req.payload.find({
+        collection: 'bookings',
+        where: {
+          and: [
+            { house: { equals: houseDoc.id } },
+            { checkOut: { greater_than: today } },
+          ],
+        },
+        limit: 200,
+        sort: 'checkIn',
+        depth: 0,
+      })
+      const ranges = bookingsRes.docs
+        .map((b) => {
+          const bk = b as { checkIn: string; checkOut: string }
+          return { from: bk.checkIn, to: bk.checkOut }
+        })
+        .filter((r) => r.from && r.to)
+      return Response.json({ ranges })
     },
   },
 ]

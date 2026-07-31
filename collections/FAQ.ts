@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { revalidatePath } from 'next/cache'
+import { after } from 'next/server'
 
 import { adminOrPublished, isAdmin } from '../lib/access'
 import { ParagraphBlock, FAQItemBlock } from './blocks'
@@ -32,10 +33,11 @@ export const FAQ: CollectionConfig = {
   hooks: {
     afterChange: [
       () => {
-        // Deferred via setImmediate so revalidatePath runs in the next event-loop
-        // tick (after the current render finishes), not synchronously during admin
-        // render — Next.js 15 forbids revalidatePath during render.
-        setImmediate(() => {
+        // `unstable_after` runs after the current request response is sent,
+        // so revalidatePath is never called during render — Next.js 15
+        // forbids revalidatePath during render. setImmediate() is NOT enough
+        // because Next.js still tracks render context across the event-loop tick.
+        after(() => {
           revalidatePath('/faq')
         })
       },

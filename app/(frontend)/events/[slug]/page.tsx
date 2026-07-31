@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { getPayloadClient } from '@/lib/payload'
 import { BlockRenderer } from '@/lib/blocks-registry'
+import { Countdown } from '@/components/event/Countdown'
 
 // ISR: revalidate every 60s. Access control honors publish/draft per request.
 export const revalidate = 60
@@ -33,6 +34,12 @@ export default async function EventDetailPage({ params }: Props) {
         <h1 className="text-4xl font-bold mt-2">{event.title}</h1>
         {(event as any).venue && <p className="text-lg text-base-content/80 mt-2">📍 {(event as any).venue}</p>}
         {(event as any).summary && <p className="text-base-content/70 mt-4">{(event as any).summary}</p>}
+
+        {(event as any).showCountdown && (event as any).startDate && (
+          <div className="mt-4">
+            <Countdown targetDate={(event as any).startDate} />
+          </div>
+        )}
 
         {/* TODO: add RSVP widget, carpool sidebar, attendees list */}
         <p className="mt-4 text-sm text-base-content/50 italic">

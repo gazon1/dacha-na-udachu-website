@@ -460,3 +460,4 @@ dacha/db.sqlite3-journal
 dacha/media
 justfile
 /.next/
+/media/

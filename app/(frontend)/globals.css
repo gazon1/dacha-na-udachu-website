@@ -48,4 +48,66 @@
   .container-narrow {
     @apply max-w-6xl mx-auto px-4 sm:px-6 lg:px-8;
   }
+
+  /* react-day-picker — theme bindings to daisyUI tokens */
+  .rdp-shell {
+    --rdp-accent-color: theme('colors.primary');
+    --rdp-accent-background-color: color-mix(in oklab, theme('colors.primary') 18%, transparent);
+    --rdp-day-height: 2.5rem;
+    --rdp-day-width: 2.5rem;
+    --rdp-font-family: var(--font-inter), system-ui, sans-serif;
+    --rdp-selected-border: 2px solid theme('colors.primary');
+    --rdp-disabled-opacity: 0.35;
+  }
+
+  .rdp-shell .rdp-day_button {
+    border-radius: 0.625rem;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+
+  .rdp-shell .rdp-day_button:hover:not([disabled]) {
+    background-color: color-mix(in oklab, theme('colors.primary') 12%, transparent);
+  }
+
+  .rdp-shell .rdp-range_middle {
+    background-color: color-mix(in oklab, theme('colors.primary') 18%, transparent) !important;
+    color: theme('colors.primary-content') !important;
+    border-radius: 0;
+  }
+
+  .rdp-shell .rdp-range_start,
+  .rdp-shell .rdp-range_end {
+    background-color: theme('colors.primary') !important;
+    color: theme('colors.primary-content') !important;
+    font-weight: 600;
+  }
+
+  .rdp-shell .rdp-day_disabled {
+    opacity: var(--rdp-disabled-opacity);
+    text-decoration: line-through;
+    text-decoration-color: color-mix(in oklab, currentColor 40%, transparent);
+  }
+
+  .rdp-shell .rdp-day_outside {
+    opacity: 0.4;
+  }
+
+  .rdp-shell .rdp-weekday {
+    color: theme('colors.base-content/60');
+    font-weight: 500;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .rdp-shell .rdp-caption_label {
+    font-family: var(--font-playfair), Georgia, serif;
+    font-weight: 600;
+    font-size: 1rem;
+  }
+
+  .rdp-shell .rdp-button_previous,
+  .rdp-shell .rdp-button_next {
+    border-radius: 0.5rem;
+  }
 }
