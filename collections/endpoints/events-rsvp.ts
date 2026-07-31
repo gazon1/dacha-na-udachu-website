@@ -1,4 +1,4 @@
-import type { Endpoint } from 'payload'
+import type { Endpoint, Where } from 'payload'
 import { z } from 'zod'
 import { rsvpLimiter } from '../../lib/rate-limit'
 
@@ -48,7 +48,7 @@ export const eventsRsvpEndpoints: Endpoint[] = [
       }
       const { event, name, status, guestsCount } = parsed.data
 
-      const filter =
+      const filter: Where =
         typeof event === 'number'
           ? { id: { equals: event } }
           : { slug: { equals: String(event) } }

@@ -24,9 +24,9 @@ export const metadata: Metadata = {
     template: '%s — Evergreen Community',
   },
   description: 'Уютное пространство для встреч, мероприятий и отдыха',
-  metadataBase: process.env.NEXT_PUBLIC_SERVER_URL
-    ? new URL(process.env.NEXT_PUBLIC_SERVER_URL)
-    : undefined,
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SERVER_URL || 'https://dacha.maxdrobin.ru',
+  ),
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

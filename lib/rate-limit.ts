@@ -39,7 +39,7 @@ export function createLimiter(opts: {
   if (typeof gcInterval.unref === 'function') gcInterval.unref()
 
   return {
-    check: (req: Request) => {
+    check: (req: RequestLike) => {
       const key = opts.keyBy(req)
       const now = Date.now()
       const arr = hits.get(key) ?? []

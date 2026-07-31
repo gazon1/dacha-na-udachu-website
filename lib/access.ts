@@ -39,19 +39,14 @@ export const authenticatedOnly: Access = ({ req }) => Boolean(getUser(req))
 
 /**
  * Allow admin OR the document owner.
- * Compares `req.user.id` against the document's `user` field.
  * Returns a query constraint so it works during list reads too.
  */
-export const isAdminOrOwner: Access = ({ req, doc }) => {
+export const isAdminOrOwner: Access = ({ req }) => {
   const user = getUser(req)
   if (!user) return false
   if (user.role === 'admin') return true
   if (!user.id) return false
-  const ownerId =
-    (doc as { user?: string | number | { id: string | number } } | undefined)?.user
-  const ownerIdStr =
-    typeof ownerId === 'object' && ownerId !== null ? String(ownerId.id) : String(ownerId)
-  return ownerIdStr === String(user.id)
+  return { user: { equals: user.id } }
 }
 
 /**

@@ -30,7 +30,7 @@ type Props = {
 export function BookingWizard({ houses, extras, preselectedHouseSlug }: Props) {
   const initialHouse =
     houses.find((h) => h.slug === preselectedHouseSlug) ?? houses[0]
-  const [step, setStep] = useState<Step>(initialHouse ? 1 : 0)
+  const [step, setStep] = useState<Step>(1)
   const [house, setHouse] = useState<House | undefined>(initialHouse)
   const [checkIn, setCheckIn] = useState('')
   const [checkOut, setCheckOut] = useState('')

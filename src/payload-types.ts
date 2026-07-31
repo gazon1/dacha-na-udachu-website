@@ -144,6 +144,8 @@ export interface UserAuthOperations {
   };
 }
 /**
+ * Telegram-authenticated users.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
@@ -175,11 +177,16 @@ export interface User {
   collection: 'users';
 }
 /**
+ * Загруженные медиа-файлы (картинки, PDF, видео).
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media".
  */
 export interface Media {
   id: number;
+  /**
+   * Alt-text для доступности (обязательно)
+   */
   alt: string;
   caption?: string | null;
   updatedAt: string;
@@ -221,6 +228,8 @@ export interface Media {
   };
 }
 /**
+ * Объекты размещения с возможностью онлайн-бронирования.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "houses".
  */
@@ -233,7 +242,13 @@ export interface House {
   capacity?: number | null;
   bedrooms?: number | null;
   address?: string | null;
+  /**
+   * Базовая цена за ночь в рублях
+   */
   basePrice?: number | null;
+  /**
+   * Можно ли бронировать этот дом через сайт
+   */
   bookingEnabled?: boolean | null;
   body?:
     | (
@@ -264,6 +279,8 @@ export interface House {
   _status?: ('draft' | 'published') | null;
 }
 /**
+ * Мероприятия с RSVP, попутками и такси.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "events".
  */
@@ -283,6 +300,9 @@ export interface Event {
   expectedTemperature?: string | null;
   weatherNote?: string | null;
   specialTag?: string | null;
+  /**
+   * Сколько человек подтвердили участие
+   */
   rsvpCapacity?: number | null;
   body?:
     | (
@@ -343,6 +363,8 @@ export interface Event {
   _status?: ('draft' | 'published') | null;
 }
 /**
+ * Новости и анонсы.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "news".
  */
@@ -383,6 +405,8 @@ export interface News {
   _status?: ('draft' | 'published') | null;
 }
 /**
+ * Страница FAQ — обычно один документ со slug "faq".
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "faq".
  */
@@ -410,6 +434,8 @@ export interface Faq {
   _status?: ('draft' | 'published') | null;
 }
 /**
+ * PII — заявки на бронирование. Создаются через /api/bookings/submit.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "bookings".
  */
@@ -439,10 +465,13 @@ export interface Booking {
   extrasPrice?: number | null;
   totalPrice?: number | null;
   notes?: string | null;
+  totalNights?: number | null;
   updatedAt: string;
   createdAt: string;
 }
 /**
+ * RSVP на события — создаются через /api/event-rsvps/submit.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "event-rsvps".
  */
@@ -460,10 +489,13 @@ export interface EventRsvp {
    * Optional Telegram user link (for "save RSVP" feature)
    */
   user?: (number | null) | User;
+  attendeeSummary?: string | null;
   updatedAt: string;
   createdAt: string;
 }
 /**
+ * Водители, готовые подвезти участников на событие.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "event-drivers".
  */
@@ -493,6 +525,8 @@ export interface EventDriver {
   createdAt: string;
 }
 /**
+ * Пассажиры, записавшиеся к водителю.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "ride-passengers".
  */
@@ -510,6 +544,8 @@ export interface RidePassenger {
   createdAt: string;
 }
 /**
+ * Запросы «ищу попутку» — кто не может быть водителем.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "carpool-requests".
  */
@@ -529,6 +565,8 @@ export interface CarpoolRequest {
   createdAt: string;
 }
 /**
+ * Объединённые поездки на такси (Yandex, Citymobil и др.).
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "taxi-pools".
  */
@@ -549,6 +587,8 @@ export interface TaxiPool {
   createdAt: string;
 }
 /**
+ * Пассажиры, записавшиеся в общий такси-пул.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "taxi-passengers".
  */
@@ -565,6 +605,8 @@ export interface TaxiPassenger {
   createdAt: string;
 }
 /**
+ * PII — подписчики на рассылку. Подписка через /api/newsletter-signups/subscribe.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "newsletter-signups".
  */
@@ -578,6 +620,8 @@ export interface NewsletterSignup {
   createdAt: string;
 }
 /**
+ * Дополнительные услуги (баня, мангал, рыбалка и т.п.).
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "extra-services".
  */
@@ -1017,6 +1061,7 @@ export interface BookingsSelect<T extends boolean = true> {
   extrasPrice?: T;
   totalPrice?: T;
   notes?: T;
+  totalNights?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1031,6 +1076,7 @@ export interface EventRsvpsSelect<T extends boolean = true> {
   guestsCount?: T;
   secretKey?: T;
   user?: T;
+  attendeeSummary?: T;
   updatedAt?: T;
   createdAt?: T;
 }
