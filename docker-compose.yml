@@ -38,12 +38,13 @@ services:
   # One-shot DB migration — creates/updates tables to match the schema.
   # Idempotent: only applies pending migrations. Runs automatically on
   # every `docker compose up` because `app` depends on it.
+  # No `image:` tag — the service is one-shot, image is garbage-collected
+  # after run. Only `app` keeps a tag for retention/rollback.
   # Run manually for explicit control: `docker compose run --rm migrate`
   migrate:
     build:
       context: .
       dockerfile: Dockerfile
-    image: dacha-app:${TAG:-latest}
     restart: "no"
     env_file: .env
     environment:
@@ -52,12 +53,12 @@ services:
 
   # One-shot bootstrap — creates the admin user + starter content.
   # Safe to re-run (skips if records exist). Runs after migrate, then app.
+  # No `image:` tag — see migrate for rationale.
   # Run manually for explicit control: `docker compose run --rm seed`
   seed:
     build:
       context: .
       dockerfile: Dockerfile
-    image: dacha-app:${TAG:-latest}
     restart: "no"
     env_file: .env
     environment:
