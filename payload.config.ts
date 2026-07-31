@@ -91,6 +91,14 @@ export default buildConfig({
         { name: 'desktop', width: 1440, height: 900, label: 'Desktop' },
       ],
     },
+    // Custom dashboard widgets — render below the default collections cards.
+    components: {
+      afterDashboard: [
+        '/components/admin/widgets/RecentBookings',
+        '/components/admin/widgets/RsvpStats',
+        '/components/admin/widgets/QuickActions',
+      ],
+    },
   },
 
   // --- Collections ---
