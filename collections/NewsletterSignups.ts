@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { newsletterEndpoints } from './endpoints/newsletter'
 
 /**
  * NewsletterSignups collection — email subscriptions.
@@ -13,16 +14,17 @@ export const NewsletterSignups: CollectionConfig = {
     enableListViewSelectAPI: true,
     pagination: { defaultLimit: 50, limits: [25, 50, 100, 250] },
     listSearchableFields: ['email'],
-    description: 'PII — подписчики на рассылку. Сколько будет только admin.',
+    description: 'PII — подписчики на рассылку. Подписка через /api/newsletter-signups/subscribe.',
     group: 'Заявки',
   },
+  // Public write only via custom endpoint — direct collection CRUD is admin-only.
   access: {
-    // Public write (anyone can subscribe); read/update/delete — admin only (Phase 5).
     read: () => false,
-    create: () => true,
+    create: () => false,
     update: () => false,
     delete: () => false,
   },
+  endpoints: newsletterEndpoints,
   fields: [
     { name: 'email', type: 'email', required: true, unique: true, index: true },
     { name: 'subscribedAt', type: 'date', required: true },

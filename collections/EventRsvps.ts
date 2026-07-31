@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { eventsRsvpEndpoints } from './endpoints/events-rsvp'
 
 /**
  * EventRsvps collection — RSVPs for events.
@@ -14,16 +15,17 @@ export const EventRsvps: CollectionConfig = {
     enableListViewSelectAPI: true,
     pagination: { defaultLimit: 50, limits: [25, 50, 100, 250] },
     listSearchableFields: ['name', 'secretKey'],
-    description: 'RSVP на события — создаются через /api/events/:id/rsvp.',
+    description: 'RSVP на события — создаются через /api/event-rsvps/submit.',
     group: 'Заявки',
   },
+  // Public CRUD only via custom endpoints — direct collection CRUD is admin-only.
   access: {
-    // Public CRUD for now — Phase 5 will tighten to isAdmin / isAdminOrOwner.
     read: () => true,
-    create: () => true,
-    update: () => true, // RSVP updates via secret_key
-    delete: () => true,
+    create: () => false,
+    update: () => false,
+    delete: () => false,
   },
+  endpoints: eventsRsvpEndpoints,
   fields: [
     {
       name: 'event',

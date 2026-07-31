@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { bookingEndpoints } from './endpoints/booking'
 
 /**
  * Bookings collection — booking requests for houses.
@@ -14,13 +15,17 @@ export const Bookings: CollectionConfig = {
     enableListViewSelectAPI: true,
     pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     listSearchableFields: ['name', 'phone', 'telegram'],
-    description: 'PII — заявки на бронирование. Пока публичные, скоро — только admin.',
+    description: 'PII — заявки на бронирование. Создаются через /api/bookings/submit.',
     group: 'Заявки',
   },
+  // Public submit only via custom endpoints — direct collection CRUD is admin-only.
   access: {
-    read: () => true, // public read for now; restrict to admin later
-    create: () => true, // public submission via /api/booking/submit endpoint
+    read: () => true,
+    create: () => false,
+    update: () => false,
+    delete: () => false,
   },
+  endpoints: bookingEndpoints,
   fields: [
     {
       name: 'house',
