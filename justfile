@@ -47,6 +47,10 @@ generate-importmap:
 [doc("Full setup: install + generate types + build")]
 setup: install-node generate-types build
 
+[working-directory("/workspace")]
+create-init-migrations:
+    npm run payload -- migrate:create --name init
+
 
 # ---- APP (Payload CMS + Next.js — single process) ----
 [doc("Build production bundle (output: /workspace/.next/)")]
