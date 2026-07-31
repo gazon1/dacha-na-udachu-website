@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom theme — preserved from old frontend */
+:root {
+  --bg-base-100: #0a0a0a;
+  --bg-base-200: #1a1a1a;
+  --bg-base-300: #2a2a2a;
+  --text-primary: #ffffff;
+  --color-primary: #d4a574;
+}
+
+/* Placeholder — real Tailwind config will be copied from old project */

@@ -2,23 +2,9 @@
 # 🐳 DEVCONTAINER & DOCKER MANAGEMENT
 # ==============================================================================
 
-[group('docker')]
-[doc('Build devcontainer image from scratch')]
-[working-directory: "/workspace/.devcontainer"]
-docker-build:
-    #!/usr/bin/env bash
-    set -e
-    echo "🔨 Building base image..."
-    docker build -t my-crawler-base:latest -f Dockerfile.base ..
-    
-    echo "🔨 Building devcontainer image..."
-    docker build -t singularity-dev:latest -f Dockerfile .
-    
-    echo "✅ Images built successfully"
-
-[group('docker')]
 [doc('Rebuild devcontainer (force no cache)')]
-[working-directory: "/workspace/.devcontainer"]
+[group('docker')]
+[working-directory("/workspace/.devcontainer")]
 docker-rebuild:
     #!/usr/bin/env bash
     set -e
@@ -27,41 +13,41 @@ docker-rebuild:
     docker build --no-cache -t singularity-dev:latest -f Dockerfile .
     echo "✅ Clean rebuild complete"
 
-[group('docker')]
 [doc('Start devcontainer in background')]
-[working-directory: "/workspace/.devcontainer"]
+[group('docker')]
+[working-directory("/workspace/.devcontainer")]
 docker-up:
     docker compose up -d
     @echo "✅ Container started. Attach with: docker compose exec develop zsh"
 
-[group('docker')]
 [doc('Stop devcontainer')]
-[working-directory: "/workspace/.devcontainer"]
+[group('docker')]
+[working-directory("/workspace/.devcontainer")]
 docker-down:
     docker compose down
     @echo "✅ Container stopped"
 
-[group('docker')]
 [doc('Restart devcontainer')]
-[working-directory: "/workspace/.devcontainer"]
+[group('docker')]
+[working-directory("/workspace/.devcontainer")]
 docker-restart: docker-down docker-up
     @echo "✅ Container restarted"
 
-[group('docker')]
 [doc('Show container logs')]
-[working-directory: "/workspace/.devcontainer"]
+[group('docker')]
+[working-directory("/workspace/.devcontainer")]
 docker-logs:
     docker compose logs -f develop
 
-[group('docker')]
 [doc('Enter running container shell')]
-[working-directory: "/workspace/.devcontainer"]
+[group('docker')]
+[working-directory("/workspace/.devcontainer")]
 docker-shell:
     docker compose exec develop zsh
 
-[group('docker')]
 [doc('Prune devcontainer volumes (free disk space)')]
-[working-directory: "/workspace/.devcontainer"]
+[group('docker')]
+[working-directory("/workspace/.devcontainer")]
 docker-prune:
     #!/usr/bin/env bash
     set -e
@@ -78,20 +64,20 @@ docker-prune:
         echo "❌ Cancelled"
     fi
 
-[group('docker')]
 [doc('Validate .env file exists and has required variables')]
+[group('docker')]
 docker-validate-env:
     #!/usr/bin/env bash
     set -e
     ENV_FILE=".devcontainer/.env"
     REQUIRED_VARS="DEVELOPER_USERNAME DEVELOPER_USER_UID DEVELOPER_USER_GID"
-    
+
     if [ ! -f "$ENV_FILE" ]; then
         echo "❌ .env file not found at $ENV_FILE"
         echo "💡 Run 'just docker-init-env' to create it"
         exit 1
     fi
-    
+
     echo "🔍 Validating $ENV_FILE..."
     missing=()
     for var in $REQUIRED_VARS; do
@@ -99,17 +85,17 @@ docker-validate-env:
             missing+=("$var")
         fi
     done
-    
+
     if [ ${#missing[@]} -gt 0 ]; then
         echo "❌ Missing required variables: ${missing[*]}"
         echo "💡 Run 'just docker-init-env' to fix"
         exit 1
     fi
-    
+
     echo "✅ Environment validation passed"
 
-[group('docker')]
 [doc('Create .env from template with auto-detected values')]
+[group('docker')]
 docker-init-env:
     #!/usr/bin/env bash
     set -e
@@ -144,48 +130,48 @@ docker-init-env:
 # 🗄️ DATABASE MANAGEMENT (Drift + Dolt + Beads)
 # ==============================================================================
 
-[group('db')]
 [doc('Backup SQLite database to timestamped file')]
+[group('db')]
 db-backup:
     #!/usr/bin/env bash
     set -e
     DB_FILE="singularity_todo_app/database/db.sqlite"
     BACKUP_DIR="singularity_todo_app/database/backups"
     TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-    
+
     mkdir -p "$BACKUP_DIR"
-    
+
     if [ ! -f "$DB_FILE" ]; then
         echo "❌ Database not found at $DB_FILE"
         exit 1
     fi
-    
+
     cp "$DB_FILE" "$BACKUP_DIR/db_backup_$TIMESTAMP.sqlite"
     echo "✅ Backup created: $BACKUP_DIR/db_backup_$TIMESTAMP.sqlite"
 
-[group('db')]
 [doc('List all database backups')]
+[group('db')]
 db-list-backups:
     #!/usr/bin/env bash
     set -e
     BACKUP_DIR="singularity_todo_app/database/backups"
-    
+
     if [ ! -d "$BACKUP_DIR" ]; then
         echo "ℹ️  No backups directory"
         exit 0
     fi
-    
+
     echo "📦 Database backups:"
     ls -lh "$BACKUP_DIR"/*.sqlite 2>/dev/null || echo "   (none found)"
 
-[group('db')]
 [doc('Restore database from backup (latest by default)')]
+[group('db')]
 db-restore BACKUP='latest':
     #!/usr/bin/env bash
     set -e
     DB_FILE="singularity_todo_app/database/db.sqlite"
     BACKUP_DIR="singularity_todo_app/database/backups"
-    
+
     if [ "$BACKUP" = "latest" ]; then
         BACKUP=$(ls -t "$BACKUP_DIR"/*.sqlite 2>/dev/null | head -n1)
         if [ -z "$BACKUP" ]; then
@@ -201,26 +187,26 @@ db-restore BACKUP='latest':
         fi
         echo "🔄 Restoring from: $BACKUP"
     fi
-    
+
     cp "$BACKUP" "$DB_FILE"
     echo "✅ Database restored"
 
-[group('db')]
 [doc('Run Dolt SQL server for beads')]
+[group('db')]
 db-dolt-server:
     #!/usr/bin/env bash
     set -e
     echo "🚀 Starting Dolt SQL server on port 3307..."
-    
+
     if pgrep -x "dolt" > /dev/null 2>&1; then
         echo "✅ Dolt server already running"
         exit 0
     fi
-    
+
     cd /workspace
     nohup dolt sql-server --port 3307 > /workspace/.beads/dolt-server.log 2>&1 &
     sleep 2
-    
+
     if pgrep -x "dolt" > /dev/null 2>&1; then
         echo "✅ Dolt server started (port 3307)"
     else
@@ -229,23 +215,23 @@ db-dolt-server:
         exit 1
     fi
 
-[group('db')]
 [doc('Stop Dolt SQL server')]
+[group('db')]
 db-dolt-stop:
     #!/usr/bin/env bash
     set -e
     echo "🛑 Stopping Dolt server..."
     pkill -x "dolt" || true
     sleep 1
-    
+
     if ! pgrep -x "dolt" > /dev/null 2>&1; then
         echo "✅ Dolt server stopped"
     else
         echo "⚠️  Dolt server still running"
     fi
 
-[group('db')]
 [doc('Show Dolt server status')]
+[group('db')]
 db-dolt-status:
     #!/usr/bin/env bash
     set -e
@@ -257,15 +243,15 @@ db-dolt-status:
         echo "❌ Dolt server is not running"
     fi
 
-[group('db')]
 [doc('Push beads to Dolt remote')]
+[group('db')]
 db-push:
     @echo "📤 Pushing beads to remote..."
     bd sync
     @echo "✅ Push complete"
 
-[group('db')]
 [doc('Run database migrations')]
+[group('db')]
 db-migrate:
     #!/usr/bin/env bash
     set -e
@@ -274,35 +260,34 @@ db-migrate:
     cp tmp/migrated.db database/db.sqlite
     echo "✅ Migrations applied"
 
-
 # ==============================================================================
 # 🎯 AI CONTEXT & DOCUMENTATION
 # ==============================================================================
 
-[group('ai')]
 [doc('Extract project context for AI (Dart + Python)')]
+[group('ai')]
 ai-context:
     #!/usr/bin/env bash
     set -e
     OUTPUT_DIR="singularity_todo_app/tmp"
     mkdir -p "$OUTPUT_DIR"
-    
+
     echo "📝 Extracting Dart context..."
     just sing-dart-context
-    
+
     echo "📝 Extracting Python context..."
     just sing-py-context
-    
+
     echo "✅ Context files created in $OUTPUT_DIR"
 
-[group('ai')]
 [doc('Generate architecture diagram (mermaid)')]
+[group('ai')]
 ai-arch-diagram:
     #!/usr/bin/env bash
     set -e
     OUTPUT="singularity_todo_app/docs/architecture.md"
     mkdir -p "$(dirname "$OUTPUT")"
-    
+
     cp /workspace/.just/templates/architecture.md "$OUTPUT"
     echo "✅ Architecture diagram created: $OUTPUT"
 
@@ -310,67 +295,67 @@ ai-arch-diagram:
 # 🔒 PRE-COMMIT & CI
 # ==============================================================================
 
-[group('ci')]
 [doc('Install git pre-commit hook')]
+[group('ci')]
 ci-install-hook:
     #!/usr/bin/env bash
     set -e
     HOOK_FILE=".git/hooks/pre-commit"
-    
+
     cp /workspace/.just/templates/pre-commit-hook.sh "$HOOK_FILE"
     chmod +x "$HOOK_FILE"
     echo "✅ Pre-commit hook installed"
 
-[group('ci')]
 [doc('Remove git pre-commit hook')]
+[group('ci')]
 ci-remove-hook:
     #!/usr/bin/env bash
     set -e
     rm -f .git/hooks/pre-commit
     echo "✅ Pre-commit hook removed"
 
-[group('ci')]
 [doc('Run full CI pipeline locally')]
+[group('ci')]
 ci-run:
     #!/usr/bin/env bash
     set -e
     echo "🚀 Running CI pipeline..."
-    
+
     echo "📋 Step 1/5: Formatting..."
     just fmt-check
-    
+
     echo "📋 Step 2/5: Static analysis..."
     just analyze
-    
+
     echo "📋 Step 3/5: Bloc lint..."
     just bloc-lint || true
-    
+
     echo "📋 Step 4/5: Tests..."
     just test
-    
+
     echo "📋 Step 5/5: Build check..."
     just build-debug
-    
+
     echo "✅ CI pipeline passed!"
 
 # ==============================================================================
 # 🧹 MAINTENANCE
 # ==============================================================================
 
-[group('maint')]
 [doc('Clean all build artifacts (Flutter + Rust)')]
+[group('maint')]
 maint-clean-all:
     #!/usr/bin/env bash
     set -e
     echo "🧹 Cleaning all build artifacts..."
-    
+
     just clean-all
     just rust-clean
-    
+
     echo "✅ Full clean complete"
 
-[group('maint')]
 [doc('Fix file permissions in workspace')]
+[group('maint')]
 maint-fix-permissions:
     #!/usr/bin/env bash
     set -e
@@ -379,8 +364,8 @@ maint-fix-permissions:
     sudo chown -R $(whoami):$(whoami) /home/$(whoami)
     echo "✅ Permissions fixed"
 
-[group('maint')]
 [doc('Show disk usage by directory')]
+[group('maint')]
 maint-disk-usage:
     #!/usr/bin/env bash
     set -e

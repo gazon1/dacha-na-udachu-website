@@ -27,30 +27,42 @@ default:
 
 
 # ---- SETUP ----
-[doc("Install Python dev dependencies via uv")]
-[working-directory("/workspace/backend")]
-install:
-    uv sync --extra dev
-
-[doc("Install frontend Node dependencies (Next.js at /workspace/frontend/)")]
-[working-directory("/workspace/frontend")]
+[doc("Install Node dependencies (Payload CMS + Next.js at /workspace/)")]
+[working-directory("/workspace")]
 install-node:
-    npm ci
+    # `npm install` (not `npm ci`) so first run works without package-lock.json.
+    # Once lockfile exists in repo, switch to `npm ci` for reproducible builds.
+    npm install
 
-[doc("Full setup: Python + Node deps + frontend build")]
-setup: install install-node frontend-build
+[doc("Generate Payload TypeScript types from collections")]
+[working-directory("/workspace")]
+generate-types:
+    npm run generate:types
+
+[doc("Generate Payload admin importMap")]
+[working-directory("/workspace")]
+generate-importmap:
+    npm run generate:importmap
+
+[doc("Full setup: install + generate types + build")]
+setup: install-node generate-types build
 
 
-# ---- FRONTEND ----
-[doc("Build Next.js frontend (output: /workspace/frontend/.next/)")]
-[working-directory("/workspace/frontend")]
-frontend-build:
+# ---- APP (Payload CMS + Next.js — single process) ----
+[doc("Build production bundle (output: /workspace/.next/)")]
+[working-directory("/workspace")]
+build:
     npm run build
 
-[doc("Start Next.js dev server with hot reload")]
-[working-directory("/workspace/frontend")]
-frontend-dev:
-    BACKEND_URL=http://localhost:8001 npm run dev
+[doc("Start Next.js dev server with hot reload (Payload admin + frontend on http://localhost:3000)")]
+[working-directory("/workspace")]
+dev:
+    PAYLOAD_PUBLIC_SERVER_URL=http://localhost:3000 npm run dev
+
+[doc("Start Next.js production server (requires prior `just build`)")]
+[working-directory("/workspace")]
+start:
+    NODE_ENV=production PAYLOAD_PUBLIC_SERVER_URL=http://localhost:3000 npm run start
 
 
 # ---- LINT & FORMAT ----
@@ -115,26 +127,23 @@ runserver:
 
 
 # ---- LOCAL DEV ----
-[working-directory("/workspace/backend")]
-[doc("Full local dev startup: makemigrations + migrate + runserver (Next.js: just frontend-dev)")]
-dev: makemigrations migrate runserver
 
 
 # ---- DOCKER ----
-[doc("Validate docker-compose.prod.yml syntax")]
+[doc("Validate docker-compose.yml syntax")]
 docker-validate:
-    docker compose -f docker-compose.prod.yml config
+    docker compose -f docker-compose.yml config
 
-# [doc("Build production Docker image")]
-# docker-build:
-#     docker build -f Dockerfile.prod -t dacha-wagtail:latest .
+[doc("Build production Docker image (single image with Payload + Next.js)")]
+docker-build:
+    docker build -t dacha-payload:latest .
 
 [doc("Build and tag by commit SHA for immutable deployments")]
 docker-build-sha:
     #!/usr/bin/env bash
     set -e
     TAG=$(git rev-parse --short HEAD)
-    docker build -f Dockerfile.prod -t dacha-wagtail:$TAG .
+    docker build -t dacha-payload:$TAG .
 
 [doc("Push image to GHCR (requires GHCR_TOKEN env var)")]
 docker-push:

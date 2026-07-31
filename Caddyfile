@@ -1,18 +1,6 @@
-# =============================================================================
-# Caddy — single-domain reverse proxy for dacha.maxdrobin.ru
-# Runs in Docker; reaches `web` and `frontend` over the default compose bridge
-# network. DNS for dacha.maxdrobin.ru must already point to the host's public
-# IP before Caddy starts, otherwise ACME HTTP-01 will fail (Caddy will retry).
-# =============================================================================
-
 {
-    # Admin API: localhost only (default). Override via env if you need external reloads.
-    admin localhost:2019
-
-    # ACME email для Let's Encrypt (сертификаты)
     email drobin.me@yandex.ru
-
-    # JSON access logs to stdout (collected by `docker logs`).
+    admin localhost:2019
     log default {
         output stdout
         format json
@@ -20,22 +8,11 @@
     }
 }
 
-# ----- Public site + Wagtail admin (single domain, path-based routing) -----
+# Single domain — Payload admin and Next.js frontend share one origin
+# (same process). Everything routes to app:3000.
 dacha.maxdrobin.ru {
     encode gzip zstd
-
-    # Django / Wagtail internals → Django container
-    reverse_proxy /admin/*         http://web:8000
-    reverse_proxy /django-admin/*  http://web:8000
-    reverse_proxy /documents/*     http://web:8000
-    reverse_proxy /api/*           http://web:8000
-    reverse_proxy /api/v2/*        http://web:8000
-    reverse_proxy /static/*        http://web:8000
-    reverse_proxy /media/*         http://web:8000
-
-    # Everything else → Next.js (homepage, /houses, /news, /faq, /events,
-    # /events/[slug], /preview, /search, /booking, /[...slug])
-    reverse_proxy http://frontend:3000 {
+    reverse_proxy app:3000 {
         header_up Host {host}
         header_up X-Real-IP {remote_host}
     }
