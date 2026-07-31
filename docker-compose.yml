@@ -3,6 +3,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    # Tagged image so old versions can be pruned by tag. Default tag is
+    # `latest`; CI should pass `TAG=<commit-sha>` on each build.
+    image: dacha-app:${TAG:-latest}
     restart: always
     env_file: .env
     environment:
@@ -40,6 +43,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: dacha-app:${TAG:-latest}
     restart: "no"
     env_file: .env
     environment:
@@ -53,6 +57,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: dacha-app:${TAG:-latest}
     restart: "no"
     env_file: .env
     environment:
