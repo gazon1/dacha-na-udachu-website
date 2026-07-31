@@ -26,6 +26,20 @@ services:
     expose:
       - "${PORT}"
 
+  # One-shot DB migration — creates/updates tables to match the schema.
+  # Run on every deploy: idempotent, only applies pending migrations.
+  # Triggered manually: `docker compose --profile bootstrap run --rm migrate`
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: "no"
+    profiles: ["bootstrap"]
+    env_file: .env
+    environment:
+      - PAYLOAD_PUBLIC_SERVER_URL=https://${PUBLIC_HOST}
+    command: ["node_modules/.bin/payload", "migrate"]
+
   # One-shot bootstrap — creates the admin user on first deploy.
   # Safe to re-run: the seed script is idempotent (skips if admin exists).
   # Triggered manually: `docker compose --profile bootstrap run --rm seed`
@@ -38,9 +52,9 @@ services:
     env_file: .env
     environment:
       - PAYLOAD_PUBLIC_SERVER_URL=https://${PUBLIC_HOST}
-    # depends_on:
-      # db:
-        # condition: service_healthy
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     command: ["node_modules/.bin/payload", "seed"]
 
   # db:
