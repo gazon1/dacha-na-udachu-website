@@ -142,7 +142,11 @@ export async function fetchEvents(upcoming = true): Promise<Event[]> {
   try {
     return await api.get<Event[]>(
       `/api/events/?upcoming=${upcoming}`,
-      { next: { revalidate: 60 } }
+      {
+        // 5 min TTL safety net; primary invalidation via the webhook from
+        // /workspace/backend/dacha/signals.py → /api/revalidate.
+        next: { revalidate: 300, tags: ["wagtail:events"] },
+      }
     );
   } catch {
     return [];
@@ -152,7 +156,9 @@ export async function fetchEvents(upcoming = true): Promise<Event[]> {
 export async function fetchEvent(id: number): Promise<Event | null> {
   try {
     return await api.get<Event>(`/api/events/${id}/`, {
-      next: { revalidate: 60 },
+      // Tag both the broad events tag and the per-event tag so revalidation
+      // can target one event without nuking the whole list.
+      next: { revalidate: 300, tags: ["wagtail:events", `wagtail:event:${id}`] },
     });
   } catch {
     return null;

@@ -5,6 +5,13 @@ STATIC_ROOT = "/workspace/staticfiles"
 
 DEBUG = False
 
+# Allow the Wagtail admin to embed its own preview iframe.
+# wagtail_headless_preview does not override X-Frame-Options the way Wagtail's
+# built-in preview does, so without this the preview iframe is blocked by the
+# browser ("server error" inside the admin). SAMEORIGIN is sufficient now that
+# admin and frontend share a single domain (dacha.maxdrobin.ru).
+X_FRAME_OPTIONS = "SAMEORIGIN"
+
 # SECRET_KEY — must be set via environment in production
 SECRET_KEY = os.environ.get("SECRET_KEY")
 

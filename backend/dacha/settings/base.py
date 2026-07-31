@@ -310,3 +310,13 @@ WAGTAILDOCS_EXTENSIONS = ['csv', 'docx', 'key', 'odt', 'pdf', 'pptx', 'rtf', 'tx
 
 # Maximum upload size for documents in bytes.
 WAGTAILDOCS_MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
+
+# Frontend (Next.js) on-demand revalidation webhook.
+# When FRONTEND_REVALIDATE_URL or FRONTEND_REVALIDATE_SECRET is empty,
+# the Wagtail signal handlers in dacha/signals.py are no-ops — safe for
+# local dev where the frontend may be down or where caching is not desired.
+FRONTEND_REVALIDATE_URL = os.environ.get("FRONTEND_REVALIDATE_URL", "")
+FRONTEND_REVALIDATE_SECRET = os.environ.get("FRONTEND_REVALIDATE_SECRET", "")
+FRONTEND_REVALIDATE_TIMEOUT = float(
+    os.environ.get("FRONTEND_REVALIDATE_TIMEOUT", "2.0")
+)

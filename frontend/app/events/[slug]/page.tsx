@@ -15,7 +15,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   // Find event by slug — fetch events list
   const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  const events = await fetch(`${SITE_URL}/api/events/?upcoming=true`).then(r => r.json()).catch(() => []);
+  // Tag with "wagtail:events" so the on-demand revalidation webhook
+  // (/app/api/revalidate) can invalidate this cached fetch.
+  const events = await fetch(`${SITE_URL}/api/events/?upcoming=true`, {
+    next: { revalidate: 300, tags: ["wagtail:events"] },
+  }).then(r => r.json()).catch(() => []);
   const event = events.find((e: { slug: string }) => e.slug === slug);
   if (!event) return {};
   return {
@@ -32,7 +36,7 @@ export default async function EventPage({ params }: Props) {
   const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const events = await fetch(
     `${SITE_URL}/api/events/?upcoming=true`,
-    { next: { revalidate: 60 } }
+    { next: { revalidate: 300, tags: ["wagtail:events"] } }
   ).then(r => r.json()).catch(() => []);
   const event = events.find((e: { slug: string }) => e.slug === slug);
 

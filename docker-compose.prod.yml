@@ -18,14 +18,14 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.prod
-    #image: dacha-web:latest 
+    #image: dacha-web:latest
     restart: always
     environment:
       - DJANGO_SETTINGS_MODULE=dacha.settings.production
       - SECRET_KEY=${SECRET_KEY}
       - DEBUG=${DEBUG}
       # DEBUG_PROD=1 disables SECURE_SSL_REDIRECT for local plain-HTTP runs (no TLS terminator).
-      # Leave unset or set to 0 in Coolify — Caddy provides X-Forwarded-Proto: https.
+      # Leave unset or set to 0 in Coolify / prod — Caddy provides X-Forwarded-Proto: https.
       - DEBUG_PROD=${DEBUG_PROD}
       # Comma-separated. Must include the public hostname.
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
@@ -34,6 +34,13 @@ services:
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
       # Used to generate absolute URLs in Wagtail emails / preview links.
       - WAGTAILADMIN_BASE_URL=${WAGTAILADMIN_BASE_URL}
+      # Wagtail headless preview — URL the admin opens in its iframe.
+      - NEXT_PUBLIC_WAGTAIL_PREVIEW_URL=${NEXT_PUBLIC_WAGTAIL_PREVIEW_URL}
+      # --- On-demand revalidation webhook (Django → Next.js) ---
+      # See /workspace/backend/dacha/signals.py. Empty values → receivers are no-ops.
+      - FRONTEND_REVALIDATE_URL=${FRONTEND_REVALIDATE_URL}
+      - FRONTEND_REVALIDATE_SECRET=${FRONTEND_REVALIDATE_SECRET}
+      - FRONTEND_REVALIDATE_TIMEOUT=${FRONTEND_REVALIDATE_TIMEOUT:-2.0}
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -83,6 +90,9 @@ services:
       # Public — browser-baked at build time.
       - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
       - NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=${NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}
+      # --- On-demand revalidation (Next.js side; must match FRONTEND_REVALIDATE_SECRET) ---
+      # Read at request time by /app/api/revalidate/route.ts.
+      - REVALIDATE_SECRET=${REVALIDATE_SECRET}
     depends_on:
       web:
         condition: service_healthy
@@ -92,8 +102,31 @@ services:
       timeout: 10s
       retries: 3
 
+  # ----- TLS terminator + reverse proxy (replaces Coolify's external Caddy) -----
+  caddy:
+    image: caddy:2-alpine
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Persistent ACME account + issued certificates (don't lose these on
+      # container restart — avoids Let's Encrypt rate-limit risk).
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+
 volumes:
   media_data:
     name: dacha_media_v1
+  caddy_data:
+    name: dacha_caddy_data
+  caddy_config:
+    name: dacha_caddy_config
   # postgres_data:
     # name: dacha_postgres_v1

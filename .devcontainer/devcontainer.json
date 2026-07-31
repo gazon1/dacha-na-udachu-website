@@ -39,7 +39,8 @@
         "PKief.material-icon-theme",
         "zhuangtongfa.material-theme",
         "gitpocalypse.angeldoc-vscode",
-        "Anthropic.claude-code"
+        "Anthropic.claude-code",
+        "matthewpi.caddyfile-support"
       ],
       "settings": {
         // --- PYTHON & ИНТЕРПРЕТАТОР ---

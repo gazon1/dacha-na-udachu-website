@@ -29,7 +29,9 @@ export async function fetchPreviewDraft(
   const params = new URLSearchParams({ content_type: contentType, token });
   const res = await api.get<{ id: number; title: string; type: string; url: string }>(
     `/api/preview/draft/?${params}`,
-    { next: { revalidate: 0 } }
+    // Draft preview must always hit Wagtail — never cache an editor's
+    // unreleased state.
+    { cache: "no-store" }
   );
   return res ?? null;
 }
@@ -41,8 +43,11 @@ export async function resolvePage(
   try {
     return await api.get<{ id: number; type: string; url: string }>(
       `/api/pages/resolve/?html_path=${encodeURIComponent(path)}`,
-      // next.revalidate must NOT be set here — resolvePage is called from server
-      // components during SSR, not as a cached fetch
+      // CRITICAL: explicitly opt out of caching. Without this option, Next.js
+      // App Router's fetch() defaults to force-cache and this response would
+      // be cached forever (until redeploy), making the homepage and catch-all
+      // routes stale until restart. See README / plan notes.
+      { cache: "no-store" }
     );
   } catch {
     return null;
@@ -56,7 +61,13 @@ export async function fetchPage<T extends WagtailPage = WagtailPage>(
   // detailUrl is /api/v2/pages/N/ — prepend SITE_URL
   const url = detailUrl.startsWith("/") ? apiUrl(detailUrl) : detailUrl;
   try {
-    return await api.get<T>(url, { next: { revalidate: 60 } });
+    return await api.get<T>(url, {
+      // 5 min TTL as a safety net — primary invalidation path is the
+      // webhook from /workspace/backend/dacha/signals.py → /api/revalidate.
+      // Tag "wagtail" lets a generic revalidateTag("wagtail", …) wipe all
+      // page data in one call.
+      next: { revalidate: 300, tags: ["wagtail"] },
+    });
   } catch {
     return null;
   }
@@ -84,7 +95,10 @@ export async function fetchPagesByType<
   try {
     return await api.get<{ items: T[]; total: number }>(
       `/api/v2/pages/?${params}`,
-      { next: { revalidate: 60 } }
+      {
+        // See fetchPage — 5 min TTL safety net + "wagtail" tag for invalidation.
+        next: { revalidate: 300, tags: ["wagtail"] },
+      }
     );
   } catch {
     return null;
