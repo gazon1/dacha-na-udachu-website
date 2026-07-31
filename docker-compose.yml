@@ -9,9 +9,15 @@ services:
       # Derived from POSTGRES_* — kept in compose so password rotation
       # touches only .env, not the connection string.
       - PAYLOAD_PUBLIC_SERVER_URL=https://${PUBLIC_HOST}
-    # depends_on:
-      # db:
-        # condition: service_healthy
+    # Wait for the one-shot bootstrap services to finish before starting
+    # the app. migrate applies pending schema migrations, seed populates
+    # initial data + admin user. Both are idempotent so re-running on
+    # every `docker compose up` is safe.
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      seed:
+        condition: service_completed_successfully
     volumes:
       - media_data:/app/media
     # Override the Dockerfile default CMD so the runtime contract lives
@@ -27,28 +33,27 @@ services:
       - "${PORT}"
 
   # One-shot DB migration — creates/updates tables to match the schema.
-  # Run on every deploy: idempotent, only applies pending migrations.
-  # Triggered manually: `docker compose --profile bootstrap run --rm migrate`
+  # Idempotent: only applies pending migrations. Runs automatically on
+  # every `docker compose up` because `app` depends on it.
+  # Run manually for explicit control: `docker compose run --rm migrate`
   migrate:
     build:
       context: .
       dockerfile: Dockerfile
     restart: "no"
-    profiles: ["bootstrap"]
     env_file: .env
     environment:
       - PAYLOAD_PUBLIC_SERVER_URL=https://${PUBLIC_HOST}
     command: ["node_modules/.bin/payload", "migrate"]
 
-  # One-shot bootstrap — creates the admin user on first deploy.
-  # Safe to re-run: the seed script is idempotent (skips if admin exists).
-  # Triggered manually: `docker compose --profile bootstrap run --rm seed`
+  # One-shot bootstrap — creates the admin user + starter content.
+  # Safe to re-run (skips if records exist). Runs after migrate, then app.
+  # Run manually for explicit control: `docker compose run --rm seed`
   seed:
     build:
       context: .
       dockerfile: Dockerfile
     restart: "no"
-    profiles: ["bootstrap"]
     env_file: .env
     environment:
       - PAYLOAD_PUBLIC_SERVER_URL=https://${PUBLIC_HOST}
