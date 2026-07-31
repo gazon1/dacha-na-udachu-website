@@ -1,17 +1,20 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 
 /**
  * Telegram Login Widget button.
  *
- * Loads the official Telegram widget script and renders a Login Widget that
- * posts the verified payload to /api/users/telegram-login.
+ * Flow:
+ *  1. Load the official Telegram widget script.
+ *  2. On auth callback, POST the verified payload to
+ *     /api/users/telegram-login → receive a base64 token + user info.
+ *  3. POST { strategy: 'telegram', token } to /api/users/login — Payload's
+ *     custom auth strategy (collections/strategies/telegram.ts) re-verifies
+ *     the hash and returns the User, then Payload sets the auth cookie.
+ *  4. Reload the page so server-rendered components see the session.
  *
- * Requires:
- * - NEXT_PUBLIC_TELEGRAM_BOT_NAME env var (bot username without @)
- * - TelegramLoginButton.tsx is mounted on a page that has access to the
- *   server actions (not from a Server Component static export).
+ * Requires NEXT_PUBLIC_TELEGRAM_BOT_NAME env var (bot username without @).
  */
 declare global {
   interface Window {
@@ -23,13 +26,12 @@ declare global {
         ) => void
       }
     }
+    onTelegramAuth?: (user: Record<string, string>) => void
   }
 }
 
 export function TelegramLoginButton() {
-  const [botName] = useState(
-    () => process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME || '',
-  )
+  const botName = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME || ''
 
   useEffect(() => {
     if (!botName) return
@@ -41,11 +43,10 @@ export function TelegramLoginButton() {
     script.setAttribute('data-radius', '8')
     script.setAttribute('data-onauth', 'onTelegramAuth(user)')
     document.body.appendChild(script)
-    // Expose the global callback for the Telegram widget to call.
-    ;(window as unknown as { onTelegramAuth: (u: Record<string, string>) => void }).onTelegramAuth =
-      submitToBackend
+    window.onTelegramAuth = submitToBackend
     return () => {
       document.body.removeChild(script)
+      delete window.onTelegramAuth
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [botName])
@@ -77,17 +78,37 @@ function openTelegramWidget(botName: string) {
 
 async function submitToBackend(data: Record<string, string>) {
   try {
-    const res = await fetch('/api/users/telegram-login', {
+    // Step 1: POST verified payload to /telegram-login to get a base64 token.
+    const loginRes = await fetch('/api/users/telegram-login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     })
-    if (!res.ok) {
-      console.error('Telegram login failed', await res.text())
+    if (!loginRes.ok) {
+      console.error('Telegram login failed', await loginRes.text())
       return
     }
-    // After login, refresh the page so server-rendered components see the
-    // new session cookie.
+    const { token } = await loginRes.json()
+    if (!token) {
+      console.error('No token returned from /telegram-login')
+      return
+    }
+
+    // Step 2: POST { strategy: 'telegram', token } to /api/users/login.
+    // Payload invokes our custom telegramStrategy.authenticate, which re-verifies
+    // the hash, then sets the auth cookie.
+    const sessionRes = await fetch('/api/users/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ strategy: 'telegram', token }),
+    })
+    if (!sessionRes.ok) {
+      console.error('Payload login failed', await sessionRes.text())
+      return
+    }
+
+    // Refresh server components so they see the new session.
     if (typeof window !== 'undefined') window.location.reload()
   } catch (err) {
     console.error('Telegram login network error', err)

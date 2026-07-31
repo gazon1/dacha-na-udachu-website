@@ -1,17 +1,22 @@
 import type { CollectionConfig } from 'payload'
+import crypto from 'node:crypto'
 import { verifyTelegramAuth } from '../lib/telegram-verify'
 import { isAdmin, isAdminOrSelf } from '../lib/access'
+import { telegramStrategy, encodeTelegramToken } from './strategies/telegram'
 
 /**
  * Users collection — Telegram-authenticated users.
  *
  * Replaces core.UserAccount from Django.
  *
- * Auth strategy: uses standard Payload auth (email + password) BUT we generate
- * a synthetic email (`telegram_<id>@dacha.local`) and random password for
- * each user, so Payload's built-in auth flow works without changes. The
- * `telegram-login` endpoint handles the Telegram widget flow and calls
- * Payload's login() to set the auth cookie.
+ * Auth flow:
+ *  1. Client posts Telegram widget payload to /api/users/telegram-login.
+ *  2. Endpoint verifies the hash, finds or creates a User, returns a
+ *     base64-encoded JSON token (the original Telegram payload).
+ *  3. Client posts { strategy: 'telegram', token } to /api/users/login.
+ *  4. Payload invokes `telegramStrategy.authenticate`, which re-verifies
+ *     the hash and returns the User.
+ *  5. Payload sets the auth cookie.
  */
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -23,6 +28,8 @@ export const Users: CollectionConfig = {
     },
     maxLoginAttempts: 7,
     lockTime: 10 * 60 * 1000, // 10 min
+    // Custom auth strategy — reads Telegram auth header.
+    strategies: [telegramStrategy],
   },
   admin: {
     useAsTitle: 'telegramId',
@@ -63,7 +70,8 @@ export const Users: CollectionConfig = {
           return Response.json({ error: result.reason }, { status: 401 })
         }
 
-        const { id, first_name, last_name, username, photo_url, auth_date } = body
+        const { id, first_name, last_name, username, photo_url, auth_date } =
+          body
         const telegramId = String(id)
 
         // Find or create user
@@ -95,16 +103,12 @@ export const Users: CollectionConfig = {
           })
         }
 
-        // TODO: issue session cookie. Options:
-        //   (a) Use payload.login() with a one-time token system.
-        //   (b) Use payload.auth() to manually generate a JWT and set it as
-        //       a cookie via Set-Cookie header on the response.
-        //   (c) Set up a custom auth strategy in payload.config.ts that
-        //       accepts a Telegram-issued one-time token.
-        // For now we return user info and let the frontend use the standard
-        // /api/users/login endpoint with a known password.
+        // Encode the verified payload as a base64 token — the standard
+        // /api/users/login endpoint will pass it to telegramStrategy.
+        const token = encodeTelegramToken(body)
 
         return Response.json({
+          token,
           user: {
             id: user.id,
             telegramId: user.telegramId,
@@ -118,6 +122,7 @@ export const Users: CollectionConfig = {
       },
     },
     {
+      // /me — returns the currently authenticated user (set by Payload).
       path: '/me',
       method: 'get',
       handler: async (req) => {
@@ -125,27 +130,15 @@ export const Users: CollectionConfig = {
         if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 })
         return Response.json({
           id: user.id,
-          telegramId: user.telegramId,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          telegramUsername: user.telegramUsername,
-          telegramPhotoUrl: user.telegramPhotoUrl,
-          role: user.role,
+          telegramId: (user as { telegramId?: string }).telegramId,
+          firstName: (user as { firstName?: string }).firstName,
+          lastName: (user as { lastName?: string }).lastName,
+          telegramUsername: (user as { telegramUsername?: string })
+            .telegramUsername,
+          telegramPhotoUrl: (user as { telegramPhotoUrl?: string })
+            .telegramPhotoUrl,
+          role: (user as { role?: string }).role,
         })
-      },
-    },
-    {
-      path: '/logout',
-      method: 'post',
-      handler: async () => {
-        // Cookie-based logout: tell client to clear the cookie.
-        // (Real session invalidation requires a custom strategy — TODO.)
-        const res = Response.json({ ok: true })
-        res.headers.append(
-          'Set-Cookie',
-          'payload-token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'
-        )
-        return res
       },
     },
   ],
