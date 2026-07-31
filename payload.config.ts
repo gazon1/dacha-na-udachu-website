@@ -67,6 +67,12 @@ export default buildConfig({
     transactionOptions: { isolationLevel: 'read committed' },
   }),
 
+  // --- Bin scripts ---
+  // Run via `pnpm seed` (script registered in package.json).
+  bin: [
+    { key: 'seed', scriptPath: path.resolve(dirname, 'scripts/seed.ts') },
+  ],
+
   // --- Editor ---
   editor: lexicalEditor(),
 

@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "payload": "payload",
+    "seed": "payload seed",
     "generate:types": "payload generate:types",
     "generate:importmap": "payload generate:importmap"
   },
