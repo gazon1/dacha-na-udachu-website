@@ -9,6 +9,9 @@
     # Admin API: localhost only (default). Override via env if you need external reloads.
     admin localhost:2019
 
+    # ACME email для Let's Encrypt (сертификаты)
+    email drobin.me@yandex.ru
+
     # JSON access logs to stdout (collected by `docker logs`).
     log default {
         output stdout
@@ -36,10 +39,4 @@ dacha.maxdrobin.ru {
         header_up Host {host}
         header_up X-Real-IP {remote_host}
     }
-}
-
-# ----- Backwards-compat redirect: old admin subdomain -----
-# Любые старые закладки вида jellyfin.maxdrobin.ru/admin/... ведут на новый путь.
-jellyfin.maxdrobin.ru {
-    redir https://dacha.maxdrobin.ru/admin{uri} permanent
 }
