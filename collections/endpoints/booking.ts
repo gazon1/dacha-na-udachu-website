@@ -69,13 +69,15 @@ export const bookingEndpoints: Endpoint[] = [
         parsed.data
 
       // Resolve house by slug or id.
-      const filter =
-        typeof house === 'number'
-          ? { id: { equals: house } }
-          : { slug: { equals: String(house) } }
+      const isId = typeof house === 'number'
       const houseRes = await req.payload.find({
         collection: 'houses',
-        where: { ...filter, bookingEnabled: { equals: true } },
+        where: {
+          and: [
+            isId ? { id: { equals: house } } : { slug: { equals: String(house) } },
+            { bookingEnabled: { equals: true } },
+          ],
+        },
         limit: 1,
         depth: 0,
       })
@@ -179,13 +181,12 @@ export const bookingEndpoints: Endpoint[] = [
         )
       }
       const { house, checkIn, checkOut, options } = parsed.data
-      const filter =
-        typeof house === 'number'
-          ? { id: { equals: house } }
-          : { slug: { equals: String(house) } }
+      const isId = typeof house === 'number'
       const houseRes = await req.payload.find({
         collection: 'houses',
-        where: filter,
+        where: isId
+          ? { id: { equals: house } }
+          : { slug: { equals: String(house) } },
         limit: 1,
         depth: 0,
       })
@@ -248,13 +249,12 @@ export const bookingEndpoints: Endpoint[] = [
         )
       }
       const { house, checkIn, checkOut } = parsed.data
-      const filter =
-        typeof house === 'number'
-          ? { id: { equals: house } }
-          : { slug: { equals: String(house) } }
+      const isId = typeof house === 'number'
       const houseRes = await req.payload.find({
         collection: 'houses',
-        where: filter,
+        where: isId
+          ? { id: { equals: house } }
+          : { slug: { equals: String(house) } },
         limit: 1,
         depth: 0,
       })
