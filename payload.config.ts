@@ -17,6 +17,7 @@ import { Media } from "./collections/Media";
 import { News } from "./collections/News";
 import { NewsletterSignups } from "./collections/NewsletterSignups";
 import { RidePassengers } from "./collections/RidePassengers";
+import { SiteSettings } from "./collections/SiteSettings";
 import { TaxiPassengers } from "./collections/TaxiPassengers";
 import { TaxiPools } from "./collections/TaxiPools";
 import { Users } from "./collections/Users";
@@ -119,6 +120,9 @@ export default buildConfig({
     NewsletterSignups,
     ExtraServices,
   ],
+
+  // --- Globals ---
+  globals: [SiteSettings],
 
   // --- TypeScript ---
   typescript: {

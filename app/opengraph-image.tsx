@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
-export const alt = 'Evergreen Community'
+export const alt = 'Дача на удачу'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -47,9 +47,9 @@ export default async function Image() {
             marginBottom: 32,
           }}
         >
-          Evergreen
+          Дача
           <br />
-          Community
+          на удачу
         </div>
         <div
           style={{

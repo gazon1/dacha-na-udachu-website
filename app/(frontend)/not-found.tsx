@@ -1,7 +1,9 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import { defaultMetadata } from '@/lib/metadata'
 
 export const metadata: Metadata = {
+  ...defaultMetadata,
   title: '404 — Страница не найдена',
 }
 

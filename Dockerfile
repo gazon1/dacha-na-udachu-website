@@ -6,7 +6,7 @@ WORKDIR /app
 # Install OS deps for sharp + pg client
 RUN apt-get update --yes --quiet && apt-get install --yes --quiet --no-install-recommends \
     python3 make g++ \
- && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
 # Install npm packages (cached layer)
 COPY package*.json ./
@@ -16,33 +16,52 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
+# Cleanup — strip everything the runtime image does not need.
+# Done in the builder so the runtime stage can use a single `COPY`.
+# `scripts/` is kept so the `seed` one-shot service in docker-compose can
+# call `pnpm seed` on deploy.
+RUN rm -rf \
+        .git \
+        .claude \
+        .next/cache \
+        .vscode \
+        .idea \
+        backend \
+        media \
+        src \
+        tests \
+        tmp \
+        Dockerfile* \
+        docker-compose*.yml \
+        docker-compose*.yaml \
+        .dockerignore \
+        Caddyfile \
+        justfile \
+        pytest.ini \
+        *.md
+
 # ---- Runtime stage ----
 FROM node:20-bookworm-slim AS runner
 WORKDIR /app
 
-ENV NODE_ENV=production
-ENV PORT=3000
+# Configurable at build time: `docker build --build-arg PORT=8080 .`
+ARG NODE_ENV=production
+ARG PORT=3000
+ENV NODE_ENV=${NODE_ENV}
+ENV PORT=${PORT}
 
 # Sharp runtime deps
 RUN apt-get update --yes --quiet && apt-get install --yes --quiet --no-install-recommends \
-    python3 \
- && rm -rf /var/lib/apt/lists/*
-
-# Copy built artifacts
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/payload.config.ts ./payload.config.ts
-COPY --from=builder /app/next.config.mjs ./next.config.mjs
-COPY --from=builder /app/tsconfig.json ./tsconfig.json
-COPY --from=builder /app/healthcheck.js ./healthcheck.js
+    python3 curl \
+    && rm -rf /var/lib/apt/lists/*
 
 # Runtime dirs
 RUN mkdir -p /app/media && chown -R node:node /app
 
+# Single COPY — builder stage already removed everything we don't need.
+COPY --from=builder /app ./
+
 USER node
 
-EXPOSE 3000
-
-CMD ["node_modules/next/dist/bin/next", "start"]
+# Port and command are managed in docker-compose.yml.
+# Defaults here for `docker run` outside compose.

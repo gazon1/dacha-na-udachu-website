@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { getPayloadClient } from '@/lib/payload'
 import { BlockRenderer } from '@/lib/blocks-registry'
+import { EventCard, type EventCardData } from '@/components/event/EventCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,7 +40,7 @@ export default async function HomePage() {
       <section className="hero min-h-[60vh] bg-gradient-to-br from-primary/30 to-base-200 flex items-center">
         <div className="max-w-6xl mx-auto px-4 py-20">
           <h1 className="text-5xl font-bold text-white mb-4">
-            Evergreen Community — загородный клуб
+            Дача на удачу — загородный клуб
           </h1>
           <p className="text-xl text-base-content/80 mb-8">
             Уютное пространство для встреч, мероприятий и отдыха
@@ -70,15 +71,35 @@ export default async function HomePage() {
       {/* Events preview */}
       <section className="max-w-6xl mx-auto px-4 py-12">
         <h2 className="text-3xl font-bold mb-6">Ближайшие события</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {events.docs.map((e: any) => (
-            <a key={e.id} href={`/events/${e.slug}`} className="glass-card p-4">
-              <p className="text-sm text-base-content/50">{e.startDate?.slice(0, 10)}</p>
-              <h3 className="text-xl font-bold mt-1">{e.title}</h3>
-              <p className="text-sm">{e.venue}</p>
-            </a>
-          ))}
-        </div>
+        {events.docs.length === 0 ? (
+          <p className="text-base-content/60">Скоро здесь появятся события.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {events.docs.map((e) => {
+              const doc = e as {
+                id: string | number
+                slug: string
+                title: string
+                startDate?: string
+                startTime?: string
+                venue?: string
+                summary?: string
+                heroImage?: EventCardData['heroImage']
+              }
+              const card: EventCardData = {
+                id: doc.id,
+                slug: doc.slug,
+                title: doc.title,
+                startDate: doc.startDate,
+                startTime: doc.startTime,
+                venue: doc.venue,
+                summary: doc.summary,
+                heroImage: doc.heroImage,
+              }
+              return <EventCard key={card.id} event={card} variant="compact" />
+            })}
+          </div>
+        )}
       </section>
 
       {/* FAQ */}

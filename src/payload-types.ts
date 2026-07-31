@@ -113,8 +113,12 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'site-settings': SiteSetting;
+  };
+  globalsSelect: {
+    'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
@@ -1237,6 +1241,86 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * Бренд, контакты, соцсети — применяется на всём сайте.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings".
+ */
+export interface SiteSetting {
+  id: number;
+  brand: {
+    /**
+     * Название бренда — отображается в Header и Footer.
+     */
+    name: string;
+    tagline?: string | null;
+    copyright?: string | null;
+  };
+  contacts?: {
+    email?: string | null;
+    phone?: string | null;
+    address?: string | null;
+  };
+  /**
+   * Иконка: либо Material Symbols name (например "send"), либо путь к /public/...
+   */
+  socialLinks?:
+    | {
+        /**
+         * aria-label и подсказка при наведении.
+         */
+        label: string;
+        /**
+         * Полный URL, например https://t.me/handle
+         */
+        url: string;
+        /**
+         * Имя Material Symbols (например send, share)
+         */
+        icon?: string | null;
+        /**
+         * Путь от корня /public (например /icons/vk.svg). Приоритет над icon.
+         */
+        img?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings_select".
+ */
+export interface SiteSettingsSelect<T extends boolean = true> {
+  brand?:
+    | T
+    | {
+        name?: T;
+        tagline?: T;
+        copyright?: T;
+      };
+  contacts?:
+    | T
+    | {
+        email?: T;
+        phone?: T;
+        address?: T;
+      };
+  socialLinks?:
+    | T
+    | {
+        label?: T;
+        url?: T;
+        icon?: T;
+        img?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

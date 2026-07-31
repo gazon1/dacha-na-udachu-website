@@ -16,6 +16,9 @@ const SubmitSchema = z.object({
 
 const CancelSchema = z.object({
   status: z.enum(['not_going', 'going', 'maybe', 'waiting']).default('not_going'),
+  // Optional fields — when sent, the existing RSVP is updated in place.
+  name: z.string().min(1).max(100).optional(),
+  guestsCount: z.number().int().min(1).max(50).optional(),
 })
 
 function randomUUID(): string {
@@ -140,7 +143,13 @@ export const eventsRsvpEndpoints: Endpoint[] = [
         collection: 'event-rsvps',
         id: rsvp.docs[0].id,
         req,
-        data: { status: parsed.data.status },
+        data: {
+          status: parsed.data.status,
+          ...(parsed.data.name != null ? { name: parsed.data.name } : {}),
+          ...(parsed.data.guestsCount != null
+            ? { guestsCount: parsed.data.guestsCount }
+            : {}),
+        },
       })
       return Response.json({ ok: true, rsvp: updated })
     },

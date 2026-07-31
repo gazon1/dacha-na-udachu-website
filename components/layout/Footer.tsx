@@ -8,31 +8,36 @@ const NAV = [
   { href: '/booking', label: 'Бронирование' },
 ] as const
 
-const SOCIAL = [
-  { label: 'Telegram', href: 'https://t.me/evergreen', icon: 'send' },
-  {
-    label: 'Instagram',
-    href: 'https://instagram.com/evergreen',
-    icon: 'photo_camera',
-  },
-] as const
+export type FooterSettings = {
+  brandName: string
+  tagline: string
+  copyright: string
+  email?: string | null
+  phone?: string | null
+  socialLinks: { label: string; url: string; icon?: string | null; img?: string | null }[]
+}
+
+type Props = {
+  settings: FooterSettings
+}
 
 /**
  * Footer with 4-column layout: brand, navigation, social, copyright.
+ * All copy comes from the SiteSettings global — admin-editable via
+ * /admin/globals/site-settings.
  */
-export function Footer() {
+export function Footer({ settings }: Props) {
   const year = new Date().getFullYear()
+  const { brandName, tagline, copyright, email, phone, socialLinks } = settings
   return (
     <footer className="border-t border-base-300/50 bg-base-200 mt-20">
       <div className="container-narrow py-12 grid gap-10 md:grid-cols-4">
         {/* Brand */}
         <div className="space-y-3">
           <Link href="/" className="font-serif text-xl font-bold">
-            Evergreen
+            {brandName}
           </Link>
-          <p className="text-sm text-base-content/60">
-            Уютное пространство для встреч, мероприятий и отдыха.
-          </p>
+          <p className="text-sm text-base-content/60">{tagline}</p>
         </div>
 
         {/* Navigation */}
@@ -60,45 +65,61 @@ export function Footer() {
             Контакты
           </h3>
           <ul className="space-y-2 text-sm text-base-content/60">
-            <li>
-              <a href="mailto:hello@evergreen.local" className="hover:text-primary">
-                hello@evergreen.local
-              </a>
-            </li>
-            <li>
-              <a href="tel:+74950000000" className="hover:text-primary">
-                +7 (495) 000-00-00
-              </a>
-            </li>
+            {email && (
+              <li>
+                <a href={`mailto:${email}`} className="hover:text-primary">
+                  {email}
+                </a>
+              </li>
+            )}
+            {phone && (
+              <li>
+                <a href={`tel:${phone.replace(/\D/g, '')}`} className="hover:text-primary">
+                  {phone}
+                </a>
+              </li>
+            )}
           </ul>
         </div>
 
         {/* Social */}
-        <div>
-          <h3 className="font-semibold text-sm uppercase tracking-wider text-base-content/80 mb-3">
-            Соцсети
-          </h3>
-          <ul className="flex gap-2">
-            {SOCIAL.map((s) => (
-              <li key={s.label}>
-                <a
-                  href={s.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-ghost btn-square btn-sm"
-                  aria-label={s.label}
-                >
-                  <span className="material-symbols-outlined">{s.icon}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {socialLinks.length > 0 && (
+          <div>
+            <h3 className="font-semibold text-sm uppercase tracking-wider text-base-content/80 mb-3">
+              Соцсети
+            </h3>
+            <ul className="flex gap-2">
+              {socialLinks.map((s) => (
+                <li key={s.label}>
+                  <a
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-ghost btn-square btn-sm"
+                    aria-label={s.label}
+                  >
+                    {s.img ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={s.img}
+                        alt=""
+                        className="w-5 h-5"
+                        style={{ filter: 'brightness(0) invert(1)' }}
+                      />
+                    ) : s.icon ? (
+                      <span className="material-symbols-outlined">{s.icon}</span>
+                    ) : null}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       <div className="border-t border-base-300/50 py-4">
         <div className="container-narrow text-xs text-base-content/40 flex flex-col md:flex-row md:justify-between gap-2">
-          <p>© {year} Evergreen Community. Все права защищены.</p>
+          <p>© {year} {copyright}</p>
           <p>
             Built with{' '}
             <a

@@ -3,6 +3,7 @@ import crypto from 'node:crypto'
 import { verifyTelegramAuth } from '../lib/telegram-verify'
 import { isAdmin, isAdminOrSelf } from '../lib/access'
 import { telegramStrategy, encodeTelegramToken } from './strategies/telegram'
+import { jwtStrategy } from './strategies/jwt'
 
 /**
  * Users collection — Telegram-authenticated users.
@@ -29,7 +30,9 @@ export const Users: CollectionConfig = {
     maxLoginAttempts: 7,
     lockTime: 10 * 60 * 1000, // 10 min
     // Custom auth strategy — reads Telegram auth header.
-    strategies: [telegramStrategy],
+    // JWT strategy is listed first so cookie-based session verification
+    // (the default after login) keeps working alongside Telegram.
+    strategies: [jwtStrategy, telegramStrategy],
   },
   admin: {
     useAsTitle: 'telegramId',

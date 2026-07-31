@@ -9,11 +9,15 @@ const NAV_ITEMS = [
   { href: '/booking', label: 'Бронирование' },
 ] as const
 
+type Props = {
+  brandName: string
+}
+
 /**
  * Site header with mobile drawer + Telegram login.
- * Server Component — no 'use client' needed for the layout itself.
+ * Server Component — `brandName` comes from the SiteSettings global.
  */
-export function Header() {
+export function Header({ brandName }: Props) {
   return (
     <header className="sticky top-0 z-30 border-b border-base-300/50 bg-base-100/80 backdrop-blur-lg">
       <div className="container-narrow flex items-center justify-between h-16">
@@ -21,7 +25,7 @@ export function Header() {
           href="/"
           className="font-serif text-xl font-bold tracking-tight hover:text-primary transition-colors"
         >
-          Evergreen
+          {brandName}
         </Link>
 
         {/* Desktop nav */}
@@ -64,7 +68,7 @@ export function Header() {
                   href="/"
                   className="font-serif text-2xl font-bold block mb-6"
                 >
-                  Evergreen
+                  {brandName}
                 </Link>
                 <nav className="flex flex-col gap-2">
                   {NAV_ITEMS.map((item) => (

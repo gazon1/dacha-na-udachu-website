@@ -110,7 +110,7 @@ export const script = async (config: SanitizedConfig) => {
           'Уютный деревянный дом на 6 гостей с камином, панорамными окнами и выходом к реке.',
         capacity: 6,
         bedrooms: 3,
-        address: 'Московская область, д. Evergreen',
+        address: 'Московская область, д. Дача на удачу',
         basePrice: 8000,
         bookingEnabled: true,
         body: [],

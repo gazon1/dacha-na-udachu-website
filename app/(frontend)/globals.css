@@ -2,15 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Material Symbols — outline variant, no JS font-loading delay */
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap');
-
 :root {
   --bg-base-100: #0a0a0a;
   --bg-base-200: #1a1a1a;
   --bg-base-300: #2a2a2a;
   --text-primary: #ffffff;
   --color-primary: #d4a574;
+}
+
+/* Material Symbols Outlined — local woff2, no CDN dependency.
+   The font uses ligatures: typing `directions_car` inside a node with
+   this class renders as the car icon. font-feature-settings / variation
+   settings are required to enable the outlined look + the right weight. */
+@font-face {
+  font-family: 'Material Symbols Outlined';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/material-symbols-outlined.woff2') format('woff2');
 }
 
 @layer base {
@@ -28,9 +37,25 @@
     font-family: var(--font-playfair), Georgia, serif;
     letter-spacing: -0.01em;
   }
+}
 
-  /* Material Symbols base */
+@layer components {
+  /* Material Symbols — base class. Required for ligatures to render. */
   .material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    font-feature-settings: 'liga';
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
     font-variation-settings:
       'FILL' 0,
       'wght' 400,
@@ -38,9 +63,7 @@
       'opsz' 24;
     user-select: none;
   }
-}
 
-@layer components {
   .glass-card {
     @apply bg-base-200/60 backdrop-blur border border-base-300/50 rounded-2xl;
   }

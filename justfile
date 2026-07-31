@@ -52,7 +52,7 @@ setup: install-node generate-types build
 [doc("Build production bundle (output: /workspace/.next/)")]
 [working-directory("/workspace")]
 build:
-    npm run build
+    NEXT_TELEMETRY_DISABLED=1 npx next build --debug
 
 [doc("Start Next.js dev server with hot reload (Payload admin + frontend on http://localhost:3000)")]
 [working-directory("/workspace")]

@@ -4,26 +4,19 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: always
+    env_file: .env
     environment:
-      - DATABASE_URI=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      - PAYLOAD_SECRET=${PAYLOAD_SECRET}
+      # Derived from POSTGRES_* — kept in compose so password rotation
+      # touches only .env, not the connection string.
       - PAYLOAD_PUBLIC_SERVER_URL=https://${PUBLIC_HOST}
-      - NODE_ENV=production
-      - PORT=3000
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME}
-      - NEXT_PUBLIC_SITE_URL=https://${PUBLIC_HOST}
-      - NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME}
-      - SMTP_HOST=${SMTP_HOST}
-      - SMTP_PORT=${SMTP_PORT}
-      - SMTP_USER=${SMTP_USER}
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
-      - EMAIL_FROM=${EMAIL_FROM}
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - media_data:/app/media
+    # Override the Dockerfile default CMD so the runtime contract lives
+    # next to the env vars that drive it (PORT).
+    command: ["node_modules/next/dist/bin/next", "start"]
     healthcheck:
       test: ["CMD", "node", "healthcheck.js"]
       interval: 15s
@@ -31,26 +24,39 @@ services:
       retries: 5
       start_period: 180s
     expose:
-      - "3000"
+      - "${PORT}"
 
-  db:
-    image: postgres:16-alpine
-    restart: always
+  # One-shot bootstrap — creates the admin user on first deploy.
+  # Safe to re-run: the seed script is idempotent (skips if admin exists).
+  # Triggered manually: `docker compose --profile bootstrap run --rm seed`
+  seed:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: "no"
+    profiles: ["bootstrap"]
+    env_file: .env
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - PAYLOAD_PUBLIC_SERVER_URL=https://${PUBLIC_HOST}
+    # depends_on:
+      # db:
+        # condition: service_healthy
+    command: ["node_modules/.bin/payload", "seed"]
+
+  # db:
+  #   image: postgres:16-alpine
+  #   restart: always
+  #   env_file: .env
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
 
   caddy:
     image: caddy:2-alpine
     restart: always
+    env_file: .env
     ports:
       - "80:80"
       - "443:443"
@@ -63,8 +69,8 @@ services:
         condition: service_started
 
 volumes:
-  postgres_data:
-    name: dacha_postgres_v2
+  # postgres_data:
+    # name: dacha_postgres_v2
   media_data:
     name: dacha_media_v2
   caddy_data:
