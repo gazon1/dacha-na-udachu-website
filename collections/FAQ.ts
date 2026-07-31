@@ -23,7 +23,12 @@ export const FAQ: CollectionConfig = {
   hooks: {
     afterChange: [
       () => {
-        revalidatePath('/faq')
+        // Deferred via setImmediate so revalidatePath runs in the next event-loop
+        // tick (after the current render finishes), not synchronously during admin
+        // render — Next.js 15 forbids revalidatePath during render.
+        setImmediate(() => {
+          revalidatePath('/faq')
+        })
       },
     ],
   },

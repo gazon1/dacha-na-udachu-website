@@ -30,14 +30,21 @@ export const Houses: CollectionConfig = {
     afterChange: [
       ({ doc }) => {
         // Trigger Next.js revalidation for the list + detail pages.
-        revalidatePath('/houses')
-        revalidatePath(`/houses/${doc.slug}`)
+        // Deferred via setImmediate so revalidatePath runs in the next event-loop
+        // tick (after the current render finishes), not synchronously during admin
+        // render — Next.js 15 forbids revalidatePath during render.
+        setImmediate(() => {
+          revalidatePath('/houses')
+          revalidatePath(`/houses/${doc.slug}`)
+        })
       },
     ],
     afterDelete: [
       ({ doc }) => {
-        revalidatePath('/houses')
-        revalidatePath(`/houses/${doc.slug}`)
+        setImmediate(() => {
+          revalidatePath('/houses')
+          revalidatePath(`/houses/${doc.slug}`)
+        })
       },
     ],
   },
