@@ -1,8 +1,6 @@
 import type { CollectionConfig } from 'payload'
-import { revalidatePath } from 'next/cache'
-import { after } from 'next/server'
-
 import { adminOrPublished, isAdmin } from '../lib/access'
+import { revalidateAfter } from '../lib/revalidate'
 import { HeadingBlock, ParagraphBlock, ImageBlock } from './blocks'
 
 /**
@@ -58,23 +56,14 @@ export const Houses: CollectionConfig = {
   hooks: {
     afterChange: [
       ({ doc }) => {
-        // Trigger Next.js revalidation for the list + detail pages.
-        // `unstable_after` runs after the current request response is sent,
-        // so revalidatePath is never called during render — Next.js 15
-        // forbids revalidatePath during render. setImmediate() is NOT enough
-        // because Next.js still tracks render context across the event-loop tick.
-        after(() => {
-          revalidatePath('/houses')
-          revalidatePath(`/houses/${doc.slug}`)
-        })
+        revalidateAfter('/houses')
+        revalidateAfter(`/houses/${doc.slug}`)
       },
     ],
     afterDelete: [
       ({ doc }) => {
-        after(() => {
-          revalidatePath('/houses')
-          revalidatePath(`/houses/${doc.slug}`)
-        })
+        revalidateAfter('/houses')
+        revalidateAfter(`/houses/${doc.slug}`)
       },
     ],
   },
