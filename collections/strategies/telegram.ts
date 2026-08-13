@@ -1,32 +1,34 @@
 import type { AuthStrategy } from 'payload'
 import crypto from 'node:crypto'
 import { verifyTelegramAuth } from '../../lib/telegram-verify'
+import { readTelegramSessionToken } from '../../lib/telegram-cookie'
 
 /**
  * Telegram Login Widget auth strategy.
  *
- * Flow:
- *  1. Client posts the verified Telegram payload to
- *     /api/users/telegram-login.
- *  2. That endpoint re-verifies the payload, finds or creates a User,
- *     and returns a base64-encoded JSON `token` (the original payload).
- *  3. Client posts `{ strategy: 'telegram', token }` to the standard
- *     /api/users/login endpoint.
- *  4. Payload calls THIS strategy's `authenticate` with the `Authorization`
- *     header set to `Telegram <token>`.
- *  5. We re-verify the hash, find the user by telegramId, and return them.
+ * Two ways to authenticate:
+ *  1. **Authorization header** `Telegram <base64-payload>` — used by the
+ *     standard /api/users/login endpoint for programmatic auth.
+ *  2. **`telegram-session` cookie** — set by the /api/users/telegram-login
+ *     endpoint and read on every subsequent request. This is the path the
+ *     browser uses after a real Telegram login.
  *
- * Why a separate strategy? Standard email/password login doesn't work for
- * users who don't have an email — Telegram users have a synthetic
- * `telegram_<id>@dacha.local` email. The strategy lets us avoid
- * storing / comparing any password.
+ * In both cases we re-verify the Telegram HMAC (never trust the client),
+ * look up the user by `telegramId`, and return them. `payload-token` is
+ * never set by this strategy — admin and Telegram sessions stay independent.
  */
 export const telegramStrategy: AuthStrategy = {
   name: 'telegram',
   authenticate: async ({ payload, headers }) => {
+    let token: string | null = null
+
     const auth = headers.get('authorization')
-    if (!auth || !auth.startsWith('Telegram ')) return { user: null }
-    const token = auth.slice('Telegram '.length).trim()
+    if (auth && auth.startsWith('Telegram ')) {
+      token = auth.slice('Telegram '.length).trim()
+    } else {
+      // Browser flow: read from the `telegram-session` cookie.
+      token = readTelegramSessionToken(headers.get('cookie'))
+    }
     if (!token) return { user: null }
 
     let parsed: unknown

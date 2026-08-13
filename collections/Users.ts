@@ -4,20 +4,25 @@ import { verifyTelegramAuth } from '../lib/telegram-verify'
 import { isAdmin, isAdminOrSelf } from '../lib/access'
 import { telegramStrategy, encodeTelegramToken } from './strategies/telegram'
 import { jwtStrategy } from './strategies/jwt'
+import { buildTelegramSessionCookie } from '../lib/telegram-cookie'
 
 /**
  * Users collection — Telegram-authenticated users.
  *
  * Replaces core.UserAccount from Django.
  *
- * Auth flow:
- *  1. Client posts Telegram widget payload to /api/users/telegram-login.
- *  2. Endpoint verifies the hash, finds or creates a User, returns a
- *     base64-encoded JSON token (the original Telegram payload).
- *  3. Client posts { strategy: 'telegram', token } to /api/users/login.
- *  4. Payload invokes `telegramStrategy.authenticate`, which re-verifies
- *     the hash and returns the User.
- *  5. Payload sets the auth cookie.
+ * Auth flow (Telegram, frontend):
+ *  1. Client posts the verified Telegram payload to /api/users/telegram-login.
+ *  2. Endpoint re-verifies the HMAC, finds/creates a User, sets the
+ *     `telegram-session` cookie and returns the user info.
+ *  3. On every subsequent request, telegramStrategy reads `telegram-session`,
+ *     re-verifies the HMAC, and returns the user.
+ *  4. The admin cookie `payload-token` is NEVER touched here — admin and
+ *     Telegram sessions stay independent.
+ *
+ * Auth flow (admin):
+ *  - /admin uses Payload's standard email/password login which sets
+ *    `payload-token` (handled by jwtStrategy).
  */
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -106,11 +111,14 @@ export const Users: CollectionConfig = {
           })
         }
 
-        // Encode the verified payload as a base64 token — the standard
-        // /api/users/login endpoint will pass it to telegramStrategy.
+        // Encode the verified payload as a base64 token. It goes both into
+        // the response body (for legacy callers) and into the standalone
+        // `telegram-session` cookie, which telegramStrategy reads on
+        // subsequent requests. The standard `payload-token` cookie is NOT
+        // touched here — admin and Telegram sessions stay independent.
         const token = encodeTelegramToken(body)
 
-        return Response.json({
+        const res = Response.json({
           token,
           user: {
             id: user.id,
@@ -122,6 +130,8 @@ export const Users: CollectionConfig = {
             role: user.role,
           },
         })
+        res.headers.append('Set-Cookie', buildTelegramSessionCookie(token))
+        return res
       },
     },
     {

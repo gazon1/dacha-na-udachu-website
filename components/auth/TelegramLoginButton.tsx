@@ -1,40 +1,33 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 /**
- * Telegram Login Widget button.
+ * Telegram Login Widget.
+ *
+ * Renders the official Telegram widget iframe at the call site. The script
+ * is appended to a ref'd container (not `document.body`) so the button
+ * always appears where this component is mounted.
  *
  * Flow:
- *  1. Load the official Telegram widget script.
- *  2. On auth callback, POST the verified payload to
- *     /api/users/telegram-login → receive a base64 token + user info.
- *  3. POST { strategy: 'telegram', token } to /api/users/login — Payload's
- *     custom auth strategy (collections/strategies/telegram.ts) re-verifies
- *     the hash and returns the User, then Payload sets the auth cookie.
+ *  1. The script replaces itself with an iframe. Clicking the iframe opens
+ *     the Telegram auth popup.
+ *  2. On success the iframe calls `window.onTelegramAuth(user)`, which we
+ *     set to `submitToBackend`.
+ *  3. `submitToBackend` posts the verified payload to
+ *     `/api/users/telegram-login`. The server verifies the HMAC, finds or
+ *     creates the user, sets the `telegram-session` cookie, and returns
+ *     the user info.
  *  4. Reload the page so server-rendered components see the session.
  *
  * Requires NEXT_PUBLIC_TELEGRAM_BOT_NAME env var (bot username without @).
  */
-declare global {
-  interface Window {
-    Telegram?: {
-      LoginWidget?: {
-        auth: (
-          options: { bot_id: string; request_access: 'write' },
-          callback: (data: Record<string, string>) => void,
-        ) => void
-      }
-    }
-    onTelegramAuth?: (user: Record<string, string>) => void
-  }
-}
-
 export function TelegramLoginButton() {
+  const containerRef = useRef<HTMLDivElement>(null)
   const botName = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME || ''
 
   useEffect(() => {
-    if (!botName) return
+    if (!botName || !containerRef.current) return
     const script = document.createElement('script')
     script.src = 'https://telegram.org/js/telegram-widget.js?22'
     script.async = true
@@ -42,11 +35,14 @@ export function TelegramLoginButton() {
     script.setAttribute('data-size', 'medium')
     script.setAttribute('data-radius', '8')
     script.setAttribute('data-onauth', 'onTelegramAuth(user)')
-    document.body.appendChild(script)
-    window.onTelegramAuth = submitToBackend
+    containerRef.current.appendChild(script)
+    ;(window as Window & { onTelegramAuth?: typeof submitToBackend }).onTelegramAuth = submitToBackend
+
     return () => {
-      document.body.removeChild(script)
-      delete window.onTelegramAuth
+      if (containerRef.current) {
+        containerRef.current.innerHTML = ''
+      }
+      delete (window as Window & { onTelegramAuth?: typeof submitToBackend }).onTelegramAuth
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [botName])
@@ -54,57 +50,28 @@ export function TelegramLoginButton() {
   if (!botName) return null
 
   return (
-    <button
-      type="button"
-      className="btn btn-primary btn-sm gap-2"
-      onClick={() => openTelegramWidget(botName)}
+    <div
+      ref={containerRef}
+      className="telegram-login-widget flex items-center justify-center"
       aria-label="Войти через Telegram"
-    >
-      <span className="material-symbols-outlined">send</span>
-      <span className="hidden sm:inline">Войти</span>
-    </button>
+    />
   )
-}
-
-function openTelegramWidget(botName: string) {
-  if (typeof window === 'undefined') return
-  if (window.Telegram?.LoginWidget) {
-    window.Telegram.LoginWidget.auth(
-      { bot_id: botName, request_access: 'write' },
-      submitToBackend,
-    )
-  }
 }
 
 async function submitToBackend(data: Record<string, string>) {
   try {
-    // Step 1: POST verified payload to /telegram-login to get a base64 token.
+    // Step 1: POST verified payload to /telegram-login. The server verifies
+    // the HMAC, finds/creates the user, sets the `telegram-session` cookie
+    // and returns the user info. We do NOT call /api/users/login — that
+    // would set `payload-token` and stomp on the admin session.
     const loginRes = await fetch('/api/users/telegram-login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(data),
     })
     if (!loginRes.ok) {
       console.error('Telegram login failed', await loginRes.text())
-      return
-    }
-    const { token } = await loginRes.json()
-    if (!token) {
-      console.error('No token returned from /telegram-login')
-      return
-    }
-
-    // Step 2: POST { strategy: 'telegram', token } to /api/users/login.
-    // Payload invokes our custom telegramStrategy.authenticate, which re-verifies
-    // the hash, then sets the auth cookie.
-    const sessionRes = await fetch('/api/users/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ strategy: 'telegram', token }),
-    })
-    if (!sessionRes.ok) {
-      console.error('Payload login failed', await sessionRes.text())
       return
     }
 
