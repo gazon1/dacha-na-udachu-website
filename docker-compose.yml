@@ -11,7 +11,7 @@ services:
     environment:
       # Derived from POSTGRES_* — kept in compose so password rotation
       # touches only .env, not the connection string.
-      - PAYLOAD_PUBLIC_SERVER_URL=https://${PUBLIC_HOST}
+      - PAYLOAD_PUBLIC_SERVER_URL=${PUBLIC_HOST}
     # Wait for the one-shot bootstrap services to finish before starting
     # the app. migrate applies pending schema migrations, seed populates
     # initial data + admin user. Both are idempotent so re-running on

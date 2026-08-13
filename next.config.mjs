@@ -6,6 +6,7 @@ const nextConfig = {
   // Caddy terminates TLS and provides X-Forwarded-Proto, so trust the proxy.
   // (Required for Payload's cookies to set the right Secure flag and for
   //  CSRF origin checks to work behind HTTPS.)
+  trustHost: true,
   experimental: {
     reactCompiler: false,
   },
