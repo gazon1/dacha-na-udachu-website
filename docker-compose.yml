@@ -12,7 +12,6 @@ services:
       # Derived from POSTGRES_* — kept in compose so password rotation
       # touches only .env, not the connection string.
       - NODE_ENV=production
-      - PAYLOAD_PUBLIC_SERVER_URL=${PUBLIC_HOST}
       - TRUST_HOST=1
     # Wait for the one-shot bootstrap services to finish before starting
     # the app. migrate applies pending schema migrations, seed populates
@@ -48,8 +47,6 @@ services:
     pull_policy: never
     restart: "no"
     env_file: .env
-    environment:
-      - PAYLOAD_PUBLIC_SERVER_URL=https://${PUBLIC_HOST}
     command: ["node_modules/.bin/payload", "migrate"]
 
   # One-shot bootstrap — creates the admin user + starter content.
@@ -61,8 +58,6 @@ services:
     pull_policy: never
     restart: "no"
     env_file: .env
-    environment:
-      - PAYLOAD_PUBLIC_SERVER_URL=https://${PUBLIC_HOST}
     depends_on:
       migrate:
         condition: service_completed_successfully
