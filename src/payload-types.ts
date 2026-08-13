@@ -75,6 +75,7 @@ export interface Config {
     faq: Faq;
     bookings: Booking;
     'event-rsvps': EventRsvp;
+    'event-contributions': EventContribution;
     'event-drivers': EventDriver;
     'ride-passengers': RidePassenger;
     'carpool-requests': CarpoolRequest;
@@ -97,6 +98,7 @@ export interface Config {
     faq: FaqSelect<false> | FaqSelect<true>;
     bookings: BookingsSelect<false> | BookingsSelect<true>;
     'event-rsvps': EventRsvpsSelect<false> | EventRsvpsSelect<true>;
+    'event-contributions': EventContributionsSelect<false> | EventContributionsSelect<true>;
     'event-drivers': EventDriversSelect<false> | EventDriversSelect<true>;
     'ride-passengers': RidePassengersSelect<false> | RidePassengersSelect<true>;
     'carpool-requests': CarpoolRequestsSelect<false> | CarpoolRequestsSelect<true>;
@@ -308,6 +310,14 @@ export interface Event {
    * Сколько человек подтвердили участие
    */
   rsvpCapacity?: number | null;
+  /**
+   * Показать виджет «Скинуться на дачу» на странице события
+   */
+  showContributionWidget?: boolean | null;
+  /**
+   * Цель сбора в рублях (для прогресс-бара)
+   */
+  contributionGoal?: number | null;
   body?:
     | (
         | {
@@ -494,6 +504,56 @@ export interface EventRsvp {
    */
   user?: (number | null) | User;
   attendeeSummary?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Добровольные взносы на события — создаются через /api/event-contributions/submit.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "event-contributions".
+ */
+export interface EventContribution {
+  id: number;
+  event: number | Event;
+  name: string;
+  /**
+   * Сумма взноса в рублях (на момент создания)
+   */
+  amount: number;
+  /**
+   * Опциональное сообщение от гостя
+   */
+  message?: string | null;
+  /**
+   * pending → confirmed после сверки webhook/cron
+   */
+  status?: ('pending' | 'confirmed' | 'rejected' | 'expired') | null;
+  /**
+   * UUID, используется как label в quickpay-ссылке и для сопоставления платежа
+   */
+  secretKey: string;
+  /**
+   * ID операции из ЮMoney (заполняется при подтверждении)
+   */
+  yoomoneyOperationId?: string | null;
+  /**
+   * Когда платёж был подтверждён
+   */
+  confirmedAt?: string | null;
+  /**
+   * Имя отправителя из webhook (если HTTPS + запрошены контакты)
+   */
+  senderFirstname?: string | null;
+  /**
+   * Фамилия отправителя из webhook
+   */
+  senderLastname?: string | null;
+  /**
+   * Опциональная привязка к Telegram-пользователю (на будущее)
+   */
+  user?: (number | null) | User;
+  contributionSummary?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -694,6 +754,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'event-rsvps';
         value: number | EventRsvp;
+      } | null)
+    | ({
+        relationTo: 'event-contributions';
+        value: number | EventContribution;
       } | null)
     | ({
         relationTo: 'event-drivers';
@@ -911,6 +975,8 @@ export interface EventsSelect<T extends boolean = true> {
   weatherNote?: T;
   specialTag?: T;
   rsvpCapacity?: T;
+  showContributionWidget?: T;
+  contributionGoal?: T;
   body?:
     | T
     | {
@@ -1081,6 +1147,26 @@ export interface EventRsvpsSelect<T extends boolean = true> {
   secretKey?: T;
   user?: T;
   attendeeSummary?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "event-contributions_select".
+ */
+export interface EventContributionsSelect<T extends boolean = true> {
+  event?: T;
+  name?: T;
+  amount?: T;
+  message?: T;
+  status?: T;
+  secretKey?: T;
+  yoomoneyOperationId?: T;
+  confirmedAt?: T;
+  senderFirstname?: T;
+  senderLastname?: T;
+  user?: T;
+  contributionSummary?: T;
   updatedAt?: T;
   createdAt?: T;
 }

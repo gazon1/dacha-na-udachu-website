@@ -100,6 +100,18 @@ export const Events: CollectionConfig = {
       admin: { description: 'Сколько человек подтвердили участие' },
     },
     {
+      name: 'showContributionWidget',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: { description: 'Показать виджет «Скинуться на дачу» на странице события' },
+    },
+    {
+      name: 'contributionGoal',
+      type: 'number',
+      min: 0,
+      admin: { description: 'Цель сбора в рублях (для прогресс-бара)' },
+    },
+    {
       name: 'body',
       type: 'blocks',
       blocks: [

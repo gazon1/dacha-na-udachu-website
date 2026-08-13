@@ -453,6 +453,7 @@ scripts/parser_config.yaml
 .deps.clj
 .aspnet
 .env.*
+!.env.example
 */logs/
 dacha/db.sqlite3-journal
 

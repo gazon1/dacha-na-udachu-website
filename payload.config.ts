@@ -9,6 +9,7 @@ import { Bookings } from "./collections/Bookings";
 import { CarpoolRequests } from "./collections/CarpoolRequests";
 import { EventDrivers } from "./collections/EventDrivers";
 import { EventRsvps } from "./collections/EventRsvps";
+import { EventContributions } from "./collections/EventContributions";
 import { Events } from "./collections/Events";
 import { ExtraServices } from "./collections/ExtraServices";
 import { FAQ } from "./collections/FAQ";
@@ -119,6 +120,7 @@ export default buildConfig({
     FAQ,
     Bookings,
     EventRsvps,
+    EventContributions,
     EventDrivers,
     RidePassengers,
     CarpoolRequests,

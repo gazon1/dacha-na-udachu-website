@@ -80,3 +80,9 @@ export const newsletterLimiter = createLimiter({
   max: 10,
   keyBy: getIp,
 })
+
+export const contributionLimiter = createLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 5, // взнос — более редкое действие, чем RSVP/newsletter
+  keyBy: getIp,
+})
