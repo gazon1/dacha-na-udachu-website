@@ -15,7 +15,7 @@ RUN npm ci
 # Build Payload types + Next.js build.
 # --no-lint skips the slow ESLint pass (run `pnpm lint` separately in CI).
 COPY . .
-RUN NEXT_TELEMETRY_DISABLED=1 npx next build --debug --no-lint
+RUN NEXT_TELEMETRY_DISABLED=1 npx next build --no-lint
 
 # Cleanup — strip everything the runtime image does not need.
 # Done in the builder so the runtime stage can use a single `COPY`.
