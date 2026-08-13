@@ -16,9 +16,15 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
       ADD COLUMN IF NOT EXISTS "contribution_goal" integer;
   `)
 
-  // 2. Status enum for EventContributions.
+  // 2. Status enum for EventContributions. CREATE TYPE has no IF NOT EXISTS,
+  //    so guard manually so a re-run after a partially-applied prior attempt
+  //    doesn't fail with "type already exists".
   await db.execute(sql`
-    CREATE TYPE "public"."enum_event_contributions_status" AS ENUM('pending', 'confirmed', 'rejected', 'expired');
+    DO $$ BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_event_contributions_status') THEN
+        CREATE TYPE "public"."enum_event_contributions_status" AS ENUM('pending', 'confirmed', 'rejected', 'expired');
+      END IF;
+    END $$;
   `)
 
   // 3. The EventContributions table itself.
@@ -67,19 +73,26 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
     END $$;
   `)
 
-  // 5. Indexes.
+  // 5. Indexes (unique constraint below creates its own backing index,
+  //    so we don't add a duplicate one for secret_key here).
   await db.execute(sql`
     CREATE INDEX IF NOT EXISTS "event_contributions_event_idx" ON "event_contributions" USING btree ("event_id");
     CREATE INDEX IF NOT EXISTS "event_contributions_status_idx" ON "event_contributions" USING btree ("status");
-    CREATE INDEX IF NOT EXISTS "event_contributions_secret_key_idx" ON "event_contributions" USING btree ("secret_key");
-    CREATE INDEX IF NOT EXISTS "event_contributions_secret_key_unique" ON "event_contributions" USING btree ("secret_key");
     CREATE INDEX IF NOT EXISTS "event_contributions_yoomoney_operation_id_idx" ON "event_contributions" USING btree ("yoomoney_operation_id");
     CREATE INDEX IF NOT EXISTS "event_contributions_confirmed_at_idx" ON "event_contributions" USING btree ("confirmed_at");
     CREATE INDEX IF NOT EXISTS "event_contributions_created_at_idx" ON "event_contributions" USING btree ("created_at");
   `)
 
-  // 6. Unique constraint on secret_key (Payload's `unique: true` produces both
-  // a unique index AND a unique constraint).
+  // 6. Unique constraint on secret_key. The constraint auto-creates a backing
+  //    btree index named the same as the constraint, so it doubles as the
+  //    secret_key lookup index Payload expects.
+  //
+  //    A previous version of this migration also added an explicit index with
+  //    this name; if such an index is still hanging around from a partial
+  //    apply, drop it first so the constraint can take the name.
+  await db.execute(sql`
+    DROP INDEX IF EXISTS "public"."event_contributions_secret_key_unique";
+  `)
   await db.execute(sql`
     DO $$ BEGIN
       IF NOT EXISTS (
