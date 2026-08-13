@@ -1,6 +1,7 @@
 import * as migration_20260731_234805 from './20260731_234805'
 import * as migration_20260813_add_event_contributions from './20260813_add_event_contributions'
 import * as migration_20260813_add_contributions_lock_rel from './20260813_add_contributions_lock_rel'
+import * as migration_20260813_add_contributions_version_columns from './20260813_add_contributions_version_columns'
 
 export const migrations = [
   {
@@ -17,5 +18,10 @@ export const migrations = [
     up: migration_20260813_add_contributions_lock_rel.up,
     down: migration_20260813_add_contributions_lock_rel.down,
     name: '20260813_add_contributions_lock_rel',
+  },
+  {
+    up: migration_20260813_add_contributions_version_columns.up,
+    down: migration_20260813_add_contributions_version_columns.down,
+    name: '20260813_add_contributions_version_columns',
   },
 ]
