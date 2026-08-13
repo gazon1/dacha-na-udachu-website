@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { TelegramLoginButton } from '@/components/auth/TelegramLoginButton'
+import { UserMenu } from '@/components/auth/UserMenu'
 
 const NAV_ITEMS = [
   { href: '/houses', label: 'Дома' },
@@ -42,7 +42,7 @@ export function Header({ brandName }: Props) {
         </nav>
 
         <div className="flex items-center gap-2">
-          <TelegramLoginButton />
+          <UserMenu />
           {/* Mobile drawer trigger */}
           <div className="drawer-end md:hidden">
             <input
