@@ -21,6 +21,7 @@ import { RidePassengers } from "./collections/RidePassengers";
 import { SiteSettings } from "./collections/SiteSettings";
 import { TaxiPassengers } from "./collections/TaxiPassengers";
 import { TaxiPools } from "./collections/TaxiPools";
+import { TelegramSubscribers } from "./collections/TelegramSubscribers";
 import { Users } from "./collections/Users";
 
 const filename = fileURLToPath(import.meta.url);
@@ -128,6 +129,7 @@ export default buildConfig({
     TaxiPassengers,
     NewsletterSignups,
     ExtraServices,
+    TelegramSubscribers,
   ],
 
   // --- Globals ---

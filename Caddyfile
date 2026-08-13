@@ -17,3 +17,13 @@ dacha.maxdrobin.ru {
         header_up X-Real-IP {remote_host}
     }
 }
+
+# Telegram-бот — webhook endpoint. Делит Docker network с app, но
+# отдельный subdomain для чистого разделения логики.
+jellyfin.maxdrobin.ru {
+    encode gzip
+    reverse_proxy bot:3001 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+    }
+}

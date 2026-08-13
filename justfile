@@ -55,6 +55,16 @@ start:
     npm run start
 
 
+# ---- BOT ----
+[doc("Install Telegram bot dependencies (bot/node_modules)")]
+bot-install:
+    cd bot && npm install
+
+[doc("Run Telegram bot locally (long polling, http://localhost:3001/healthz)")]
+bot-dev:
+    cd bot && npm run dev
+
+
 # ---- DOCKER ----
 [doc("Validate docker-compose.yml syntax")]
 docker-validate:

@@ -17,6 +17,10 @@ RUN npm ci
 COPY . .
 RUN NEXT_TELEMETRY_DISABLED=1 npx next build --no-lint
 
+# Install Telegram bot dependencies (separate package.json under bot/).
+# Bot runs via `tsx` at runtime — no compile step needed.
+RUN npm install --prefix bot --omit=dev
+
 # Cleanup — strip everything the runtime image does not need.
 # Done in the builder so the runtime stage can use a single `COPY`.
 # `scripts/` is kept so the `seed` one-shot service in docker-compose can

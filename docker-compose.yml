@@ -88,6 +88,32 @@ services:
       app:
         condition: service_started
 
+  # Telegram-бот (webhook через bot.maxdrobin.ru → :3001/webhook).
+  # Делит PostgreSQL с app через Payload Local API. Не exposed наружу —
+  # доступен только Caddy (для webhook) и app (для broadcast).
+  bot:
+    image: dacha-app:${TAG:-latest}
+    pull_policy: never
+    restart: always
+    env_file: .env
+    environment:
+      - NODE_ENV=production
+      - TRUST_HOST=1
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      app:
+        condition: service_started
+    command: ["npx", "tsx", "bot/src/index.ts"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    expose:
+      - "3001"
+
 volumes:
   # postgres_data:
     # name: dacha_postgres_v2

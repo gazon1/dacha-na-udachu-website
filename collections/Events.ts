@@ -62,9 +62,39 @@ export const Events: CollectionConfig = {
   },
   hooks: {
     afterChange: [
-      ({ doc }) => {
+      async ({ doc, previousDoc, req }) => {
         revalidateAfter('/events')
         revalidateAfter(`/events/${doc.slug}`)
+
+        // Broadcast нового опубликованного события подписчикам Telegram-бота.
+        // Только при создании (previousDoc === null) — чтобы не спамить при правках.
+        // Бот слушает POST на /internal/broadcast-event, защищён INTERNAL_API_SECRET.
+        const wasCreated = !previousDoc
+        const isPublished = (doc as { _status?: string })._status === 'published'
+        if (wasCreated && isPublished) {
+          const botUrl = process.env.TELEGRAM_BOT_INTERNAL_URL
+          const secret = process.env.INTERNAL_API_SECRET
+          if (botUrl && secret) {
+            try {
+              await fetch(botUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-internal-secret': secret,
+                },
+                body: JSON.stringify({
+                  eventId: doc.id,
+                  title: doc.title,
+                  slug: doc.slug,
+                  startDate: doc.startDate,
+                }),
+                signal: AbortSignal.timeout(5_000),
+              })
+            } catch (err) {
+              req.payload.logger.error({ err, eventId: doc.id }, 'telegram_broadcast_failed')
+            }
+          }
+        }
       },
     ],
     afterDelete: [

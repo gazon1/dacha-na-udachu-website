@@ -83,6 +83,7 @@ export interface Config {
     'taxi-passengers': TaxiPassenger;
     'newsletter-signups': NewsletterSignup;
     'extra-services': ExtraService;
+    'telegram-subscribers': TelegramSubscriber;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -106,6 +107,7 @@ export interface Config {
     'taxi-passengers': TaxiPassengersSelect<false> | TaxiPassengersSelect<true>;
     'newsletter-signups': NewsletterSignupsSelect<false> | NewsletterSignupsSelect<true>;
     'extra-services': ExtraServicesSelect<false> | ExtraServicesSelect<true>;
+    'telegram-subscribers': TelegramSubscribersSelect<false> | TelegramSubscribersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -700,6 +702,43 @@ export interface ExtraService {
   createdAt: string;
 }
 /**
+ * Подписчики Telegram-бота на новые события.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "telegram-subscribers".
+ */
+export interface TelegramSubscriber {
+  id: number;
+  /**
+   * Числовой Telegram ID пользователя (ctx.from.id)
+   */
+  telegramId: string;
+  /**
+   * Чат, в который слать сообщения. Обычно равен telegramId для лички
+   */
+  chatId: string;
+  firstName?: string | null;
+  username?: string | null;
+  /**
+   * Когда подписался
+   */
+  subscribedAt: string;
+  /**
+   * Когда отписался (или бот получил 403 — пользователь заблокировал)
+   */
+  optedOutAt?: string | null;
+  /**
+   * Опциональная связь с User (если был логин через Telegram Login Widget)
+   */
+  user?: (number | null) | User;
+  /**
+   * ID последнего события, по которому ушло уведомление (для идемпотентности)
+   */
+  lastNotifiedEventId?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -786,6 +825,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'extra-services';
         value: number | ExtraService;
+      } | null)
+    | ({
+        relationTo: 'telegram-subscribers';
+        value: number | TelegramSubscriber;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1285,6 +1328,22 @@ export interface ExtraServicesSelect<T extends boolean = true> {
   price?: T;
   isActive?: T;
   order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "telegram-subscribers_select".
+ */
+export interface TelegramSubscribersSelect<T extends boolean = true> {
+  telegramId?: T;
+  chatId?: T;
+  firstName?: T;
+  username?: T;
+  subscribedAt?: T;
+  optedOutAt?: T;
+  user?: T;
+  lastNotifiedEventId?: T;
   updatedAt?: T;
   createdAt?: T;
 }
