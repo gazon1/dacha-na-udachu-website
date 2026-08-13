@@ -1,0 +1,22 @@
+name: Check pending contributions
+
+# Плановая проверка pending-платежей через cron-fallback.
+# Запускается каждые 15 минут по UTC — компенсирует потерянные webhooks
+# от ЮMoney (которые тот ретраит 3 раза и потом забывает).
+# Также доступен ручной запуск через workflow_dispatch.
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger /check-payments
+        run: |
+          response=$(curl -fsS -X POST \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.PAYLOAD_PUBLIC_SERVER_URL }}/api/event-contributions/check-payments")
+          echo "$response"

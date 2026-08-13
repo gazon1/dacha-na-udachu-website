@@ -358,13 +358,17 @@ function ContributionForm({
   onError: (err: string | null) => void
   error: string | null
 }) {
+  const [step, setStep] = useState<1 | 2 | 3>(1)
   const [name, setName] = useState('')
   const [amount, setAmount] = useState<number>(500)
   const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault()
+  const amountValid = amount >= 1 && amount <= 1_000_000
+  const nameValid = name.trim().length > 0 && name.length <= 100
+
+  async function submit() {
+    if (!amountValid || !nameValid) return
     setSubmitting(true)
     onError(null)
     try {
@@ -394,43 +398,17 @@ function ContributionForm({
   }
 
   return (
-    <form onSubmit={submit} className="space-y-3 pt-2 border-t border-base-300/40">
+    <div className="space-y-3 pt-2 border-t border-base-300/40">
       <h4 className="text-sm font-medium text-base-content/70">Хочу скинуться</h4>
-      <label className="form-control">
-        <span className="label-text text-sm">Имя (как покажем в списке)</span>
-        <input
-          type="text"
-          required
-          maxLength={100}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="input input-bordered input-sm"
-          placeholder="Например, Маша"
-        />
-      </label>
-      <label className="form-control">
-        <span className="label-text text-sm">Сумма, ₽</span>
-        <input
-          type="number"
-          required
-          min={1}
-          max={1_000_000}
-          value={amount}
-          onChange={(e) => setAmount(Number(e.target.value))}
-          className="input input-bordered input-sm"
-        />
-      </label>
-      <label className="form-control">
-        <span className="label-text text-sm">Сообщение (необязательно)</span>
-        <input
-          type="text"
-          maxLength={200}
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          className="input input-bordered input-sm"
-          placeholder="Спасибо за дачу!"
-        />
-      </label>
+
+      {/* Step indicator */}
+      <ol className="steps w-full text-xs">
+        <li className={`step ${step >= 1 ? 'step-primary' : ''}`}>Сумма</li>
+        <li className={`step ${step >= 2 ? 'step-primary' : ''}`}>Имя</li>
+        <li className={`step ${step >= 3 ? 'step-primary' : ''}`}>Готово</li>
+      </ol>
+
+      {/* Honeypot — present on every step so bots fill the first visible input */}
       <input
         type="text"
         tabIndex={-1}
@@ -439,25 +417,128 @@ function ContributionForm({
         aria-hidden="true"
         name="website"
       />
-      {error && (
-        <div className="alert alert-error py-2">
-          <span className="text-sm">{error}</span>
-        </div>
+
+      {step === 1 && (
+        <>
+          <label className="form-control">
+            <span className="label-text text-sm">Сумма, ₽</span>
+            <input
+              type="number"
+              min={1}
+              max={1_000_000}
+              value={amount}
+              onChange={(e) => setAmount(Number(e.target.value))}
+              className="input input-bordered input-sm"
+              autoFocus
+            />
+          </label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="btn btn-primary flex-1"
+              disabled={!amountValid}
+              onClick={() => setStep(2)}
+            >
+              Далее
+            </button>
+          </div>
+        </>
       )}
-      <button
-        type="submit"
-        className="btn btn-primary w-full"
-        disabled={submitting || !name || amount < 1}
-      >
-        {submitting ? (
-          <span className="loading loading-spinner loading-sm" />
-        ) : (
-          <>
-            <span className="material-symbols-outlined">favorite</span>
-            Скинуться
-          </>
-        )}
-      </button>
-    </form>
+
+      {step === 2 && (
+        <>
+          <label className="form-control">
+            <span className="label-text text-sm">Имя (как покажем в списке)</span>
+            <input
+              type="text"
+              required
+              maxLength={100}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="input input-bordered input-sm"
+              placeholder="Например, Маша"
+              autoFocus
+            />
+          </label>
+          <label className="form-control">
+            <span className="label-text text-sm">Сообщение (необязательно)</span>
+            <input
+              type="text"
+              maxLength={200}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              className="input input-bordered input-sm"
+              placeholder="Спасибо за дачу!"
+            />
+          </label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="btn btn-ghost flex-1"
+              onClick={() => setStep(1)}
+            >
+              Назад
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary flex-1"
+              disabled={!nameValid}
+              onClick={() => setStep(3)}
+            >
+              Далее
+            </button>
+          </div>
+        </>
+      )}
+
+      {step === 3 && (
+        <>
+          <div className="rounded-lg bg-base-200 p-4 text-sm space-y-1">
+            <p>
+              <span className="text-base-content/60">Сумма:</span>{' '}
+              <strong>{amount.toLocaleString('ru-RU')} ₽</strong>
+            </p>
+            <p>
+              <span className="text-base-content/60">Имя:</span> <strong>{name}</strong>
+            </p>
+            {message && (
+              <p>
+                <span className="text-base-content/60">Сообщение:</span> {message}
+              </p>
+            )}
+          </div>
+          {error && (
+            <div className="alert alert-error py-2">
+              <span className="text-sm">{error}</span>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="btn btn-ghost flex-1"
+              onClick={() => setStep(2)}
+              disabled={submitting}
+            >
+              Назад
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary flex-1"
+              onClick={submit}
+              disabled={submitting || !amountValid || !nameValid}
+            >
+              {submitting ? (
+                <span className="loading loading-spinner loading-sm" />
+              ) : (
+                <>
+                  <span className="material-symbols-outlined">favorite</span>
+                  Скинуться
+                </>
+              )}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
   )
 }

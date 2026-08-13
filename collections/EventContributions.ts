@@ -38,6 +38,7 @@ export const EventContributions: CollectionConfig = {
       async ({ doc, req, operation, previousDoc }) => {
         // Revalidate the event page when a contribution is confirmed, so the
         // public widget shows the new total without a full page reload.
+        // Also notify the admin via Telegram.
         const wasConfirmed = previousDoc?.status !== 'confirmed' && doc.status === 'confirmed'
         if (wasConfirmed && doc.event) {
           try {
@@ -50,8 +51,22 @@ export const EventContributions: CollectionConfig = {
             if (event?.slug) {
               revalidateAfter(`/events/${event.slug}`)
             }
-          } catch {
-            // Event might have been deleted — silently skip.
+
+            // Telegram admin notification (no-op if TELEGRAM_ADMIN_CHAT_ID unset).
+            // Dynamic import keeps this off the cold-start path when the
+            // feature is disabled.
+            const { notifyAdmin } = await import('../lib/telegram-notify')
+            const lines = [
+              '🟢 <b>Новый взнос подтверждён</b>',
+              `Событие: ${(event as { title?: string } | null)?.title ?? '—'}`,
+              `Имя: ${doc.name}`,
+              `Сумма: ${doc.amount.toLocaleString('ru-RU')} ₽`,
+              doc.message ? `Сообщение: ${doc.message}` : '',
+              doc.yoomoneyOperationId ? `Операция: ${doc.yoomoneyOperationId}` : '',
+            ].filter(Boolean)
+            await notifyAdmin(lines.join('\n'))
+          } catch (err) {
+            req.payload.logger.error({ err }, 'contribution_confirm_side_effect_failed')
           }
         }
         void operation

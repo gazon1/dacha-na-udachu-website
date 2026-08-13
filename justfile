@@ -31,6 +31,16 @@ generate-importmap:
 setup: install generate-types generate-importmap build
 
 
+# ---- PAYLOAD / DB ----
+[doc("Create a new Payload DB migration (interactive)")]
+migrate-create:
+    npm run payload migrate:create
+
+[doc("Apply pending Payload DB migrations")]
+migrate:
+    npm run payload migrate
+
+
 # ---- APP ----
 [doc("Build production bundle (output: .next/)")]
 build:
