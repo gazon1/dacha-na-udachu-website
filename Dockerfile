@@ -10,12 +10,16 @@ RUN apt-get update --yes --quiet && apt-get install --yes --quiet --no-install-r
 
 # Install npm packages (cached layer)
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --prefer-offline --no-audit --no-fund
 
 # Build Payload types + Next.js build.
-# --no-lint skips the slow ESLint pass (run `pnpm lint` separately in CI).
+# --no-lint skips the slow ESLint pass (run `npm run lint` separately in CI).
+# NODE_OPTIONS limits memory to prevent OOM hangs.
 COPY . .
-RUN NEXT_TELEMETRY_DISABLED=1 npx next build --no-lint
+RUN NODE_OPTIONS="--max-old-space-size=2048" \
+    NEXT_TELEMETRY_DISABLED=1 \
+    NEXT_SKIP_TELEMETRY=1 \
+    npx next build --no-lint
 
 # Install Telegram bot dependencies (separate package.json under bot/).
 # Bot runs via `tsx` at runtime — no compile step needed.
