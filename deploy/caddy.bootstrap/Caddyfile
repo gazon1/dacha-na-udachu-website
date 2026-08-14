@@ -13,7 +13,7 @@
         protocols h1 h2 h3
         timeouts {
             read_header 10s
-            read 30s
+            read_body 30s
             write 30s
             idle 120s
         }
