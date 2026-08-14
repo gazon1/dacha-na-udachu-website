@@ -7,6 +7,7 @@ import { getBotPayload } from './db'
 import type { BotContext, SessionData } from './session'
 import { sessionMiddleware } from './middlewares/session'
 import { loggerMiddleware } from './middlewares/logger'
+import { clearFsmOnCommandMiddleware } from './middlewares/clearFsm'
 import { createProxiedFetch } from './telegram-fetch'
 
 import { handleStart } from './handlers/start'
@@ -19,10 +20,27 @@ import {
   handleAmountPreset,
   handleAmountCustom,
   handleCancel,
+  handleContributionConfirm,
+  handleContributionAskMessage,
+  handleContributionChangeAmount,
 } from './handlers/contribution'
 import { handleSubscribe, handleUnsubscribe } from './handlers/subscribe'
 import { handleUnknown } from './handlers/unknown'
 import { mountInternalBroadcast } from './internal-broadcast'
+
+/**
+ * Регистрирует menu commands через setMyCommands.
+ */
+async function registerCommandsMenu(bot: Bot<BotContext>): Promise<void> {
+  await bot.api.setMyCommands([
+    { command: 'start', description: 'Приветствие и возможности' },
+    { command: 'events', description: 'Ближайшие события' },
+    { command: 'me', description: 'Мои записи и взносы' },
+    { command: 'subscribe', description: 'Подписаться на анонсы' },
+    { command: 'unsubscribe', description: 'Отписаться от анонсов' },
+    { command: 'help', description: 'Справка по командам' },
+  ])
+}
 
 /**
  * Entry point. Создаёт Bot + Express, регистрирует middleware и handlers,
@@ -67,6 +85,7 @@ async function main() {
 
   bot.use(sessionMiddleware)
   bot.use(loggerMiddleware)
+  bot.use(clearFsmOnCommandMiddleware)
 
   // ----- Commands -----
   bot.command('start', handleStart)
@@ -119,6 +138,15 @@ async function main() {
     return handleAmountCustom(ctx, m[1])
   })
 
+  bot.callbackQuery(/^pay:(confirm|msg|amount):/, async (ctx) => {
+    const data = ctx.callbackQuery.data ?? ''
+    const m = data.match(/^pay:(confirm|msg|amount):(.+)$/)
+    if (!m) return
+    if (m[1] === 'confirm') return handleContributionConfirm(ctx, m[2])
+    if (m[1] === 'msg') return handleContributionAskMessage(ctx, m[2])
+    if (m[1] === 'amount') return handleContributionChangeAmount(ctx, m[2])
+  })
+
   // ----- Fallback -----
   bot.on('message', handleUnknown)
 
@@ -131,10 +159,6 @@ async function main() {
   app.use(express.json())
 
   if (useWebhook) {
-    // grammY's webhookCallback is typed against `Bot<Context>` (без нашего
-    // SessionFlavor), хотя на runtime наш Bot<BotContext> полностью
-    // совместим — callback просто прокидывает ctx в bot.handleUpdate.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     app.use('/webhook', webhookCallback(bot as any, 'express'))
     console.log(`[bot] webhook registered: ${config.WEBHOOK_URL}`)
   }
@@ -166,16 +190,12 @@ async function main() {
 
   // ----- Запуск -----
   if (useWebhook) {
-    // Регистрируем webhook у Telegram. Если прокси недоступен (или
-    // TELEGRAM_SOCKS5_PROXY указывает на закрытый порт), бот не должен
-    // падать — пусть слушает webhook endpoint и принимает апдейты.
-    // Telegram продолжит слать их на URL, который был успешно
-    // зарегистрирован раньше.
     try {
       await bot.api.setWebhook(config.WEBHOOK_URL!)
       const me = await bot.api.getMe()
       lastTelegramOkAt = Date.now()
       console.log(`[bot] @${me.username} ready (webhook)`)
+      await registerCommandsMenu(bot)
     } catch (err) {
       console.warn(
         `[bot] setWebhook/getMe failed: ${(err as Error).message}\n` +
@@ -183,7 +203,6 @@ async function main() {
           `  Проверьте TELEGRAM_SOCKS5_PROXY (или прямой доступ из Docker network).`,
       )
       console.warn('[bot] cause:', (err as { cause?: unknown }).cause ?? err)
-      // Не выходим — бот всё равно полезен (healthcheck, internal broadcast).
     }
   } else {
     // Long polling — local dev
@@ -192,6 +211,7 @@ async function main() {
       const me = await bot.api.getMe()
       lastTelegramOkAt = Date.now()
       console.log(`[bot] @${me.username} ready (long polling)`)
+      await registerCommandsMenu(bot)
     } catch (err) {
       console.warn(`[bot] getMe failed: ${(err as Error).message}`)
     }

@@ -1,4 +1,6 @@
 import { InlineKeyboard } from 'grammy'
+import { truncate } from '../utils/format'
+import { siteEventsUrl } from '../utils/url'
 
 /**
  * Фабрики inline-клавиатур для разных экранов бота.
@@ -19,15 +21,22 @@ export function eventsListKeyboard(
 
 /**
  * Карточка события — RSVP + вклад на сайт + скинуться.
+ * Если передан slug, добавляется кнопка «🌐 На сайте».
  */
-export function eventCardKeyboard(eventId: string | number): InlineKeyboard {
-  return new InlineKeyboard()
+export function eventCardKeyboard(eventId: string | number, slug?: string): InlineKeyboard {
+  const kb = new InlineKeyboard()
     .text('🟢 Иду', `rsvp:going:${eventId}`)
     .text('🟡 Может быть', `rsvp:maybe:${eventId}`)
     .row()
     .text('🔴 Не смогу', `rsvp:not_going:${eventId}`)
     .text('💸 Скинуться', `contribute:${eventId}`)
     .row()
+
+  if (slug) {
+    kb.text('🌐 На сайте', siteEventsUrl(slug)).row()
+  }
+
+  return kb
 }
 
 /**
@@ -46,7 +55,13 @@ export function amountPresetsKeyboard(eventId: string | number): InlineKeyboard 
     .text('Другая сумма', `amt:custom:${eventId}`)
 }
 
-function truncate(s: string, max: number): string {
-  if (s.length <= max) return s
-  return s.slice(0, max - 1).trimEnd() + '…'
+/**
+ * Клавиатура подтверждения взноса.
+ */
+export function contributionConfirmKeyboard(eventId: string | number): InlineKeyboard {
+  return new InlineKeyboard()
+    .text('✅ Подтвердить', `pay:confirm:${eventId}`)
+    .text('✏️ Сообщение', `pay:msg:${eventId}`)
+    .row()
+    .text('💰 Изменить сумму', `pay:amount:${eventId}`)
 }

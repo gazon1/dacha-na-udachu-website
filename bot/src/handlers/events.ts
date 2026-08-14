@@ -3,16 +3,7 @@ import { getBotPayload } from '../db'
 import { eventsListKeyboard, eventCardKeyboard } from '../keyboards/inline'
 import { escapeHtml } from '../utils/escapeHtml'
 import { formatDateShort, formatDate, truncate } from '../utils/format'
-
-type Event = {
-  id: string | number
-  slug: string
-  title: string
-  startDate: string
-  venue?: string | null
-  summary?: string | null
-  rsvpCapacity?: number | null
-}
+import type { Event } from '@payload-types'
 
 /**
  * /events — список ближайших 5 опубликованных событий.
@@ -35,7 +26,7 @@ export async function handleEventsList(ctx: BotContext): Promise<void> {
     overrideAccess: true,
   })
 
-  const events = res.docs as unknown as Event[]
+  const events = res.docs as Event[]
 
   if (events.length === 0) {
     await ctx.reply('Ближайших событий пока нет. Загляни позже 👋')
@@ -43,10 +34,11 @@ export async function handleEventsList(ctx: BotContext): Promise<void> {
   }
 
   const lines = events.map(
-    (e, i) => `${i + 1}. <b>${escapeHtml(e.title)}</b>\n   📅 ${formatDateShort(e.startDate)}`,
+    (e, i) =>
+      `${i + 1}. <b>${escapeHtml(e.title)}</b>\n   📅 ${formatDateShort(e.startDate)}`,
   )
   const text =
-    `� <b>Ближайшие события:</b>\n\n` +
+    `📅 <b>Ближайшие события:</b>\n\n` +
     lines.join('\n\n') +
     `\n\nНажми на событие, чтобы открыть карточку:`
 
@@ -74,7 +66,7 @@ export async function handleEventOpen(
       depth: 0,
       overrideAccess: true,
     })
-    event = res as unknown as Event
+    event = res as Event
   } catch {
     await ctx.reply('Событие не найдено.')
     return
@@ -86,13 +78,13 @@ export async function handleEventOpen(
   }
 
   const lines: string[] = []
-  lines.push(`� <b>${escapeHtml(event.title)}</b>`)
+  lines.push(`📅 <b>${escapeHtml(event.title)}</b>`)
   lines.push(`🗓 ${formatDate(event.startDate)}`)
   if (event.venue) lines.push(`📍 ${escapeHtml(event.venue)}`)
   if (event.summary) lines.push(`\n${escapeHtml(truncate(event.summary, 280))}`)
 
   await ctx.reply(lines.join('\n'), {
     parse_mode: 'HTML',
-    reply_markup: eventCardKeyboard(event.id),
+    reply_markup: eventCardKeyboard(event.id, event.slug),
   })
 }

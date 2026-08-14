@@ -2,6 +2,7 @@ import { Bot } from 'grammy'
 import { getBotPayload } from '../db'
 import { escapeHtml } from './escapeHtml'
 import { formatDate } from './format'
+import { siteEventsUrl } from './url'
 
 /**
  * Broadcast нового события всем активным подписчикам.
@@ -57,7 +58,7 @@ export async function broadcastEvent(
               { text: '📋 Открыть событие', callback_data: `open:${eventId}` },
               {
                 text: '🌐 На сайте',
-                url: `${process.env.PAYLOAD_PUBLIC_SERVER_URL ?? 'https://dacha.maxdrobin.ru'}/events/${slug}`,
+                url: siteEventsUrl(slug),
               },
             ],
           ],

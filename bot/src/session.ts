@@ -21,6 +21,12 @@ export type SessionData = {
     contributingToEventId?: string | number
     contributingToEventSlug?: string
     contributingToEventTitle?: string
+    /** Сохранённая сумма на этапе подтверждения. */
+    pendingAmount?: number
+    /** Сохранённое сообщение на этапе подтверждения. */
+    pendingMessage?: string
+    /** Текущий шаг FSM. */
+    step?: 'awaiting_custom_amount' | 'awaiting_message'
   }
 }
 

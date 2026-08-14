@@ -1,7 +1,8 @@
 import type { BotContext } from '../session'
 import { getBotPayload } from '../db'
 import { escapeHtml } from '../utils/escapeHtml'
-import { formatDate, formatRub, pluralRubles } from '../utils/format'
+import { formatDate, formatRub, pluralRubles, truncate } from '../utils/format'
+import { siteUrl } from '../utils/url'
 
 /**
  * /me — мои RSVP и взносы.
@@ -13,9 +14,10 @@ export async function handleMe(ctx: BotContext): Promise<void> {
   if (!userId) {
     await ctx.reply(
       'Чтобы видеть свои записи и взносы, сначала войди через сайт:\n' +
-        '1. Открой [dacha.maxdrobin.ru](https://dacha.maxdrobin.ru)\n' +
+        `1. Открой <a href="${siteUrl('login')}">${escapeHtml(siteUrl('login'))}</a>\n` +
         '2. Нажми «Войти через Telegram»\n' +
         '3. Вернись в бот и попробуй /me ещё раз',
+      { parse_mode: 'HTML' },
     )
     return
   }
@@ -64,7 +66,7 @@ export async function handleMe(ctx: BotContext): Promise<void> {
   const contribsList = contribs.docs as Array<{ amount: number; event?: string | number }>
   const totalContrib = contribsList.reduce((s, c) => s + c.amount, 0)
 
-  let text = '� <b>Твой профиль:</b>\n\n'
+  let text = '📋 <b>Твой профиль:</b>\n\n'
 
   text += `📅 <b>RSVP:</b> идёшь на ${upcomingGoing.length} впереди, всего «иду» ${going.length}, «может быть» ${maybe.length}\n`
 
@@ -73,7 +75,7 @@ export async function handleMe(ctx: BotContext): Promise<void> {
     for (const r of upcomingGoing.slice(0, 3)) {
       const t = r.event?.title ?? '—'
       const d = r.event?.startDate ? formatDate(r.event.startDate) : ''
-      text += `  • ${escapeHtml(t)} — ${d}\n`
+      text += `  • ${escapeHtml(truncate(t, 40))} — ${d}\n`
     }
   }
 
