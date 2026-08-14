@@ -1,0 +1,3 @@
+[submodule "lib/deploy-common"]
+	path = lib/deploy-common
+	url = git@github.com:gazon1/Caddy-vps.git

@@ -8,11 +8,11 @@ set export
 set positional-arguments
 set quiet
 
-# Глобальные константы для деплоя
+# ---- DEPLOY-COMMON -----------------------------------------------------------
 TAG := `git rev-parse --short HEAD`
-CADDY_BASE := "/opt/caddy"
-CONF_D := CADDY_BASE + "/conf.d"
-PROJECT_DIR := justfile_directory()
+DEPLOY_COMMON := justfile_directory() / "lib" / "deploy-common"
+PROJECT_CADDY_SNIPPET := "dacha"
+SMOKE_URL := "https://dacha.maxdrobin.ru/"
 
 # ---- HELP ----
 [doc("Show all available commands")]
@@ -56,7 +56,6 @@ build:
     NEXT_TELEMETRY_DISABLED=1 npm run build
 
 
-
 # ---- BOT ----
 [doc("Install Telegram bot dependencies (bot/node_modules)")]
 bot-install:
@@ -77,7 +76,6 @@ docker-build:
 docker-validate:
     docker compose -f docker-compose.yml config
 
-
 [doc("Build and tag by commit SHA for immutable deployments")]
 docker-build-sha:
     #!/usr/bin/env bash
@@ -96,62 +94,81 @@ docker-push:
     docker push ghcr.io/$OWNER/dacha-app:$TAG
 
 
-# ---- PRODUCTION (VPS) DEPLOYMENT PIPELINE ----
+# ---- PRODUCTION DEPLOY (delegates to deploy-common) --------------------------
 [doc("Deploy to VPS: full pipeline via shared Caddy")]
-prod-deploy: git-pull caddy-bootstrap caddy-config compose-up caddy-reload smoke-test clean
+prod-deploy: deploy-git-pull deploy-caddy-bootstrap deploy-caddy-config compose-up caddy-reload smoke-test clean
+    @echo "✅ Deploy pipeline completed successfully."
 
-[doc("Step 1: Pull latest repository state")]
-git-pull:
-    @echo "📦 Pulling latest from main..."
+[doc("Step 1: Pull latest repository state + init submodules")]
+deploy-git-pull:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source {{ DEPLOY_COMMON }}/lib/shared-functions.sh
+    log "📦 Pulling latest from main..."
     git pull origin main
+    log "📦 Updating deploy-common submodule..."
+    git submodule update --init --recursive
 
 [doc("Step 2: Idempotent initialization of global Caddy infrastructure")]
-caddy-bootstrap:
-    @echo "🌐 Verifying global network and Caddy..."
-    docker network inspect caddy_net >/dev/null 2>&1 || docker network create --driver bridge caddy_net
-    mkdir -p {{CONF_D}} {{CADDY_BASE}}/data {{CADDY_BASE}}/config
-    [ -f {{CADDY_BASE}}/Caddyfile ] || cp deploy/caddy.bootstrap/Caddyfile {{CADDY_BASE}}/Caddyfile
-    docker container inspect caddy_global >/dev/null 2>&1 || docker run -d \
-        --name caddy_global --restart always --network caddy_net \
-        -p 80:80 -p 443:443 -p 127.0.0.1:2019:2019 \
-        -v {{CADDY_BASE}}/Caddyfile:/etc/caddy/Caddyfile:ro \
-        -v {{CONF_D}}:/etc/caddy/conf.d:ro \
-        -v {{CADDY_BASE}}/data:/data -v {{CADDY_BASE}}/config:/config \
-        --cap-drop ALL --cap-add NET_BIND_SERVICE caddy:2-alpine
-    docker start caddy_global >/dev/null 2>&1 || true
+deploy-caddy-bootstrap:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source {{ DEPLOY_COMMON }}/scripts/caddy-bootstrap.sh
+    bootstrap_caddy
 
 [doc("Step 3: Update routing config (validates without touching state)")]
-caddy-config:
-    @echo "📝 Updating project routing rules..."
-    cp deploy/caddy.conf.caddy {{CONF_D}}/dacha.caddy
+deploy-caddy-config:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source {{ DEPLOY_COMMON }}/lib/shared-functions.sh
+    SNIPPET_SOURCE="deploy/caddy.conf.caddy"
+    SNIPPET_TARGET="{{ deploy_caddy_confd }}/dacha.caddy"
+    BACKUP="${SNIPPET_TARGET}.bak.$(date +%Y%m%d-%H%M%S)"
+    log "📝 Updating project routing rules..."
+    cp "$SNIPPET_SOURCE" "{{ deploy_caddy_confd }}/dacha.caddy"
     docker exec caddy_global caddy validate --config /etc/caddy/Caddyfile
+
+# Variable used above
+deploy_caddy_confd := env("CADDY_CONF_D", "/opt/caddy/conf.d")
 
 [doc("Step 4: Rebuild and restart project containers gracefully")]
 compose-up:
-    @echo "🔨 Deploying containers..."
-    @echo "🧹 Freeing disk space before build..."
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source {{ DEPLOY_COMMON }}/lib/shared-functions.sh
+    log "🔨 Deploying containers..."
+    log "🧹 Freeing disk space before build..."
     docker system prune -f
     TAG={{TAG}} docker compose down --remove-orphans 2>/dev/null || true
     TAG={{TAG}} docker compose up -d --build
-    @echo "⏳ Waiting for app healthchecks (relies on docker-compose healthcheck rules)..."
-    docker compose wait app || echo "Compose wait finished (verify app logs if failed)"
+    log "⏳ Waiting for app healthchecks..."
+    docker compose wait || echo "Compose wait finished (verify app logs if failed)"
 
 [doc("Step 5: Apply new routes with zero downtime")]
 caddy-reload:
-    @echo "🔄 Reloading Caddy routes..."
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source {{ DEPLOY_COMMON }}/lib/shared-functions.sh
+    log "🔄 Reloading Caddy routes..."
     docker exec caddy_global caddy reload --config /etc/caddy/Caddyfile
 
 [doc("Step 6: Verify endpoint connectivity")]
 smoke-test:
-    @echo "🚦 Running smoke tests..."
-    curl -fsSI --max-time 10 "https://dacha.maxdrobin.ru/" > /dev/null
-    @echo "✅ Deploy pipeline completed successfully."
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source {{ DEPLOY_COMMON }}/lib/shared-functions.sh
+    log "🚦 Running smoke tests..."
+    curl -fsSI --max-time 10 "{{ SMOKE_URL }}" > /dev/null
+    log "✅ Deploy pipeline completed successfully."
 
 [doc("Step 7: Free up disk space by removing unused Docker assets")]
 clean:
-    @echo "🧹 Removing stopped containers and dangling build cache..."
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source {{ DEPLOY_COMMON }}/lib/shared-functions.sh
+    log "🧹 Removing stopped containers and dangling build cache..."
     docker system prune -f
-    @echo "🗑️ Removing unused images older than 7 days (clearing old SHA-tagged releases)..."
+    log "🗑️  Removing unused images older than 7 days..."
     docker image prune -a -f --filter "until=168h"
-    @echo "✨ System cleanup complete. Current disk space:"
+    log "✨ System cleanup complete. Current disk space:"
     df -h / | tail -n 1
