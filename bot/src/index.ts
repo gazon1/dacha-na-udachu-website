@@ -166,15 +166,34 @@ async function main() {
 
   // ----- Запуск -----
   if (useWebhook) {
-    // Регистрируем webhook у Telegram
-    await bot.api.setWebhook(config.WEBHOOK_URL!)
-    const me = await bot.api.getMe()
-    console.log(`[bot] @${me.username} ready (webhook)`)
+    // Регистрируем webhook у Telegram. Если прокси недоступен (или
+    // TELEGRAM_SOCKS5_PROXY указывает на закрытый порт), бот не должен
+    // падать — пусть слушает webhook endpoint и принимает апдейты.
+    // Telegram продолжит слать их на URL, который был успешно
+    // зарегистрирован раньше.
+    try {
+      await bot.api.setWebhook(config.WEBHOOK_URL!)
+      const me = await bot.api.getMe()
+      lastTelegramOkAt = Date.now()
+      console.log(`[bot] @${me.username} ready (webhook)`)
+    } catch (err) {
+      console.warn(
+        `[bot] setWebhook/getMe failed: ${(err as Error).message}\n` +
+          `  Бот продолжит слушать ${config.WEBHOOK_URL}, но Telegram не знает об этом URL.\n` +
+          `  Проверьте TELEGRAM_SOCKS5_PROXY (или прямой доступ из Docker network).`,
+      )
+      // Не выходим — бот всё равно полезен (healthcheck, internal broadcast).
+    }
   } else {
     // Long polling — local dev
     bot.start()
-    const me = await bot.api.getMe()
-    console.log(`[bot] @${me.username} ready (long polling)`)
+    try {
+      const me = await bot.api.getMe()
+      lastTelegramOkAt = Date.now()
+      console.log(`[bot] @${me.username} ready (long polling)`)
+    } catch (err) {
+      console.warn(`[bot] getMe failed: ${(err as Error).message}`)
+    }
   }
 
   // Graceful shutdown

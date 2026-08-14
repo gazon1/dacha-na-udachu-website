@@ -1,5 +1,6 @@
 import http from 'node:http'
 import https from 'node:https'
+import net from 'node:net'
 import { SocksProxyAgent } from 'socks-proxy-agent'
 
 /**
@@ -16,7 +17,19 @@ import { SocksProxyAgent } from 'socks-proxy-agent'
  * @param proxyUrl — socks5://[user:pass@]host:port
  */
 export function createProxiedFetch(proxyUrl: string): typeof fetch {
-  const agent = new SocksProxyAgent(proxyUrl)
+  // Таймаут SOCKS5-коннекта — 10 секунд. Без него SocksClient зависает
+  // на дефолтных ~120s и Docker успевает сделать healthcheck-fail +
+  // restart. 10s — баланс между терпимостью к медленному прокси и
+  // быстрой диагностикой.
+  const agent = new SocksProxyAgent(proxyUrl, {
+    timeout: 10_000,
+  })
+  console.log(`[telegram-fetch] using SOCKS5 proxy: ${redactProxy(proxyUrl)}`)
+
+  // Тестируем прокси сразу — если он недоступен (типичная ситуация:
+  // неправильный URL/порт или firewall в Docker network), лучше узнать
+  // сейчас, чем при первом Bot API запросе.
+  void testProxy(proxyUrl)
 
   // Типизируем через `typeof fetch` чтобы не зависеть от DOM lib
   // (bot tsconfig использует только ES2022 — RequestInfo/BodyInit там нет).
@@ -112,4 +125,51 @@ function normalizeBody(body: unknown): Buffer | undefined {
   }
   // FormData / ReadableStream — Telegram API это не использует, кидаем.
   throw new Error('unsupported body type for SOCKS5-proxied fetch')
+}
+
+/**
+ * Прячет пароль в URL прокси при логировании.
+ * socks5://user:secret@host:port → socks5://user:***@host:port
+ */
+function redactProxy(url: string): string {
+  try {
+    const u = new URL(url)
+    if (u.password) {
+      return `${u.protocol}//${u.username}:***@${u.host}${u.pathname}`
+    }
+    return `${u.protocol}//${u.host}${u.pathname}`
+  } catch {
+    return '<unparseable proxy url>'
+  }
+}
+
+/**
+ * Проверяет, что прокси реально доступен. Делает короткий тест-коннект
+ * через net.Socket (TCP). Не выполняет SOCKS-handshake — это делает
+ * SocksProxyAgent сам при первом HTTP-запросе.
+ */
+async function testProxy(proxyUrl: string): Promise<void> {
+  try {
+    const u = new URL(proxyUrl)
+    const host = u.hostname
+    const port = Number(u.port || '1080')
+    await new Promise<void>((resolve, reject) => {
+      const socket = net.connect({ host, port, timeout: 5_000 })
+      socket.once('connect', () => {
+        socket.destroy()
+        resolve()
+      })
+      socket.once('timeout', () => {
+        socket.destroy()
+        reject(new Error('tcp connect timeout'))
+      })
+      socket.once('error', reject)
+    })
+    console.log(`[telegram-fetch] SOCKS5 proxy reachable at ${host}:${port}`)
+  } catch (err) {
+    console.warn(
+      `[telegram-fetch] SOCKS5 proxy unreachable: ${(err as Error).message}. ` +
+        `Bot API calls will fail until proxy is fixed.`,
+    )
+  }
 }
