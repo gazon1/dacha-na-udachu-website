@@ -182,6 +182,7 @@ async function main() {
           `  Бот продолжит слушать ${config.WEBHOOK_URL}, но Telegram не знает об этом URL.\n` +
           `  Проверьте TELEGRAM_SOCKS5_PROXY (или прямой доступ из Docker network).`,
       )
+      console.warn('[bot] cause:', (err as { cause?: unknown }).cause ?? err)
       // Не выходим — бот всё равно полезен (healthcheck, internal broadcast).
     }
   } else {
