@@ -1,0 +1,28 @@
+# Caddy route configuration for Dacha — deployed to /opt/caddy/conf.d/dacha.caddy
+# by deploy/deploy.sh. Do not edit by hand; changes will be overwritten on deploy.
+#
+# Next.js + Payload CMS:  dacha.maxdrobin.ru  →  dacha-app:3000
+# Telegram bot webhook:     jellyfin.maxdrobin.ru → dacha-bot:3001
+
+dacha.maxdrobin.ru {
+    encode gzip zstd
+    reverse_proxy dacha-app:3000 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        flush_interval -1
+    }
+}
+
+jellyfin.maxdrobin.ru {
+    encode gzip
+    @webhook path /webhook
+    handle @webhook {
+        reverse_proxy dacha-bot:3001 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+        }
+    }
+    handle {
+        respond 404
+    }
+}

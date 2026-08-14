@@ -93,7 +93,13 @@ docker-push:
 
 
 # ---- PRODUCTION (VPS) ----
-[doc("Deploy to VPS: git pull + rebuild + restart containers")]
+[doc("Deploy to VPS via shared Caddy: bootstrap + git pull + compose up + caddy reload")]
+prod-deploy-caddy:
+    #!/usr/bin/env bash
+    set -e
+    TAG=$(git rev-parse --short HEAD) bash deploy/deploy.sh
+
+[doc("Deploy to VPS: git pull + rebuild + restart containers (legacy — remove after verifying prod-deploy-caddy)")]
 prod-deploy:
     #!/usr/bin/env bash
     set -e

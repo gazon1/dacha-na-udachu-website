@@ -3,10 +3,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    # Tagged image so old versions can be pruned by tag. Default tag is
-    # `latest`; CI should pass `TAG=<commit-sha>` on each build.
+    container_name: dacha-app
     image: dacha-app:${TAG:-latest}
     restart: always
+    networks:
+      - default
+      - caddy_net
     env_file: .env
     environment:
       # Derived from POSTGRES_* — kept in compose so password rotation
@@ -36,12 +38,6 @@ services:
     expose:
       - "${PORT}"
 
-  # One-shot DB migration — creates/updates tables to match the schema.
-  # Idempotent: only applies pending migrations. Runs automatically on
-  # every `docker compose up` because `app` depends on it.
-  # Reuses the `app` image — no separate build, no extra disk usage.
-  # `pull_policy: never` prevents compose from trying to pull from a registry.
-  # Run manually for explicit control: `docker compose run --rm migrate`
   migrate:
     image: dacha-app:${TAG:-latest}
     pull_policy: never
@@ -49,10 +45,6 @@ services:
     env_file: .env
     command: ["node_modules/.bin/payload", "migrate"]
 
-  # One-shot bootstrap — creates the admin user + starter content.
-  # Safe to re-run (skips if records exist). Runs after migrate, then app.
-  # Reuses the `app` image (see migrate for rationale).
-  # Run manually for explicit control: `docker compose run --rm seed`
   seed:
     image: dacha-app:${TAG:-latest}
     pull_policy: never
@@ -63,36 +55,9 @@ services:
         condition: service_completed_successfully
     command: ["node_modules/.bin/payload", "seed"]
 
-  # db:
-  #   image: postgres:16-alpine
-  #   restart: always
-  #   env_file: .env
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-
-  caddy:
-    image: caddy:2-alpine
-    restart: always
-    env_file: .env
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      app:
-        condition: service_started
-
-  # Telegram-бот (webhook через bot.maxdrobin.ru → :3001/webhook).
-  # Делит PostgreSQL с app через Payload Local API. Не exposed наружу —
-  # доступен только Caddy (для webhook) и app (для broadcast).
   bot:
     image: dacha-app:${TAG:-latest}
+    container_name: dacha-bot
     pull_policy: never
     restart: always
     env_file: .env
@@ -113,13 +78,15 @@ services:
       start_period: 60s
     expose:
       - "3001"
+    networks:
+      - default
+      - caddy_net
 
 volumes:
-  # postgres_data:
-    # name: dacha_postgres_v2
   media_data:
     name: dacha_media_v2
-  caddy_data:
-    name: dacha_caddy_data
-  caddy_config:
-    name: dacha_caddy_config
+
+networks:
+  caddy_net:
+    external: true
+    name: caddy_net
