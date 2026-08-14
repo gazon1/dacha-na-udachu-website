@@ -7,6 +7,7 @@ import { getBotPayload } from './db'
 import type { BotContext, SessionData } from './session'
 import { sessionMiddleware } from './middlewares/session'
 import { loggerMiddleware } from './middlewares/logger'
+import { createProxiedFetch } from './telegram-fetch'
 
 import { handleStart } from './handlers/start'
 import { handleHelp } from './handlers/help'
@@ -34,7 +35,20 @@ async function main() {
   // Инициализируем Payload заранее — если БД недоступна, лучше упасть сейчас.
   await getBotPayload()
 
-  const bot = new Bot<BotContext>(config.TELEGRAM_BOT_TOKEN)
+  // SOCKS5 proxy — только для запросов к api.telegram.org. Если env не задан,
+  // используется нативный fetch (без прокси). Все остальные запросы в боте
+  // (Payload Local API к Postgres, internal HTTP broadcast между app и bot)
+  // идут напрямую через Docker network.
+  const botOptions = process.env.TELEGRAM_SOCKS5_PROXY
+    ? {
+        client: {
+          apiRoot: 'https://api.telegram.org',
+          fetch: createProxiedFetch(process.env.TELEGRAM_SOCKS5_PROXY),
+        },
+      }
+    : {}
+
+  const bot = new Bot<BotContext>(config.TELEGRAM_BOT_TOKEN, botOptions)
 
   // Persistent session (in-memory). grammY хранит по ctx.chatId.
   // Для single-instance бота достаточно. Для масштабирования —

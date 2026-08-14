@@ -12,6 +12,7 @@
   "dependencies": {
     "express": "^4.21.0",
     "grammy": "^1.36.0",
+    "socks-proxy-agent": "^8.0.0",
     "tsx": "^4.19.0",
     "zod": "^3.22.0"
   },
