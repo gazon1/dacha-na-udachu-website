@@ -25,6 +25,7 @@ import {
   handleContributionChangeAmount,
 } from './handlers/contribution'
 import { handleSubscribe, handleUnsubscribe } from './handlers/subscribe'
+import { handleTransferCheck } from './handlers/transfer-check'
 import { handleUnknown } from './handlers/unknown'
 import { mountInternalBroadcast } from './internal-broadcast'
 
@@ -138,13 +139,14 @@ async function main() {
     return handleAmountCustom(ctx, m[1])
   })
 
-  bot.callbackQuery(/^pay:(confirm|msg|amount):/, async (ctx) => {
+  bot.callbackQuery(/^pay:(confirm|msg|amount|check):/, async (ctx) => {
     const data = ctx.callbackQuery.data ?? ''
-    const m = data.match(/^pay:(confirm|msg|amount):(.+)$/)
+    const m = data.match(/^pay:(confirm|msg|amount|check):(.+)$/)
     if (!m) return
     if (m[1] === 'confirm') return handleContributionConfirm(ctx, m[2])
     if (m[1] === 'msg') return handleContributionAskMessage(ctx, m[2])
     if (m[1] === 'amount') return handleContributionChangeAmount(ctx, m[2])
+    if (m[1] === 'check') return handleTransferCheck(ctx, m[2])
   })
 
   // ----- Fallback -----

@@ -27,6 +27,8 @@ export type SessionData = {
     pendingMessage?: string
     /** Текущий шаг FSM. */
     step?: 'awaiting_custom_amount' | 'awaiting_message'
+    /** secretKey последнего отправленного взноса — используется для «я перевёл — проверить». */
+    pendingSecretKey?: string
   }
 }
 

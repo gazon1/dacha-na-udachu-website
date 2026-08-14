@@ -1,10 +1,11 @@
 import type { CollectionConfig } from 'payload'
 import crypto from 'node:crypto'
+import { SignJWT } from 'jose'
 import { verifyTelegramAuth } from '../lib/telegram-verify'
 import { isAdmin, isAdminOrSelf } from '../lib/access'
 import { telegramStrategy, encodeTelegramToken } from './strategies/telegram'
 import { jwtStrategy } from './strategies/jwt'
-import { buildTelegramSessionCookie } from '../lib/telegram-cookie'
+import { buildTelegramSessionCookie, buildPayloadTokenCookie } from '../lib/telegram-cookie'
 
 /**
  * Users collection — Telegram-authenticated users.
@@ -78,59 +79,98 @@ export const Users: CollectionConfig = {
           return Response.json({ error: result.reason }, { status: 401 })
         }
 
-        const { id, first_name, last_name, username, photo_url, auth_date } =
-          body
+        const { id, first_name, last_name, username, photo_url } = body
         const telegramId = String(id)
 
-        // Find or create user
-        const existing = await req.payload.find({
+        // 1. Look for an existing User by telegramId.
+        const byTg = await req.payload.find({
           collection: 'users',
           where: { telegramId: { equals: telegramId } },
           limit: 1,
         })
 
-        let user = existing.docs[0]
-        if (!user) {
-          // Synthetic email + random password — Payload's standard auth flow
-          // works without revealing anything to the Telegram user.
-          const syntheticEmail = `telegram_${telegramId}@dacha.local`
-          const randomPassword = crypto.randomUUID()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let user: Record<string, any> | undefined = byTg.docs[0]
 
+        // 2. If no Telegram link exists, check whether the current request already
+        //    has a logged-in user (valid payload-token from admin login).  If so,
+        //    link this Telegram account to the existing admin account instead of
+        //    creating a second User — admin and Telegram logins become complementary.
+        if (!user && req.user) {
+          await req.payload.update({
+            collection: 'users',
+            id: req.user.id,
+            data: {
+              telegramId,
+              firstName: first_name ?? undefined,
+              lastName: last_name ?? undefined,
+              telegramUsername: username ?? undefined,
+              telegramPhotoUrl: photo_url ?? undefined,
+            },
+          })
+          user = await req.payload.findByID({
+            collection: 'users',
+            id: req.user.id,
+            depth: 0,
+          })
+        }
+
+        // 3. Still no match — create a new synthetic User.
+        if (!user) {
           user = await req.payload.create({
             collection: 'users',
             data: {
-              email: syntheticEmail,
-              password: randomPassword,
+              email: `telegram_${telegramId}@dacha.local`,
+              password: crypto.randomUUID(),
               telegramId,
-              firstName: first_name,
-              lastName: last_name,
-              telegramUsername: username,
-              telegramPhotoUrl: photo_url,
+              firstName: first_name ?? undefined,
+              lastName: last_name ?? undefined,
+              telegramUsername: username ?? undefined,
+              telegramPhotoUrl: photo_url ?? undefined,
               role: 'user',
             },
           })
         }
 
-        // Encode the verified payload as a base64 token. It goes both into
-        // the response body (for legacy callers) and into the standalone
-        // `telegram-session` cookie, which telegramStrategy reads on
-        // subsequent requests. The standard `payload-token` cookie is NOT
-        // touched here — admin and Telegram sessions stay independent.
-        const token = encodeTelegramToken(body)
+        // Encode Telegram token for telegram-session cookie (read by telegramStrategy).
+        const tgToken = encodeTelegramToken(body)
 
+        // Build the response first so we can add Set-Cookie headers.
         const res = Response.json({
-          token,
+          token: tgToken,
           user: {
             id: user.id,
-            telegramId: user.telegramId,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            telegramUsername: user.telegramUsername,
-            telegramPhotoUrl: user.telegramPhotoUrl,
-            role: user.role,
+            telegramId: user.telegramId ?? null,
+            firstName: user.firstName ?? null,
+            lastName: user.lastName ?? null,
+            telegramUsername: user.telegramUsername ?? null,
+            telegramPhotoUrl: user.telegramPhotoUrl ?? null,
+            role: user.role ?? null,
           },
         })
-        res.headers.append('Set-Cookie', buildTelegramSessionCookie(token))
+
+        // Always set telegram-session cookie.
+        res.headers.append('Set-Cookie', buildTelegramSessionCookie(tgToken))
+
+        // Also mint a standard Payload JWT so admin auth and Telegram auth point
+        // to the same User record when both login paths are used by the same person.
+        const secret = process.env.PAYLOAD_SECRET
+        if (secret) {
+          const secretKey = new TextEncoder().encode(secret)
+          const expiration = 60 * 60 * 24 * 7 // 7 days — mirrors Users.auth.tokenExpiration
+          const iat = Math.floor(Date.now() / 1000)
+          const jwt = await new SignJWT({
+            id: user.id,
+            collection: 'users',
+            email: user.email ?? '',
+          })
+            .setProtectedHeader({ alg: 'HS256' })
+            .setIssuedAt(iat)
+            .setExpirationTime(iat + expiration)
+            .sign(secretKey)
+          res.headers.append('Set-Cookie', buildPayloadTokenCookie(jwt))
+        }
+
         return res
       },
     },

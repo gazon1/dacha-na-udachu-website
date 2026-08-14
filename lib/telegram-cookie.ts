@@ -11,6 +11,7 @@
  */
 
 export const TELEGRAM_SESSION_COOKIE = 'telegram-session'
+export const PAYLOAD_TOKEN_COOKIE = 'payload-token'
 const SEVEN_DAYS_SECONDS = 60 * 60 * 24 * 7
 
 /**
@@ -25,6 +26,27 @@ export function buildTelegramSessionCookie(token: string): string {
   const isProd = process.env.NODE_ENV === 'production'
   const parts = [
     `${TELEGRAM_SESSION_COOKIE}=${encodeURIComponent(token)}`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Lax',
+    `Max-Age=${SEVEN_DAYS_SECONDS}`,
+  ]
+  if (isProd) parts.push('Secure')
+  return parts.join('; ')
+}
+
+/**
+ * Build a `Set-Cookie` header value for Payload's JWT (payload-token).
+ *
+ * When a user logs in via the Telegram Login Widget, we also issue them a
+ * standard Payload JWT so both admin and site auth point to the same User record.
+ *
+ * Uses the same cookie attributes as the Users collection auth config.
+ */
+export function buildPayloadTokenCookie(token: string): string {
+  const isProd = process.env.NODE_ENV === 'production'
+  const parts = [
+    `${PAYLOAD_TOKEN_COOKIE}=${encodeURIComponent(token)}`,
     'Path=/',
     'HttpOnly',
     'SameSite=Lax',

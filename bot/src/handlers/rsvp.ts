@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
 import type { BotContext } from '../session'
 import { getBotPayload } from '../db'
+import { ensureUser } from './ensure-user'
 
 /**
  * RSVP callback: `rsvp:<status>:<eventId>`.
@@ -16,18 +17,20 @@ export async function handleRsvpCallback(
 ): Promise<void> {
   await ctx.answerCallbackQuery()
 
-  const userId = ctx.session.userId
   const telegramId = ctx.session.telegramId
   if (!telegramId) {
     await ctx.reply('Не удалось определить твой Telegram ID. /start ещё раз.')
     return
   }
 
-  if (!userId) {
-    await ctx.reply(
-      'Чтобы записаться, нужно сначала войти через сайт.\n' +
-        'Открой дачу, нажми «Войти через Telegram» на любой странице, и попробуй ещё раз.',
-    )
+  // Ensure a linked User exists — creates one if the Telegram user has never
+  // voted before. This allows anonymous voting without a prior site login.
+  let userId: number
+  try {
+    userId = await ensureUser(ctx)
+  } catch (err) {
+    console.error('[rsvp] ensureUser failed:', err)
+    await ctx.reply('Не удалось создать аккаунт. Попробуй позже.')
     return
   }
 

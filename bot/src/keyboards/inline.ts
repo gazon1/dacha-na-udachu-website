@@ -33,7 +33,7 @@ export function eventCardKeyboard(eventId: string | number, slug?: string): Inli
     .row()
 
   if (slug) {
-    kb.text('🌐 На сайте', siteEventsUrl(slug)).row()
+    kb.url('🌐 На сайте', siteEventsUrl(slug)).row()
   }
 
   return kb

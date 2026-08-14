@@ -308,7 +308,7 @@ async function submitContribution(
       }),
     })
 
-    let data: { ok?: boolean; paymentUrl?: string; error?: string } = {}
+    let data: { ok?: boolean; paymentUrl?: string; secretKey?: string; error?: string } = {}
     try {
       data = (await res.json()) as typeof data
     } catch {
@@ -322,13 +322,20 @@ async function submitContribution(
       return
     }
 
+    // Store secretKey in session so /me or subsequent interactions can reference it.
+    ctx.session.fsm = {
+      ...(ctx.session.fsm ?? {}),
+      pendingSecretKey: data.secretKey,
+    }
+
     await ctx.reply(
       `✅ Заявка на ${formatRub(amount)} (${amount} ${pluralRubles(amount)}) принята.\n` +
-        `Нажми кнопку ниже, чтобы оплатить через ЮMoney:`,
+        `Нажми кнопку ниже, чтобы оплатить через ЮMoney, а затем нажми «Я перевёл»:`,
       {
         reply_markup: {
           inline_keyboard: [
             [{ text: '💳 Оплатить через ЮMoney', url: data.paymentUrl }],
+            [{ text: '✅ Я перевёл — проверить', callback_data: `pay:check:${data.secretKey}` }],
           ],
         },
       },

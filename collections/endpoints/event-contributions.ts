@@ -6,9 +6,16 @@ import {
   exchangeCodeForToken,
   getAuthorizeUrl,
   getOperationHistory,
+  getOperationDetails,
   getYoomoneyConfig,
   verifyWebhookSignature,
 } from '../../lib/yoomoney'
+
+/**
+ * In-process rate-limit: last timestamp (ms) we called getOperationHistory for
+ * a given secretKey.  Used by /check-by-secret to debounce rapid button presses.
+ */
+const lastCheckMap = new Map<string, number>()
 
 /**
  * Event contribution endpoints:
@@ -205,6 +212,112 @@ export const eventContributionEndpoints: Endpoint[] = [
         return Response.json({ error: 'not_found' }, { status: 404 })
       }
       return Response.json(res.docs[0])
+    },
+  },
+
+  // ─── POST /check-by-secret (Telegram bot: "я перевёл — проверить") ───────
+  {
+    path: '/check-by-secret',
+    method: 'post',
+    handler: async (req) => {
+      // Short-circuit if YooMoney not configured.
+      const token = process.env.YOOMONEY_ACCESS_TOKEN
+      if (!token) {
+        return Response.json({ ok: false, reason: 'no_token' }, { status: 503 })
+      }
+
+      const body = await req.json?.().catch(() => ({}))
+      const parsed = z.object({ secretKey: z.string().min(1) }).safeParse(body)
+      if (!parsed.success) {
+        return Response.json({ ok: false, reason: 'invalid_input' }, { status: 400 })
+      }
+      const { secretKey } = parsed.data
+
+      // Simple in-process rate-limit: don't hammer YooMoney more than once per
+      // 10 seconds per secretKey.  Using a module-level Map — fine for single-
+      // process; resets on deploy/restart.
+      const now = Date.now()
+      const lastChecked = lastCheckMap.get(secretKey)
+      if (lastChecked !== undefined && now - lastChecked < 10_000) {
+        return Response.json(
+          { ok: false, reason: 'too_soon', retryAfterMs: 10_000 - (now - lastChecked) },
+          { status: 429 },
+        )
+      }
+
+      // Find the contribution.
+      const findRes = await req.payload.find({
+        collection: 'event-contributions',
+        where: { secretKey: { equals: secretKey } },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      type Contrib = {
+        id: number | string
+        amount: number
+        status: string
+        createdAt: string
+      }
+      const doc = findRes.docs[0] as Contrib | undefined
+      if (!doc) {
+        return Response.json({ ok: false, reason: 'not_found' }, { status: 404 })
+      }
+
+      // If already in a terminal state, skip the API call.
+      if (doc.status === 'confirmed' || doc.status === 'rejected') {
+        return Response.json({ ok: true, status: doc.status })
+      }
+
+      // Mark as checked now (before the API call so concurrent clicks are debounced).
+      lastCheckMap.set(secretKey, now)
+
+      try {
+        const ops = await getOperationHistory(token, {
+          label: secretKey,
+          from: new Date(doc.createdAt),
+        })
+        const match = ops.find(
+          (op) => op.status === 'success' && op.amount === doc.amount,
+        )
+
+        if (match) {
+          // Fetch details to get sender name if available.
+          let senderFirstname: string | undefined
+          let senderLastname: string | undefined
+          try {
+            const details = await getOperationDetails(token, match.operation_id)
+            if (details?.details) {
+              // The comment field may contain free text; sender name is preferred.
+              // YooMoney webhook populates sender name via bank-level data.
+              senderFirstname = undefined // populated via webhook in production; details.extra may be empty
+              senderLastname = undefined
+            }
+          } catch {
+            // non-fatal — proceed without sender name
+          }
+
+          await req.payload.update({
+            collection: 'event-contributions',
+            id: doc.id,
+            data: {
+              status: 'confirmed',
+              yoomoneyOperationId: match.operation_id,
+              confirmedAt: new Date().toISOString(),
+              senderFirstname,
+              senderLastname,
+            },
+            overrideAccess: true,
+          })
+          return Response.json({ ok: true, status: 'confirmed' })
+        }
+
+        // Pending — no matching successful transfer found.
+        return Response.json({ ok: true, status: 'pending' })
+      } catch (err) {
+        req.payload.logger.error({ err, secretKey }, 'check_by_secret_yoomoney_failed')
+        return Response.json({ ok: false, reason: 'api_error' }, { status: 502 })
+      }
     },
   },
 
