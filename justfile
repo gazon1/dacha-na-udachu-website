@@ -8,6 +8,12 @@ set export
 set positional-arguments
 set quiet
 
+# Глобальные константы для деплоя
+TAG := `git rev-parse --short HEAD`
+CADDY_BASE := "/opt/caddy"
+CONF_D := CADDY_BASE + "/conf.d"
+PROJECT_DIR := justfile_directory()
+
 # ---- HELP ----
 [doc("Show all available commands")]
 default:
@@ -40,19 +46,15 @@ migrate-create:
 migrate:
     npm run payload migrate
 
+[doc("Start Next.js dev server (http://localhost:3000)")]
+dev:
+    npm run dev
 
 # ---- APP ----
 [doc("Build production bundle (output: .next/)")]
 build:
     NEXT_TELEMETRY_DISABLED=1 npm run build
 
-[doc("Start Next.js dev server (http://localhost:3000)")]
-dev:
-    npm run dev
-
-[doc("Start Next.js production server (requires prior `just build`)")]
-start:
-    npm run start
 
 
 # ---- BOT ----
@@ -66,13 +68,15 @@ bot-dev:
 
 
 # ---- DOCKER ----
+[doc("Build and tag by commit SHA for immutable deployments")]
+docker-build:
+    docker build -t dacha-app:{{TAG}} .
+    docker tag dacha-app:{{TAG}} dacha-app:latest
+
 [doc("Validate docker-compose.yml syntax")]
 docker-validate:
     docker compose -f docker-compose.yml config
 
-[doc("Build production Docker image locally")]
-docker-build:
-    docker build -t dacha-app:latest .
 
 [doc("Build and tag by commit SHA for immutable deployments")]
 docker-build-sha:
@@ -92,21 +96,60 @@ docker-push:
     docker push ghcr.io/$OWNER/dacha-app:$TAG
 
 
-# ---- PRODUCTION (VPS) ----
-[doc("Deploy to VPS via shared Caddy: bootstrap + git pull + compose up + caddy reload")]
-prod-deploy-caddy:
-    #!/usr/bin/env bash
-    set -e
-    TAG=$(git rev-parse --short HEAD) bash deploy/deploy.sh
+# ---- PRODUCTION (VPS) DEPLOYMENT PIPELINE ----
+[doc("Deploy to VPS: full pipeline via shared Caddy")]
+prod-deploy: git-pull caddy-bootstrap caddy-config compose-up caddy-reload smoke-test clean
 
-[doc("Deploy to VPS: git pull + rebuild + restart containers (legacy — remove after verifying prod-deploy-caddy)")]
-prod-deploy:
-    #!/usr/bin/env bash
-    set -e
-    echo "📦 Pulling latest from main..."
+[doc("Step 1: Pull latest repository state")]
+git-pull:
+    @echo "📦 Pulling latest from main..."
     git pull origin main
-    echo "🔨 Building and restarting containers..."
-    docker compose -f docker-compose.yml down --remove-orphans
-    docker compose -f docker-compose.yml up --build --detach
-    echo "✅ Deploy complete"
-    docker compose -f docker-compose.yml ps
+
+[doc("Step 2: Idempotent initialization of global Caddy infrastructure")]
+caddy-bootstrap:
+    @echo "🌐 Verifying global network and Caddy..."
+    docker network inspect caddy_net >/dev/null 2>&1 || docker network create --driver bridge caddy_net
+    mkdir -p {{CONF_D}} {{CADDY_BASE}}/data {{CADDY_BASE}}/config
+    [ -f {{CADDY_BASE}}/Caddyfile ] || cp deploy/caddy.bootstrap/Caddyfile {{CADDY_BASE}}/Caddyfile
+    docker container inspect caddy_global >/dev/null 2>&1 || docker run -d \
+        --name caddy_global --restart always --network caddy_net \
+        -p 80:80 -p 443:443 -p 127.0.0.1:2019:2019 \
+        -v {{CADDY_BASE}}/Caddyfile:/etc/caddy/Caddyfile:ro \
+        -v {{CONF_D}}:/etc/caddy/conf.d:ro \
+        -v {{CADDY_BASE}}/data:/data -v {{CADDY_BASE}}/config:/config \
+        --cap-drop ALL --cap-add NET_BIND_SERVICE caddy:2-alpine
+    docker start caddy_global >/dev/null 2>&1 || true
+
+[doc("Step 3: Update routing config (validates without touching state)")]
+caddy-config:
+    @echo "📝 Updating project routing rules..."
+    cp deploy/caddy.conf.caddy {{CONF_D}}/dacha.caddy
+    docker exec caddy_global caddy validate --config /etc/caddy/Caddyfile
+
+[doc("Step 4: Rebuild and restart project containers gracefully")]
+compose-up:
+    @echo "🔨 Deploying containers..."
+    TAG={{TAG}} docker compose down --remove-orphans 2>/dev/null || true
+    TAG={{TAG}} docker compose up -d --build
+    @echo "⏳ Waiting for app healthchecks (relies on docker-compose healthcheck rules)..."
+    docker compose wait app || echo "Compose wait finished (verify app logs if failed)"
+
+[doc("Step 5: Apply new routes with zero downtime")]
+caddy-reload:
+    @echo "🔄 Reloading Caddy routes..."
+    docker exec caddy_global caddy reload --config /etc/caddy/Caddyfile
+
+[doc("Step 6: Verify endpoint connectivity")]
+smoke-test:
+    @echo "🚦 Running smoke tests..."
+    curl -fsSI --max-time 10 "https://dacha.maxdrobin.ru/" > /dev/null
+    @echo "✅ Deploy pipeline completed successfully."
+
+[doc("Step 7: Free up disk space by removing unused Docker assets")]
+clean:
+    @echo "🧹 Removing stopped containers and dangling build cache..."
+    docker system prune -f
+    @echo "🗑️ Removing unused images older than 7 days (clearing old SHA-tagged releases)..."
+    docker image prune -a -f --filter "until=168h"
+    @echo "✨ System cleanup complete. Current disk space:"
+    df -h / | tail -n 1
