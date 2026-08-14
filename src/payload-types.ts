@@ -1432,6 +1432,40 @@ export interface SiteSetting {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Список пользователей, которым бот шлёт уведомления. Chat_id берётся из telegramId пользователя. Если пользователя нет в списке — добавьте его через кнопку «Добавить».
+   */
+  telegramAdmins?:
+    | {
+        /**
+         * Пользователь (должен иметь telegramId). Chat_id определяется автоматически.
+         */
+        user: number | User;
+        /**
+         * Отображаемое имя (по умолчанию — firstName из профиля). Опционально.
+         */
+        label?: string | null;
+        notifyOn?: {
+          /**
+           * Подтверждённые взносы на события
+           */
+          contribution?: boolean | null;
+          /**
+           * Новые и подтверждённые бронирования
+           */
+          booking?: boolean | null;
+          /**
+           * Новые опубликованные события
+           */
+          newEvent?: boolean | null;
+          /**
+           * Новые RSVP (ответы на события)
+           */
+          rsvp?: boolean | null;
+        };
+        id?: string | null;
+      }[]
+    | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1461,6 +1495,21 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         url?: T;
         icon?: T;
         img?: T;
+        id?: T;
+      };
+  telegramAdmins?:
+    | T
+    | {
+        user?: T;
+        label?: T;
+        notifyOn?:
+          | T
+          | {
+              contribution?: T;
+              booking?: T;
+              newEvent?: T;
+              rsvp?: T;
+            };
         id?: T;
       };
   updatedAt?: T;
