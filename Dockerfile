@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Install OS deps for sharp + pg client
 RUN apt-get update --yes --quiet && apt-get install --yes --quiet --no-install-recommends \
-    python3 make g++ \
+    make g++ \
     && rm -rf /var/lib/apt/lists/*
 
 # Install npm packages (cached layer)
@@ -57,7 +57,8 @@ ENV PORT=${PORT}
 
 # Sharp runtime deps
 RUN apt-get update --yes --quiet && apt-get install --yes --quiet --no-install-recommends \
-    curl ca-certificates update-ca-certificates \
+    curl ca-certificates \
+    && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 
