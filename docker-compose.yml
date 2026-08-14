@@ -30,11 +30,11 @@ services:
     # next to the env vars that drive it (PORT).
     command: ["node_modules/next/dist/bin/next", "start"]
     healthcheck:
-      test: ["CMD", "node", "healthcheck.js"]
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:${PORT:-3000}/api/health || exit 1"]
       interval: 15s
-      timeout: 20s
+      timeout: 10s
       retries: 5
-      start_period: 180s
+      start_period: 60s
     expose:
       - "${PORT}"
 
