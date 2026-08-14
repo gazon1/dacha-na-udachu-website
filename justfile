@@ -129,6 +129,8 @@ caddy-config:
 [doc("Step 4: Rebuild and restart project containers gracefully")]
 compose-up:
     @echo "🔨 Deploying containers..."
+    @echo "🧹 Freeing disk space before build..."
+    docker system prune -f
     TAG={{TAG}} docker compose down --remove-orphans 2>/dev/null || true
     TAG={{TAG}} docker compose up -d --build
     @echo "⏳ Waiting for app healthchecks (relies on docker-compose healthcheck rules)..."
