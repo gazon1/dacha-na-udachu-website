@@ -23,6 +23,9 @@ export async function handleStart(ctx: BotContext): Promise<void> {
   text += `${capabilities.join('\n')}\n\n`
   if (knownUser) {
     text += `Ты залогинен через сайт — <b>/me</b> покажет твои записи и взносы.`
+    if (ctx.session.role === 'admin') {
+      text += '\n\n👋 Вы админ. Команда <b>/admin</b> открывает панель уведомлений и переводов.'
+    }
   } else {
     text +=
       `Чтобы видеть свои записи и взносы — <a href="${siteUrl('login')}">войди через сайт</a> ` +

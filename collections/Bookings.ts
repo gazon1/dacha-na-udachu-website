@@ -27,6 +27,46 @@ export const Bookings: CollectionConfig = {
     delete: () => false,
   },
   endpoints: bookingEndpoints,
+  hooks: {
+    afterChange: [
+      async ({ doc, req, operation, previousDoc }) => {
+        // Fire on booking create OR when isConfirmed flips false → true.
+        const wasCreated = operation === 'create'
+        const wasConfirmed =
+          previousDoc?.isConfirmed !== true && doc.isConfirmed === true
+        if (!wasCreated && !wasConfirmed) return
+
+        try {
+          // Resolve house title for a friendly notification.
+          const house = await req.payload.findByID({
+            collection: 'houses',
+            id: doc.house,
+            depth: 0,
+            overrideAccess: true,
+          })
+
+          const { notifyAdmin } = await import('../lib/telegram-notify')
+
+          const lines: string[] = [
+            `📅 <b>${wasCreated ? 'Новая бронь' : 'Бронь подтверждена'}</b>`,
+            `🏡 Дом: ${(house as { title?: string } | null)?.title ?? '—'}`,
+            `👤 Имя: ${doc.name}`,
+            `📞 Телефон: ${doc.phone}`,
+          ]
+          if (doc.telegram) lines.push(`💬 Telegram: ${doc.telegram}`)
+          lines.push(
+            `📆 Заезд: ${doc.checkIn}, выезд: ${doc.checkOut}`,
+            `👥 Гостей: ${doc.guestNum}, сумма: ${doc.totalPrice.toLocaleString('ru-RU')} ₽`,
+          )
+          if (doc.notes) lines.push(`📝 Заметки: ${doc.notes}`)
+
+          await notifyAdmin(lines.join('\n'), 'booking')
+        } catch (err) {
+          req.payload.logger.error({ err }, 'booking_notify_failed')
+        }
+      },
+    ],
+  },
   fields: [
     {
       name: 'house',

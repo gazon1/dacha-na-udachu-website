@@ -64,7 +64,7 @@ export const EventContributions: CollectionConfig = {
               doc.message ? `Сообщение: ${doc.message}` : '',
               doc.yoomoneyOperationId ? `Операция: ${doc.yoomoneyOperationId}` : '',
             ].filter(Boolean)
-            await notifyAdmin(lines.join('\n'))
+            await notifyAdmin(lines.join('\n'), 'contribution')
           } catch (err) {
             req.payload.logger.error({ err }, 'contribution_confirm_side_effect_failed')
           }

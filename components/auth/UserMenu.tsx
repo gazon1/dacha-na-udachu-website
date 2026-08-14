@@ -57,7 +57,7 @@ function TelegramLoginWidget() {
     script.setAttribute('data-radius', '8')
     script.setAttribute('data-onauth', 'onTelegramAuth(user)')
     containerRef.current.appendChild(script)
-    ;(window as Window & { onTelegramAuth?: typeof submitToBackend }).onTelegramAuth = submitToBackend
+    ;(window as unknown as { onTelegramAuth?: typeof submitToBackend }).onTelegramAuth = submitToBackend
 
     return () => {
       // The script is replaced by the iframe, so we have to remove the
@@ -65,7 +65,7 @@ function TelegramLoginWidget() {
       if (containerRef.current) {
         containerRef.current.innerHTML = ''
       }
-      delete (window as Window & { onTelegramAuth?: typeof submitToBackend }).onTelegramAuth
+      delete (window as unknown as { onTelegramAuth?: typeof submitToBackend }).onTelegramAuth
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [botName])

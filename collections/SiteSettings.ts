@@ -89,5 +89,63 @@ export const SiteSettings: GlobalConfig = {
         },
       ],
     },
+    {
+      name: 'telegramAdmins',
+      type: 'array',
+      label: 'Админские Telegram-уведомления',
+      admin: {
+        description:
+          'Список пользователей, которым бот шлёт уведомления. Chat_id берётся из telegramId пользователя. Если пользователя нет в списке — добавьте его через кнопку «Добавить».',
+      },
+      fields: [
+        {
+          name: 'user',
+          type: 'relationship',
+          relationTo: 'users',
+          required: true,
+          admin: {
+            description: 'Пользователь (должен иметь telegramId). Chat_id определяется автоматически.',
+          },
+        },
+        {
+          name: 'label',
+          type: 'text',
+          admin: {
+            description: 'Отображаемое имя (по умолчанию — firstName из профиля). Опционально.',
+          },
+        },
+        {
+          name: 'notifyOn',
+          type: 'group',
+          label: 'Категории уведомлений',
+          fields: [
+            {
+              name: 'contribution',
+              type: 'checkbox',
+              defaultValue: true,
+              admin: { description: 'Подтверждённые взносы на события' },
+            },
+            {
+              name: 'booking',
+              type: 'checkbox',
+              defaultValue: true,
+              admin: { description: 'Новые и подтверждённые бронирования' },
+            },
+            {
+              name: 'newEvent',
+              type: 'checkbox',
+              defaultValue: true,
+              admin: { description: 'Новые опубликованные события' },
+            },
+            {
+              name: 'rsvp',
+              type: 'checkbox',
+              defaultValue: false,
+              admin: { description: 'Новые RSVP (ответы на события)' },
+            },
+          ],
+        },
+      ],
+    },
   ],
 }

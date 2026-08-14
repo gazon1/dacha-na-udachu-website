@@ -26,6 +26,7 @@ import {
 } from './handlers/contribution'
 import { handleSubscribe, handleUnsubscribe } from './handlers/subscribe'
 import { handleTransferCheck } from './handlers/transfer-check'
+import { handleAdmin, handleNotifToggle, handleAdminContributions, handleAdminBack } from './handlers/admin'
 import { handleUnknown } from './handlers/unknown'
 import { mountInternalBroadcast } from './internal-broadcast'
 
@@ -39,6 +40,7 @@ async function registerCommandsMenu(bot: Bot<BotContext>): Promise<void> {
     { command: 'me', description: 'Мои записи и взносы' },
     { command: 'subscribe', description: 'Подписаться на анонсы' },
     { command: 'unsubscribe', description: 'Отписаться от анонсов' },
+    { command: 'admin', description: 'Админ-панель: уведомления и переводы' },
     { command: 'help', description: 'Справка по командам' },
   ])
 }
@@ -96,6 +98,7 @@ async function main() {
   bot.command('subscribe', handleSubscribe)
   bot.command('unsubscribe', handleUnsubscribe)
   bot.command('cancel', handleCancel)
+  bot.command('admin', handleAdmin)
 
   // ----- Callback queries -----
   bot.callbackQuery(/^cmd:/, async (ctx) => {
@@ -148,6 +151,17 @@ async function main() {
     if (m[1] === 'amount') return handleContributionChangeAmount(ctx, m[2])
     if (m[1] === 'check') return handleTransferCheck(ctx, m[2])
   })
+
+  // Admin panel callbacks
+  bot.callbackQuery(/^notif:toggle:(\d+):(contribution|booking|newEvent|rsvp)$/, async (ctx) => {
+    const data = ctx.callbackQuery.data ?? ''
+    const m = data.match(/^notif:toggle:(\d+):(contribution|booking|newEvent|rsvp)$/)
+    if (!m) return
+    return handleNotifToggle(ctx, m[1], m[2] as 'contribution' | 'booking' | 'newEvent' | 'rsvp')
+  })
+
+  bot.callbackQuery('admin:contributions', handleAdminContributions)
+  bot.callbackQuery('admin:back', handleAdminBack)
 
   // ----- Fallback -----
   bot.on('message', handleUnknown)

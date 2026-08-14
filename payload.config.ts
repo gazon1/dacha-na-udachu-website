@@ -108,6 +108,7 @@ export default buildConfig({
         "/components/admin/widgets/RsvpStats",
         "/components/admin/widgets/QuickActions",
       ],
+      afterLogin: ['/components/admin/TelegramLoginWidget'],
     },
   },
 
