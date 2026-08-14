@@ -57,8 +57,9 @@ ENV PORT=${PORT}
 
 # Sharp runtime deps
 RUN apt-get update --yes --quiet && apt-get install --yes --quiet --no-install-recommends \
-    python3 curl \
+    curl ca-certificates update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
 
 # Runtime dirs
 RUN mkdir -p /app/media && chown -R node:node /app
