@@ -102,14 +102,19 @@ jobs:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_PORT: ${{ secrets.VPS_PORT }}
-          LOCAL_SUM: ${{ hashFiles('deploy/caddy.conf.caddy') }}
         run: |
+          # NOT ${{ hashFiles(...) }}: despite being documented as a SHA-256
+          # of the file, it returned a different digest than sha256sum for a
+          # byte-identical file, so every deploy failed this check while the
+          # two sides actually matched. Both sides are hashed here with the
+          # same command instead.
+          local_sum=$(sha256sum deploy/caddy.conf.caddy | cut -d' ' -f1)
           remote_sum=$(ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" \
             "sha256sum /opt/caddy/conf.d/dacha.caddy 2>/dev/null | cut -d' ' -f1" \
             || echo "<missing>")
-          echo "repo      $LOCAL_SUM"
+          echo "repo      $local_sum"
           echo "installed $remote_sum"
-          if [ "$remote_sum" != "$LOCAL_SUM" ]; then
+          if [ "$remote_sum" != "$local_sum" ]; then
             echo "::error::The Caddy route on the VPS differs from deploy/caddy.conf.caddy (or is absent). Apply it first: just caddy-route"
             exit 1
           fi
