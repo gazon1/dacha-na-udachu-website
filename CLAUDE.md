@@ -34,8 +34,13 @@ npm run generate:types  # Generate Payload TypeScript types
 npm run generate:importmap # Generate admin importmap
 
 # Docker
-just docker-build       # Build Docker image
+just docker-build       # Build the image locally (CI is the only publisher)
+just local-up           # Build + run the whole stack locally, wait for health
 just docker-validate    # Validate docker-compose config
+
+# Deploy — production has ONE path, CI:
+#   push to main  → ci.yml builds the image to GHCR
+#   Actions → Deploy to VPS → Run workflow  (deploy.yml)
 ```
 
 ## Architecture

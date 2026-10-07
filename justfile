@@ -9,9 +9,10 @@ set positional-arguments
 set quiet
 
 # ---- GLOBAL -----------------------------------------------------------------
-TAG := `git rev-parse --short HEAD`
-PROJECT_CADDY_SNIPPET := "dacha"
-SMOKE_URL := "https://dacha.maxdrobin.ru/"
+# No TAG variable here on purpose. just evaluates these once when it loads
+# the file, so any recipe that changes HEAD would then compose against a
+# stale value. Recipes that need the tag compute it themselves, at the point
+# of use — see docker-build and local-up.
 
 # ---- HELP ----
 [doc("Show all available commands")]
@@ -66,47 +67,45 @@ bot-dev:
 
 
 # ---- DOCKER ----
-[doc("Build and tag by commit SHA for immutable deployments")]
-docker-build:
-    docker build -t dacha-app:{{TAG}} .
-    docker tag dacha-app:{{TAG}} dacha-app:latest
-
 [doc("Validate docker-compose.yml syntax")]
 docker-validate:
-    docker compose -f docker-compose.yml config
+    # TAG is required by the compose file; it is not used here, but compose
+    # refuses to render the config without it.
+    TAG=validate docker compose -f docker-compose.yml config
 
-[doc("Build and tag by commit SHA for immutable deployments")]
-docker-build-sha:
+[doc("Build the image locally (CI is the only publisher — this is for debugging)")]
+docker-build:
     #!/usr/bin/env bash
-    set -e
-    TAG=$(git rev-parse --short HEAD)
-    docker build -t dacha-app:$TAG .
-
-[doc("Push image to GHCR (requires GHCR_TOKEN env var)")]
-docker-push:
-    #!/usr/bin/env bash
-    set -e
-    TAG=$(git rev-parse --short HEAD)
-    OWNER=$(gh api user --jq .login)
-    echo $GHCR_TOKEN | docker login ghcr.io -u $OWNER --password-stdin
-    docker tag dacha-app:$TAG ghcr.io/$OWNER/dacha-app:$TAG
-    docker push ghcr.io/$OWNER/dacha-app:$TAG
+    set -euo pipefail
+    # Computed here, not via the TAG variable at the top of this file: just
+    # evaluates those once at load time, which is stale by the time a recipe
+    # that changed HEAD runs.
+    tag=$(git rev-parse --short HEAD)
+    # Tagged with the GHCR name on purpose: docker-compose.yml pins
+    # ghcr.io/gazon1/dacha-app:${TAG} with pull_policy: missing, so a local
+    # build under that exact name is used as-is instead of being pulled.
+    docker build -t "ghcr.io/gazon1/dacha-app:${tag}" .
+    echo "Built ghcr.io/gazon1/dacha-app:${tag}"
 
 
-# ---- PRODUCTION DEPLOY -------------------------------------------------------
-# The shared reverse proxy is NOT this project's business any more. It is
-# provisioned by the Caddy-vps Ansible repository (gazon1/Caddy-vps), which
-# backs the snippet up, validates the result and rolls back on failure. Nothing
-# here touches caddy_global.
+# ---- DEPLOY ------------------------------------------------------------------
+# Production has exactly ONE path: CI. Push to main builds the image and
+# publishes it to GHCR; the deploy workflow (workflow_dispatch) pulls it onto
+# the VPS, runs the one-shot jobs and waits for health. Nothing on a laptop
+# deploys to production, so there is no second opinion about what is running.
 #
-#   just caddy-route   apply deploy/caddy.conf.caddy as the "dacha" route
-#   just prod-deploy   pull + compose up + wait for health + smoke test
+#   just local-up     build and run the stack here, for debugging
+#   just caddy-route  apply deploy/caddy.conf.caddy to the shared proxy
 #
-# The image is built and published by CI; the server only pulls.
+# The shared reverse proxy is NOT this project's business. It is provisioned
+# by the Caddy-vps Ansible repository (gazon1/Caddy-vps), which backs the
+# snippet up, validates the result and rolls back on failure. Nothing here
+# touches caddy_global.
 #
 # CADDY_REPO points at a checkout of Caddy-vps and defaults to a sibling
 # directory, which is where it sits on a developer machine.
 CADDY_REPO := env("CADDY_REPO", justfile_directory() / ".." / "Caddy-vps")
+ROUTE_NAME := "dacha"
 
 [doc("Apply this project's route to the global Caddy proxy (via Ansible)")]
 caddy-route *args:
@@ -118,7 +117,7 @@ caddy-route *args:
       echo "       CADDY_REPO=/path/to/Caddy-vps and re-run." >&2
       exit 1
     fi
-    just --justfile "{{ CADDY_REPO }}/justfile" route dacha \
+    just --justfile "{{ CADDY_REPO }}/justfile" route "{{ ROUTE_NAME }}" \
       "{{ justfile_directory() }}/deploy/caddy.conf.caddy" {{ args }}
 
 [doc("Compare this repo's route snippet with the copy installed on the VPS")]
@@ -128,14 +127,14 @@ route-drift host="" user="":
     local_file="deploy/caddy.conf.caddy"
     if [ -z "{{ host }}" ]; then
       echo "usage: just route-drift <host> [user]"
-      echo "  compares $local_file against /opt/caddy/conf.d/dacha.caddy"
+      echo "  compares $local_file against /opt/caddy/conf.d/{{ ROUTE_NAME }}.caddy"
       exit 0
     fi
     target="{{ user }}"
     [ -n "$target" ] || target="root"
     local_sum=$(sha256sum "$local_file" | cut -d' ' -f1)
     remote_sum=$(ssh "$target@{{ host }}" \
-      "sha256sum /opt/caddy/conf.d/dacha.caddy 2>/dev/null | cut -d' ' -f1" \
+      "sha256sum /opt/caddy/conf.d/{{ ROUTE_NAME }}.caddy 2>/dev/null | cut -d' ' -f1" \
       || echo "<unreadable>")
     echo "repo      $local_sum"
     echo "installed $remote_sum"
@@ -146,85 +145,54 @@ route-drift host="" user="":
       exit 1
     fi
 
-[doc("Deploy to VPS: pull + compose up + wait for health + smoke test")]
-prod-deploy:
+[doc("Build and run the stack locally for debugging (never touches production)")]
+local-up:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    echo "📦 Pulling latest from main..."
-    git pull origin main
+    # The tag is derived from the CURRENT commit. It must be computed inside
+    # the recipe: `TAG := ...` at the top of this file is evaluated when just
+    # loads the file, so it is already stale by the time a recipe runs.
+    tag=$(git rev-parse --short HEAD)
+    export TAG="$tag"
 
-    # The image is published by CI under an immutable commit-SHA tag; the server
-    # pulls it instead of building. Compose recreates only the services whose
-    # configuration changed, so the stack is not taken down.
-    echo "⤓️  Pulling images..."
-    docker compose pull
-    docker compose up -d --remove-orphans
-
-    # Wait for the app's own healthcheck. NOT `docker compose wait`: that
-    # blocks until containers STOP, so against a long-running service it would
-    # burn the whole timeout on every deploy.
-    #
-    # docker ps --filter is used instead of docker inspect -f on purpose: a Go
-    # template contains doubled braces, which just tries to interpolate.
-    # Quoting them does not help (they are emitted verbatim) and a backtick
-    # string is evaluated as a shell command instead.
-    #
-    # The name filter is anchored (^/dacha-app) so dacha-bot cannot match.
-    echo "⏳ Waiting for dacha-app to become healthy (timeout 300s)..."
-    state=missing
-    deadline=$(( $(date +%s) + 300 ))
-    while [ "$(date +%s)" -lt "$deadline" ]; do
-      # Order matters. health=none is checked BEFORE the plain "is it
-      # running" test, otherwise a container without a healthcheck would
-      # look like a perfectly normal starting one and we would sit here for
-      # the full timeout.
-      if docker ps --filter "name=^/dacha-app$" --filter "health=healthy" -q | grep -q .; then
-        state=healthy
-      elif docker ps --filter "name=^/dacha-app$" --filter "health=unhealthy" -q | grep -q .; then
-        state=unhealthy
-      elif docker ps --filter "name=^/dacha-app$" --filter "health=none" -q | grep -q .; then
-        state=no-healthcheck
-      elif docker ps --filter "name=^/dacha-app$" -q | grep -q .; then
-        state=starting
-      elif docker ps -a --filter "name=^/dacha-app$" -q | grep -q .; then
-        # Exists but is not running. Keep waiting — a restart policy may
-        # still bring it back — but say so, so the timeout message is useful.
-        state=exited
-      else
-        state=missing
-      fi
-
-      case "$state" in
-        healthy)
-          echo "✅ dacha-app is healthy"
-          break
-          ;;
-        unhealthy)
-          echo "❌ dacha-app reported unhealthy" >&2
-          docker logs --tail 50 dacha-app >&2 || true
-          exit 1
-          ;;
-        no-healthcheck)
-          echo "❌ dacha-app is running but has no healthcheck — check docker-compose.yml" >&2
-          exit 1
-          ;;
-      esac
-      sleep 5
-    done
-
-    if [ "$state" != "healthy" ]; then
-      echo "❌ dacha-app did not become healthy within 300s (last state: $state)" >&2
-      docker compose ps >&2 || true
-      docker logs --tail 50 dacha-app >&2 || true
+    # compose reads env_file: .env for every service and exits with a bare
+    # "env file not found" otherwise.
+    if [ ! -f .env ]; then
+      echo "error: .env is missing — the compose file needs it for DATABASE_URI," >&2
+      echo "       TELEGRAM_BOT_TOKEN and the rest. Start from the template:" >&2
+      echo "         cp .env.example .env && \$EDITOR .env" >&2
       exit 1
     fi
 
-    # Smoke test through the public domain: this proves Caddy, TLS and the
-    # network path are healthy — not just the container.
-    echo "🚦 Smoke testing {{ SMOKE_URL }}..."
-    curl -fsSI --max-time 15 "{{ SMOKE_URL }}" > /dev/null
-    echo "✅ Deploy completed successfully."
+    # caddy_net is declared `external: true` because on the VPS it is created
+    # by the Caddy-vps Ansible role. Locally nothing creates it, so compose
+    # would fail with a bare "network not found".
+    if ! docker network inspect caddy_net >/dev/null 2>&1; then
+      echo "→ Creating the local caddy_net network..."
+      docker network create caddy_net >/dev/null
+    fi
+
+    # The image is built locally and tagged with the exact GHCR name the
+    # compose file pins, so `pull_policy: missing` uses the local build
+    # instead of fetching from the registry.
+    echo "🔨 Building ghcr.io/gazon1/dacha-app:${tag}..."
+    docker build -t "ghcr.io/gazon1/dacha-app:${tag}" .
+
+    echo "⤓️  Starting the stack..."
+    docker compose up -d --remove-orphans
+
+    # Same script the deploy workflow runs on the VPS, so "healthy" means
+    # exactly the same thing in both places.
+    "{{ justfile_directory() }}/scripts/wait-healthy.sh" dacha-app 300
+
+    port=$(grep -E '^PORT=' .env | head -1 | cut -d= -f2 || echo "")
+    port="${port:-3000}"
+    echo "✅ Stack is up locally. App: http://localhost:${port}"
+    echo "   ps:     docker compose ps"
+    echo "   logs:   docker compose logs -f app"
+    echo "   stop:   docker compose down"
+
 
 [doc("Remove unused Docker assets (NOT part of a deploy)")]
 docker-clean:

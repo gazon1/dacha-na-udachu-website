@@ -31,8 +31,8 @@ tests/
 
 # Secrets — must never enter the image.
 # `.env` is gitignored so CI builds never see it, but `just docker-build` /
-# `just docker-push` run on a workstation that DOES have one; without these
-# rules the secrets get baked into the image and pushed to GHCR.
+# `just local-up` run on a workstation that DOES have one; without these
+# rules the secrets get baked into the image.
 .env
 .env.*
 !.env.example
@@ -44,7 +44,7 @@ media/
 # Host-level / local-dev concerns
 justfile          # local task runner
 deploy/           # Caddy routing snippets, applied on the VPS
-scripts/.gitignore
+scripts/wait-healthy.sh  # deploy helper, run on the VPS or the laptop
 *.log
 logs/
 

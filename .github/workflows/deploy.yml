@@ -126,6 +126,15 @@ jobs:
             echo "::warning::$APP_DIR is not a git checkout — deploying the files as they are on disk."
           fi
 
+          # The health wait runs from this checkout. Git preserves the exec
+          # bit, but only for files it tracks as executable — a fresh clone
+          # over an older tree, or a checkout copied by something other than
+          # git, can leave it 0644 and the call below would die with
+          # "Permission denied" after the containers are already recreated.
+          if [ ! -x ./scripts/wait-healthy.sh ]; then
+            chmod +x ./scripts/wait-healthy.sh
+          fi
+
           echo "→ Current state before deploy:"
           docker compose images || true
 
@@ -146,41 +155,13 @@ jobs:
           # app is created, and a failed migration stops app from starting.
           docker compose up -d --remove-orphans
 
-          # `docker compose wait` blocks until containers STOP, which a
-          # long-running service never does — it would burn the whole
-          # timeout on every deploy and then continue as if nothing were
-          # wrong. Wait for the app's own healthcheck instead, which is what
-          # actually says "this version serves traffic".
-          echo "→ Waiting for dacha-app healthcheck (timeout 300s)..."
-          state=missing
-          deadline=\$(( \$(date +%s) + 300 ))
-          while [ "\$(date +%s)" -lt "\$deadline" ]; do
-            state=\$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' dacha-app 2>/dev/null || echo missing)
-            case "\$state" in
-              healthy)
-                echo "dacha-app is healthy"
-                break
-                ;;
-              unhealthy)
-                echo "dacha-app reports unhealthy:"
-                docker logs --tail 50 dacha-app || true
-                exit 1
-                ;;
-              none)
-                echo "dacha-app is running but has no healthcheck — check docker-compose.yml:"
-                docker compose config | grep -A3 healthcheck || echo "(no healthcheck block found)"
-                exit 1
-                ;;
-            esac
-            sleep 5
-          done
-
-          if [ "\$state" != "healthy" ]; then
-            echo "dacha-app did not become healthy within 300s (last state: \$state)"
-            docker compose ps || true
-            docker logs --tail 50 dacha-app || true
-            exit 1
-          fi
+          # The wait lives in scripts/wait-healthy.sh, which `just local-up`
+          # calls too — so "healthy" means exactly the same thing in both
+          # places. NOT `docker compose wait`: that blocks until containers
+          # STOP, which a long-running service never does, so it would burn
+          # the whole timeout on every deploy and then continue as if nothing
+          # were wrong.
+          ./scripts/wait-healthy.sh dacha-app 300
 
           echo "→ Final state:"
           docker compose ps
