@@ -1,9 +1,23 @@
 import type { Endpoint, Where } from 'payload'
 import { z } from 'zod'
 import { rsvpLimiter } from '../../lib/rate-limit'
+import {
+  findBySecretKey,
+  projectRsvp,
+  type RsvpStatusDoc,
+} from '../../lib/secret-key'
 
 /**
- * RSVP endpoints — POST /api/event-rsvps/submit, /cancel/:secretKey, GET /api/event-rsvps/by-secret/:secretKey.
+ * RSVP endpoints:
+ *   POST /api/event-rsvps/submit   — create RSVP (returns secretKey)
+ *   POST /api/event-rsvps/by-secret — owner status lookup (secretKey in body)
+ *   POST /api/event-rsvps/cancel    — update/cancel own RSVP (secretKey in body)
+ *
+ * The secretKey is the only credential for the latter two, and it is
+ * deliberately carried in the JSON body, NOT the URL. URLs get written to
+ * Caddy access logs, browser history and Referer headers — an unguessable key
+ * in a URL is still a key that leaks. Both endpoints are POST, which also means
+ * the browser attaches SameSite=Lax protection for free.
  */
 const SubmitSchema = z.object({
   event: z.union([z.number(), z.string()]),
@@ -14,7 +28,11 @@ const SubmitSchema = z.object({
   website: z.string().max(0).optional(),
 })
 
-const CancelSchema = z.object({
+export const SecretSchema = z.object({
+  secretKey: z.string().min(1).max(64),
+})
+
+export const CancelSchema = SecretSchema.extend({
   status: z.enum(['not_going', 'going', 'maybe', 'waiting']).default('not_going'),
   // Optional fields — when sent, the existing RSVP is updated in place.
   name: z.string().min(1).max(100).optional(),
@@ -94,50 +112,38 @@ export const eventsRsvpEndpoints: Endpoint[] = [
   },
 
   {
-    path: '/by-secret/:secretKey',
-    method: 'get',
+    path: '/by-secret',
+    method: 'post',
     handler: async (req) => {
-      const secretKey = (req.routeParams as { secretKey?: string })?.secretKey
-      if (!secretKey) {
-        return Response.json({ error: 'missing_secret' }, { status: 400 })
+      if (!rsvpLimiter.check(req)) {
+        return Response.json({ error: 'rate_limited' }, { status: 429 })
       }
-      const rsvp = await req.payload.find({
-        collection: 'event-rsvps',
-        where: { secretKey: { equals: secretKey } },
-        limit: 1,
-        depth: 0,
-      })
-      if (!rsvp.docs[0]) {
+      const body = await req.json?.().catch(() => ({}))
+      const parsed = SecretSchema.safeParse(body)
+      if (!parsed.success) {
+        return Response.json({ error: 'invalid_input' }, { status: 400 })
+      }
+      const doc = await findBySecretKey<RsvpStatusDoc>(
+        req,
+        'event-rsvps',
+        parsed.data.secretKey,
+      )
+      if (!doc) {
         return Response.json({ error: 'not_found' }, { status: 404 })
       }
 
-      // Unauthenticated endpoint — the secretKey in the URL is the only
-      // credential, and URLs reach Caddy access logs, browser history and
-      // Referer headers. Return only what the RSVP widget actually renders
-      // (ExistingRsvp: id/name/status/guestsCount), and notably NOT the
+      // Allow-listed projection — see lib/secret-key.ts. Notably excludes the
       // `user` relationship, which exposes another account's identity.
-      const doc = rsvp.docs[0] as unknown as {
-        id: string | number
-        name: string
-        status: string
-        guestsCount: number
-      }
-      return Response.json({
-        id: doc.id,
-        name: doc.name,
-        status: doc.status,
-        guestsCount: doc.guestsCount,
-      })
+      return Response.json(projectRsvp(doc))
     },
   },
 
   {
-    path: '/cancel/:secretKey',
+    path: '/cancel',
     method: 'post',
     handler: async (req) => {
-      const secretKey = (req.routeParams as { secretKey?: string })?.secretKey
-      if (!secretKey) {
-        return Response.json({ error: 'missing_secret' }, { status: 400 })
+      if (!rsvpLimiter.check(req)) {
+        return Response.json({ error: 'rate_limited' }, { status: 429 })
       }
       const body = await req.json?.().catch(() => ({}))
       const parsed = CancelSchema.safeParse(body)
@@ -147,18 +153,17 @@ export const eventsRsvpEndpoints: Endpoint[] = [
           { status: 400 },
         )
       }
-      const rsvp = await req.payload.find({
-        collection: 'event-rsvps',
-        where: { secretKey: { equals: secretKey } },
-        limit: 1,
-        depth: 0,
-      })
-      if (!rsvp.docs[0]) {
+      const rsvp = await findBySecretKey<{ id: string | number }>(
+        req,
+        'event-rsvps',
+        parsed.data.secretKey,
+      )
+      if (!rsvp) {
         return Response.json({ error: 'not_found' }, { status: 404 })
       }
       const updated = await req.payload.update({
         collection: 'event-rsvps',
-        id: rsvp.docs[0].id,
+        id: rsvp.id,
         req,
         data: {
           status: parsed.data.status,

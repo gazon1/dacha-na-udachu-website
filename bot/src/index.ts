@@ -175,8 +175,16 @@ async function main() {
   app.use(express.json())
 
   if (useWebhook) {
-    app.use('/webhook', webhookCallback(bot as any, 'express'))
-    console.log(`[bot] webhook registered: ${config.WEBHOOK_URL}`)
+    // secretToken makes grammY reject any request whose
+    // X-Telegram-Bot-Api-Secret-Token header doesn't match. config.ts refuses
+    // to start without one, so this is always defined in webhook mode.
+    app.use(
+      '/webhook',
+      webhookCallback(bot as any, 'express', {
+        secretToken: config.TELEGRAM_WEBHOOK_SECRET,
+      }),
+    )
+    console.log(`[bot] webhook registered: ${config.WEBHOOK_URL} (secret_token enabled)`)
   }
 
   mountInternalBroadcast(app, bot)
@@ -207,7 +215,11 @@ async function main() {
   // ----- Запуск -----
   if (useWebhook) {
     try {
-      await bot.api.setWebhook(config.WEBHOOK_URL!)
+      await bot.api.setWebhook(config.WEBHOOK_URL!, {
+        // Must match the secretToken passed to webhookCallback above, otherwise
+        // Telegram sends updates the handler rejects and the bot goes silent.
+        secret_token: config.TELEGRAM_WEBHOOK_SECRET,
+      })
       const me = await bot.api.getMe()
       lastTelegramOkAt = Date.now()
       console.log(`[bot] @${me.username} ready (webhook)`)

@@ -9,6 +9,11 @@ import {
 } from '../../lib/yoomoney'
 
 import { yoomoneyEndpoints } from './yoomoney-endpoints'
+import {
+  findBySecretKey,
+  projectContribution,
+  type ContributionStatusDoc,
+} from '../../lib/secret-key'
 
 /**
  * In-process rate-limit: last timestamp (ms) we called getOperationHistory for
@@ -21,8 +26,9 @@ const lastCheckMap = new Map<string, number>()
  *
  *   POST /api/event-contributions/submit              — create pending contribution
  *   GET  /api/event-contributions/summary/:eventSlug  — public confirmed list + total
- *   GET  /api/event-contributions/by-secret/:secretKey— owner status lookup
- *                                        (id/status/amount/confirmedAt ONLY)
+ *   POST /api/event-contributions/by-secret           — owner status lookup
+ *                                        (secretKey in BODY; returns only
+ *                                         id/status/amount/confirmedAt)
  *   POST /api/event-contributions/check-by-secret     — on-demand payment check
  *   POST /api/event-contributions/check-payments      — cron fallback
  *
@@ -193,46 +199,31 @@ export const eventContributionEndpoints: Endpoint[] = [
     },
   },
 
-  // ─── GET /by-secret/:secretKey ───────────────────────────────────────────
+  // ─── POST /by-secret ─────────────────────────────────────────────────────
   {
-    path: '/by-secret/:secretKey',
-    method: 'get',
+    path: '/by-secret',
+    method: 'post',
     handler: async (req) => {
-      const secretKey = (req.routeParams as { secretKey?: string })?.secretKey
-      if (!secretKey) {
-        return Response.json({ error: 'missing_secret' }, { status: 400 })
+      if (!contributionLimiter.check(req)) {
+        return Response.json({ error: 'rate_limited' }, { status: 429 })
       }
-      const res = await req.payload.find({
-        collection: 'event-contributions',
-        where: { secretKey: { equals: secretKey } },
-        limit: 1,
-        depth: 0,
-        overrideAccess: true,
-      })
-      if (!res.docs[0]) {
+      const body = await req.json?.().catch(() => ({}))
+      const parsed = z.object({ secretKey: z.string().min(1).max(64) }).safeParse(body)
+      if (!parsed.success) {
+        return Response.json({ error: 'invalid_input' }, { status: 400 })
+      }
+      const doc = await findBySecretKey<ContributionStatusDoc>(
+        req,
+        'event-contributions',
+        parsed.data.secretKey,
+      )
+      if (!doc) {
         return Response.json({ error: 'not_found' }, { status: 404 })
       }
 
-      // Deliberately NOT returning the whole document. This endpoint is
-      // unauthenticated — the secretKey in the URL is the only credential, and
-      // URLs land in Caddy access logs, browser history and Referer headers.
-      // Returning the full record leaked the contributor's name, message and
-      // payer name to anyone who obtained the key.
-      //
-      // ContributionWidget.reconcileStatus only ever reads id/status/amount,
-      // so this is a strict subset — no client change needed.
-      const doc = res.docs[0] as unknown as {
-        id: string | number
-        status: string
-        amount: number
-        confirmedAt?: string | null
-      }
-      return Response.json({
-        id: doc.id,
-        status: doc.status,
-        amount: doc.amount,
-        confirmedAt: doc.confirmedAt ?? null,
-      })
+      // Allow-listed projection — see lib/secret-key.ts. Never return the raw
+      // document from an unauthenticated endpoint.
+      return Response.json(projectContribution(doc))
     },
   },
 
@@ -267,20 +258,12 @@ export const eventContributionEndpoints: Endpoint[] = [
       }
 
       // Find the contribution.
-      const findRes = await req.payload.find({
-        collection: 'event-contributions',
-        where: { secretKey: { equals: secretKey } },
-        limit: 1,
-        depth: 0,
-        overrideAccess: true,
-      })
-      type Contrib = {
+      const doc = await findBySecretKey<{
         id: number | string
         amount: number
         status: string
         createdAt: string
-      }
-      const doc = findRes.docs[0] as Contrib | undefined
+      }>(req, 'event-contributions', secretKey)
       if (!doc) {
         return Response.json({ ok: false, reason: 'not_found' }, { status: 404 })
       }

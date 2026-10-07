@@ -42,9 +42,12 @@ function storageKey(eventId: string | number): string {
  *   3. Editing         → show form pre-filled with current values
  *
  * Persistence: the server returns a `secretKey` on submit, which we store
- * in localStorage. On mount we read it and fetch the existing RSVP via
- * /api/event-rsvps/by-secret/:secretKey. Updates go through the same
- * /cancel/:secretKey endpoint (status + name + guestsCount).
+ * in localStorage. On mount we read it and POST it to
+ * /api/event-rsvps/by-secret. Updates go through /api/event-rsvps/cancel
+ * (secretKey + status + name + guestsCount).
+ *
+ * The key always travels in the request body, never in the URL — URLs end up
+ * in Caddy access logs and browser history.
  */
 export function RsvpWidget({ eventId, eventSlug }: Props) {
   const eventIdStr = String(eventId)
@@ -63,7 +66,11 @@ export function RsvpWidget({ eventId, eventSlug }: Props) {
       return
     }
     let cancelled = false
-    fetch(`/api/event-rsvps/by-secret/${encodeURIComponent(secretKey)}`)
+    fetch('/api/event-rsvps/by-secret', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secretKey }),
+    })
       .then((r) => (r.ok ? r.json() : null))
       .then((rsvp: ExistingRsvp | null) => {
         if (cancelled) return
@@ -176,11 +183,10 @@ function RsvpForm({
     setError(null)
     try {
       const isUpdate = existing != null
-      const url = isUpdate
-        ? `/api/event-rsvps/cancel/${encodeURIComponent(existing!.secretKey)}`
-        : '/api/event-rsvps/submit'
+      const url = isUpdate ? '/api/event-rsvps/cancel' : '/api/event-rsvps/submit'
+      // secretKey rides in the body, never the URL — see the note above.
       const body = isUpdate
-        ? { status, guestsCount: guests, name }
+        ? { secretKey: existing!.secretKey, status, guestsCount: guests, name }
         : { event: eventSlug, name, guestsCount: guests, status }
       const res = await fetch(url, {
         method: 'POST',

@@ -59,9 +59,12 @@ function formatRub(n: number): string {
  *   - List of confirmed contributors
  *
  * Persistence: localStorage stores `{ id, secretKey, status, amount, paymentUrl }`.
- * On mount we fetch /by-secret/:secretKey to reconcile (in case webhook
+ * On mount we POST the secretKey to /by-secret to reconcile (in case webhook
  * already fired and the contribution is now confirmed). On tab refocus we
  * re-reconcile so the user sees their status flip without manual refresh.
+ *
+ * The key travels in the request body, never the URL — URLs end up in Caddy
+ * access logs, browser history and Referer headers.
  */
 export function ContributionWidget({
   eventId,
@@ -92,7 +95,11 @@ export function ContributionWidget({
 
   async function reconcileStatus(secretKey: string, fallback: MyContribution) {
     try {
-      const r = await fetch(`/api/event-contributions/by-secret/${encodeURIComponent(secretKey)}`)
+      const r = await fetch('/api/event-contributions/by-secret', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ secretKey }),
+      })
       if (!r.ok) return
       const data = (await r.json()) as {
         id: string | number

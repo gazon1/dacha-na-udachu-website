@@ -1,5 +1,7 @@
 import { withPayload } from '@payloadcms/next/withPayload'
 
+import { publicCsp } from './lib/csp.mjs'
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -12,9 +14,9 @@ const nextConfig = {
   },
   // Allow sharp + Payload's bundled deps.
   serverExternalPackages: ['sharp', '@payloadcms/db-postgres', '@payloadcms/richtext-lexical'],
-  // Security headers — Payload's CMS admin needs 'unsafe-inline'/'unsafe-eval'
-  // for inline scripts. The (payload)/admin routes override these via
-  // per-route headers; everything else gets strict.
+  // Security headers. The CSP itself lives in lib/csp.mjs so that the /admin
+  // variant in middleware.ts is derived from the same base instead of being a
+  // second hand-maintained copy.
   async headers() {
     return [
       {
@@ -24,22 +26,9 @@ const nextConfig = {
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
-          // CSP for public site. Admin gets relaxed CSP via middleware.
-          {
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://telegram.org",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "font-src 'self' https://fonts.gstatic.com",
-              "img-src 'self' data: blob: https:",
-              "connect-src 'self' https://telegram.org",
-              "frame-src https://oauth.telegram.org https://telegram.org",
-              "frame-ancestors 'self'",
-              "base-uri 'self'",
-              "form-action 'self'",
-            ].join('; '),
-          },
+          // CSP for the whole site. /admin additionally gets the admin variant
+          // from middleware.ts; browsers enforce both as an intersection.
+          { key: 'Content-Security-Policy', value: publicCsp() },
         ],
       },
     ]
