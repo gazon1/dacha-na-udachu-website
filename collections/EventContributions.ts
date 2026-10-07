@@ -46,7 +46,9 @@ export const EventContributions: CollectionConfig = {
               overrideAccess: true,
             })
 
-            // Telegram admin notification (no-op if TELEGRAM_ADMIN_CHAT_ID unset).
+            // Telegram admin notification. Recipients are configured in CMS
+            // (SiteSettings → telegramAdmins), not via env — no-ops if the
+            // bot token is missing or no admin subscribed to this category.
             // Dynamic import keeps this off the cold-start path when the
             // feature is disabled.
             const { notifyAdmin } = await import('../lib/telegram-notify')
