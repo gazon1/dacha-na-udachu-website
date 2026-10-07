@@ -1,74 +1,166 @@
 /**
- * In-memory rate limiter for booking/RSVP endpoints.
+ * Postgres-backed rate limiter for booking/RSVP endpoints.
  *
  * Usage:
- *   const limiter = createLimiter({ windowMs: 60_000, max: 10, keyBy: (req) => getIp(req) })
- *   if (!limiter(req)) return Response.json({ error: 'rate_limited' }, { status: 429 })
+ *   const limiter = createLimiter({ name: 'booking', windowMs: 60_000, max: 10 })
+ *   if (!(await limiter.check(req))) return Response.json({ error: 'rate_limited' }, { status: 429 })
  *
- * ── Known limitation: state lives in THIS process only ────────────────────
- * The counters are a plain `Map` in module scope, so:
- *   • running more than one instance multiplies the effective limit by the
- *     number of instances (Next.js may fork workers; a scaled `app` service
- *     definitely does);
- *   • any container restart clears every counter, so "flood → wait for a
- *     deploy → flood" is a cheap bypass;
- *   • each instance also runs its own GC interval, so instances multiply that
- *     overhead too.
+ * ── Why this lives in the database ──────────────────────────────────────────
+ * The previous implementation kept counters in a `Map` in module scope. That
+ * made the limit a property of the PROCESS, not of the client:
+ *   • running N instances gave every client N× the limit;
+ *   • any container restart cleared every counter, so "flood → wait for a
+ *     deploy → flood" was a cheap bypass;
+ *   • each instance also ran its own GC interval.
+ * None of that fails loudly — the protection just gets weaker as the app grows,
+ * which is the worst time to find out. Sharing the counter through Postgres
+ * makes the limit mean the same thing on every instance and across restarts.
  *
- * This is bot/spam friction, not an anti-DoS control. That is an acceptable
- * trade for a single-instance site — but it will silently weaken the moment
- * the app is scaled horizontally, and nothing will fail to warn us.
+ * ── Sliding window, not fixed ───────────────────────────────────────────────
+ * `hits` holds the epoch-ms timestamps still inside the window, so the limit is
+ * a true sliding window (no 2× burst at a bucket boundary the way a fixed
+ * window allows). The array is trimmed in the same statement that appends, so
+ * old entries expire as a side effect of ordinary traffic rather than needing a
+ * sweeper, and it is capped at `max + 1` entries so a flood cannot grow it
+ * without bound.
  *
- * Before scaling `app`, move the counter to shared storage: Redis via
- * @upstash/ratelimit, or a Postgres table with an (key, window) unique key.
- * See the deploy notes in the PR that introduced docker-compose healthchecks.
+ * The whole read-modify-write is one INSERT .. ON CONFLICT statement, which
+ * takes a row lock for its duration. Two concurrent requests from the same IP
+ * therefore cannot both read "count = 2" and both be admitted past a limit of 3
+ * — the same race a read-then-write implementation would have.
  */
 
+import { sql } from '@payloadcms/db-postgres'
+import type { PayloadRequest } from 'payload'
+import type { SQLWrapper } from 'drizzle-orm'
+
 // Minimal shape we need — works for both standard Request and PayloadRequest.
-type RequestLike = Pick<Request, 'headers'>
+// The db handle is typed as Payload's own union of Drizzle handles rather than
+// described structurally: it has no single exact signature, and inventing one
+// only produces assignability errors at the call sites.
+type DbHandle = NonNullable<PayloadRequest['payload']['db']>
 
-type KeyFn = (req: RequestLike) => string
+/**
+ * `payload.db` also includes DrizzleTransaction, whose `execute` takes an
+ * already-built argument object rather than a SQL wrapper, so calling through
+ * the union directly does not type-check. At request time we always hold the
+ * top-level PostgresDB handle, whose `execute` takes a SQL wrapper. Narrow it
+ * once here rather than casting at every call.
+ */
+type Executor = { execute: (query: SQLWrapper) => Promise<unknown> }
 
-export type Limiter = {
-  check: (req: RequestLike) => boolean
-  reset: () => void
+type RequestLike = Pick<Request, 'headers'> & {
+  payload?: { db?: DbHandle | null } | null
 }
 
-export function createLimiter(opts: {
-  windowMs: number
-  max: number
-  keyBy: KeyFn
-}): Limiter {
-  const hits = new Map<string, number[]>()
+export type Limiter = {
+  check: (req: RequestLike) => Promise<boolean>
+}
 
-  // Garbage-collect old entries periodically.
-  const gcInterval = setInterval(() => {
-    const now = Date.now()
-    for (const [key, ts] of hits.entries()) {
-      const fresh = ts.filter((t) => now - t < opts.windowMs)
-      if (fresh.length === 0) hits.delete(key)
-      else hits.set(key, fresh)
-    }
-  }, opts.windowMs)
-  // Don't keep the process alive just for GC.
-  if (typeof gcInterval.unref === 'function') gcInterval.unref()
+/**
+ * Deletes rows whose window has fully passed. Best-effort and amortised: if
+ * this never runs the table still behaves correctly (expired rows are filtered
+ * out on read and overwritten on the next hit), it would only grow.
+ */
+const SWEEP_INTERVAL_MS = 60_000
+let lastSweepAt = 0
 
+export function createLimiter(opts: { name: string; windowMs: number; max: number }): Limiter {
   return {
-    check: (req: RequestLike) => {
-      const key = opts.keyBy(req)
-      const now = Date.now()
-      const arr = hits.get(key) ?? []
-      const fresh = arr.filter((t) => now - t < opts.windowMs)
-      if (fresh.length >= opts.max) {
-        hits.set(key, fresh)
-        return false
+    check: async (req: RequestLike) => {
+      const db = req.payload?.db
+      if (!db) {
+        // Should not happen for Payload endpoints, but throwing here would turn
+        // a missing handle into a 500 on a working endpoint. Fall back to
+        // per-process counting and say so loudly, because that fallback has
+        // exactly the multi-instance weakness described above.
+        if (!warnedAboutFallback) {
+          warnedAboutFallback = true
+          console.error(
+            '[rate-limit] no payload.db on the request — falling back to per-process ' +
+              'counting. Limits will be per-instance and reset on restart.',
+          )
+        }
+        return memoryCheck(opts, bucketFor(opts, getIp(req)))
       }
-      fresh.push(now)
-      hits.set(key, fresh)
-      return true
+
+      const now = Date.now()
+      const cutoff = now - opts.windowMs
+      // Store at most max + 1 so "over the limit" stays observable: with a cap
+      // of exactly max, a full window and an overflowing one are identical.
+      const cap = opts.max + 1
+      const exec = db as unknown as Executor
+
+      // One statement, so the row lock serialises concurrent hits.
+      const rows = (await exec.execute(sql`
+        WITH upsert AS (
+          INSERT INTO "rate_limit_windows" ("bucket", "hits", "expires_at")
+          VALUES (
+            ${`${opts.name}:${getIp(req)}`},
+            ARRAY[${now}]::bigint[],
+            to_timestamp(${now} / 1000.0) + (${opts.windowMs} || ' milliseconds')::interval
+          )
+          ON CONFLICT ("bucket") DO UPDATE SET
+            "hits" = (
+              SELECT COALESCE(array_agg(y.h), ARRAY[]::bigint[])
+              FROM (
+                SELECT x.h
+                FROM (
+                  SELECT h FROM unnest("rate_limit_windows"."hits") AS h
+                  WHERE h > ${cutoff}
+                  UNION ALL
+                  SELECT ${now}::bigint
+                ) x(h)
+                ORDER BY x.h DESC
+                LIMIT ${cap}
+              ) y
+            ),
+            "expires_at" = to_timestamp(${now} / 1000.0)
+              + (${opts.windowMs} || ' milliseconds')::interval
+          RETURNING "hits"
+        )
+        SELECT cardinality("hits") AS count FROM upsert
+      `)) as { rows?: Array<{ count: number }> } | Array<{ count: number }>
+
+      const count = readCount(rows)
+
+      if (Date.now() - lastSweepAt > SWEEP_INTERVAL_MS) {
+        lastSweepAt = Date.now()
+        // The cutoff is the app's clock, not now() on the database. expires_at
+        // is written from the app's clock too, and the app and the database do
+        // not share one — comparing against the server's clock would delete
+        // windows that have not expired yet, quietly handing every client its
+        // limit back. Same reasoning as `cutoff` above.
+        // Fire-and-forget: a failed sweep must not fail the request being
+        // rate-limited, and the next one will try again.
+        void exec
+          .execute(sql`
+            DELETE FROM "rate_limit_windows" WHERE "expires_at" < to_timestamp(${now} / 1000.0)
+          `)
+          .catch((err: unknown) => {
+            console.error('[rate-limit] sweep failed:', err)
+          })
+      }
+
+      return count <= opts.max
     },
-    reset: () => hits.clear(),
   }
+}
+
+let warnedAboutFallback = false
+
+/** Drizzle returns rows differently depending on the driver/version. */
+function readCount(result: unknown): number {
+  const rows = Array.isArray(result) ? result : (result as { rows?: unknown[] })?.rows
+  if (!Array.isArray(rows) || rows.length === 0) {
+    // A missing count must not read as "under the limit".
+    throw new Error('[rate-limit] unexpected result shape from db.execute')
+  }
+  return Number((rows[0] as { count: number }).count)
+}
+
+function bucketFor(opts: { name: string }, key: string): string {
+  return `${opts.name}:${key}`
 }
 
 export function getIp(req: RequestLike): string {
@@ -77,27 +169,47 @@ export function getIp(req: RequestLike): string {
   return req.headers.get('x-real-ip') || 'unknown'
 }
 
+/**
+ * Only used when no `payload.db` is reachable — see the warning in `check`.
+ * Kept separate so the normal path has no in-process state at all.
+ */
+const memoryState = new Map<string, { hits: number[]; sweptAt: number }>()
+
+function memoryCheck(opts: { name: string; windowMs: number; max: number }, bucket: string): boolean {
+  const now = Date.now()
+  const entry = memoryState.get(bucket) ?? { hits: [], sweptAt: now }
+  if (now - entry.sweptAt > SWEEP_INTERVAL_MS) {
+    entry.hits = []
+    entry.sweptAt = now
+  }
+  entry.hits = entry.hits.filter((t) => now - t < opts.windowMs)
+  const over = entry.hits.length >= opts.max
+  if (!over) entry.hits.push(now)
+  memoryState.set(bucket, entry)
+  return !over
+}
+
 // Pre-configured limiters matching the previous django-ratelimit rules.
 export const bookingSubmitLimiter = createLimiter({
+  name: 'booking',
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 10, // 10 bookings per IP per hour
-  keyBy: getIp,
 })
 
 export const rsvpLimiter = createLimiter({
+  name: 'rsvp',
   windowMs: 60 * 60 * 1000,
   max: 10,
-  keyBy: getIp,
 })
 
 export const newsletterLimiter = createLimiter({
+  name: 'newsletter',
   windowMs: 60 * 60 * 1000,
   max: 10,
-  keyBy: getIp,
 })
 
 export const contributionLimiter = createLimiter({
+  name: 'contribution',
   windowMs: 60 * 60 * 1000,
   max: 5, // взнос — более редкое действие, чем RSVP/newsletter
-  keyBy: getIp,
 })

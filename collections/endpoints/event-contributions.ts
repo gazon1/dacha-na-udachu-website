@@ -58,7 +58,7 @@ export const eventContributionEndpoints: Endpoint[] = [
     path: '/submit',
     method: 'post',
     handler: async (req) => {
-      if (!contributionLimiter.check(req)) {
+      if (!(await contributionLimiter.check(req))) {
         return Response.json({ error: 'rate_limited' }, { status: 429 })
       }
 
@@ -204,7 +204,7 @@ export const eventContributionEndpoints: Endpoint[] = [
     path: '/by-secret',
     method: 'post',
     handler: async (req) => {
-      if (!contributionLimiter.check(req)) {
+      if (!(await contributionLimiter.check(req))) {
         return Response.json({ error: 'rate_limited' }, { status: 429 })
       }
       const body = await req.json?.().catch(() => ({}))

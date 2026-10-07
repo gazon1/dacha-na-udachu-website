@@ -53,7 +53,7 @@ export const bookingEndpoints: Endpoint[] = [
     path: '/submit',
     method: 'post',
     handler: async (req) => {
-      if (!bookingSubmitLimiter.check(req)) {
+      if (!(await bookingSubmitLimiter.check(req))) {
         return Response.json({ error: 'rate_limited' }, { status: 429 })
       }
       const body = await req.json?.().catch(() => ({}))

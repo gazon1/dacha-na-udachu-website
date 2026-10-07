@@ -16,7 +16,7 @@ export const newsletterEndpoints: Endpoint[] = [
     path: '/subscribe',
     method: 'post',
     handler: async (req) => {
-      if (!newsletterLimiter.check(req)) {
+      if (!(await newsletterLimiter.check(req))) {
         return Response.json({ error: 'rate_limited' }, { status: 429 })
       }
       const body = await req.json?.().catch(() => ({}))

@@ -13,6 +13,26 @@ jobs:
   # was aspirational), so this is a typecheck for app and bot.
   typecheck:
     runs-on: ubuntu-latest
+    # tests/rate-limit.test.ts exercises the limiter's SQL against a real
+    # Postgres, because the thing worth testing is the single atomic
+    # INSERT .. ON CONFLICT statement — a fake would only agree with itself.
+    # The suite skips itself when DATABASE_URL is absent, so without this
+    # service the multi-instance guarantee would go untested in CI.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:test@localhost:5432/test
     steps:
       - uses: actions/checkout@v7
 

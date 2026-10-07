@@ -5,6 +5,7 @@ import * as migration_20260813_add_contributions_lock_rel from './20260813_add_c
 import * as migration_20260813_add_contributions_version_columns from './20260813_add_contributions_version_columns';
 import * as migration_20260813_add_event_contributions from './20260813_add_event_contributions';
 import * as migration_20260814_125548 from './20260814_125548';
+import * as migration_20260815_add_rate_limit_windows from './20260815_add_rate_limit_windows';
 
 export const migrations = [
   {
@@ -41,5 +42,10 @@ export const migrations = [
     up: migration_20260814_125548.up,
     down: migration_20260814_125548.down,
     name: '20260814_125548'
+  },
+  {
+    up: migration_20260815_add_rate_limit_windows.up,
+    down: migration_20260815_add_rate_limit_windows.down,
+    name: '20260815_add_rate_limit_windows'
   },
 ];

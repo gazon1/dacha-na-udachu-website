@@ -53,7 +53,7 @@ export const eventsRsvpEndpoints: Endpoint[] = [
     path: '/submit',
     method: 'post',
     handler: async (req) => {
-      if (!rsvpLimiter.check(req)) {
+      if (!(await rsvpLimiter.check(req))) {
         return Response.json({ error: 'rate_limited' }, { status: 429 })
       }
       const body = await req.json?.().catch(() => ({}))
@@ -115,7 +115,7 @@ export const eventsRsvpEndpoints: Endpoint[] = [
     path: '/by-secret',
     method: 'post',
     handler: async (req) => {
-      if (!rsvpLimiter.check(req)) {
+      if (!(await rsvpLimiter.check(req))) {
         return Response.json({ error: 'rate_limited' }, { status: 429 })
       }
       const body = await req.json?.().catch(() => ({}))
@@ -142,7 +142,7 @@ export const eventsRsvpEndpoints: Endpoint[] = [
     path: '/cancel',
     method: 'post',
     handler: async (req) => {
-      if (!rsvpLimiter.check(req)) {
+      if (!(await rsvpLimiter.check(req))) {
         return Response.json({ error: 'rate_limited' }, { status: 429 })
       }
       const body = await req.json?.().catch(() => ({}))
