@@ -35,7 +35,7 @@ jobs:
     steps:
       # Only needed for the route check below — the deploy itself runs on the
       # VPS, not on the runner.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # workflow_dispatch lets you pick any ref in the UI. Only main is
       # deployable — otherwise you could ship an arbitrary branch.
@@ -70,7 +70,7 @@ jobs:
       # ssh-agent (not a bare openssh-client install) keeps host-key
       # verification on, so a MITM cannot silently intercept the deploy.
       - name: Configure SSH
-        uses: webfactory/ssh-agent@v0.9.0
+        uses: webfactory/ssh-agent@v0.10.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
