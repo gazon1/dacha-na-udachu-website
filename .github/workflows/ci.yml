@@ -24,6 +24,11 @@ jobs:
       - name: Typecheck app
         run: npm ci --prefer-offline --no-audit --no-fund && npx tsc --noEmit
 
+      # Payment signature verification and seed config are unit-tested —
+      # these are the paths where a silent bug means lost money.
+      - name: Unit tests
+        run: npm test
+
       - name: Typecheck bot
         run: npm ci --prefix bot --prefer-offline --no-audit --no-fund && npm run typecheck --prefix bot
 

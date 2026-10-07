@@ -16,6 +16,16 @@ const AUTH_BASE = 'https://yoomoney.ru/oauth'
 const API_BASE = 'https://yoomoney.ru/api'
 const QUICKPAY_BASE = 'https://yoomoney.ru/quickpay/confirm'
 
+/**
+ * Per-request timeout for every YooMoney API call.
+ *
+ * /check-payments processes up to 500 pending contributions in a single job
+ * with a 5 minute CI budget. A single hung socket would otherwise consume the
+ * whole budget, so the cron would fail precisely when the payment backlog was
+ * largest — i.e. when reconciliation mattered most.
+ */
+const REQUEST_TIMEOUT_MS = 15_000
+
 export type YoomoneyConfig = {
   clientId: string
   clientSecret?: string
@@ -92,6 +102,7 @@ export async function exchangeCodeForToken(
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   })
   if (!res.ok) {
     throw new Error(`yoomoney_token_exchange_failed: ${res.status}`)
@@ -127,6 +138,11 @@ export async function getOperationHistory(
       'Content-Type': 'application/x-www-form-urlencoded',
     },
     body,
+    // /check-payments loops over up to 500 pending contributions and the CI job
+    // that calls it has a 5 minute budget. Without a per-request timeout one
+    // hung connection consumed the entire budget and the run failed exactly
+    // when the backlog was largest.
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   })
   if (!res.ok) {
     throw new Error(`yoomoney_history_failed: ${res.status}`)
@@ -154,6 +170,7 @@ export async function getOperationDetails(
       'Content-Type': 'application/x-www-form-urlencoded',
     },
     body,
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   })
   if (!res.ok) {
     throw new Error(`yoomoney_details_failed: ${res.status}`)

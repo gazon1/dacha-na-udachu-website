@@ -10,7 +10,9 @@
     "payload": "payload",
     "seed": "payload seed",
     "generate:types": "payload generate:types",
-    "generate:importmap": "payload generate:importmap"
+    "generate:importmap": "payload generate:importmap",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "^3.0.0",
@@ -40,6 +42,7 @@
     "@types/node": "^20.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "vitest": "^2.1.9"
   }
 }

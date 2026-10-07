@@ -107,9 +107,18 @@ PostgreSQL is used via `@payloadcms/db-postgres`. Migrations live in `src/migrat
 
 ## Current State
 
-- **Tests**: No frontend test framework configured (no Jest, Vitest, or Playwright)
-- **CI**: `.github/workflows/ci.yml` has stale references to a Django backend that no longer exists — the frontend build job (`frontend`) works correctly
-- **Docker**: Multi-container setup with Next.js app, Caddy reverse proxy, and external PostgreSQL
+- **Tests**: Vitest configured (`npm test`, `npm run test:watch`). Coverage is
+  deliberately narrow — pure functions only, in `tests/`:
+  - `tests/yoomoney-webhook.test.ts` — HMAC-SHA256 signature verification (payment path)
+  - `tests/site-url.test.ts` — canonical site URL resolution (sitemap/robots/OG)
+  - `tests/seed-config.test.ts` — admin-credential handling for the deploy-time seed
+
+  `tests/` is excluded from tsconfig and `.dockerignore` — it never ships in the image.
+  No React component, API route or E2E tests exist yet.
+- **CI**: `.github/workflows/ci.yml` runs typecheck + unit tests, then builds and pushes
+  the image to GHCR. Separate `deploy.yml` (manual, SSH) and `prune-ghcr.yml` (weekly) exist.
+- **Docker**: Multi-container setup with Next.js app, Caddy reverse proxy, and external PostgreSQL.
+  The VPS pulls a prebuilt image from GHCR by commit-SHA tag — it does not build locally.
 
 ## No Existing AI Rules
 

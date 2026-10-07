@@ -3,13 +3,12 @@ import { z } from 'zod'
 import { contributionLimiter } from '../../lib/rate-limit'
 import {
   buildQuickpayUrl,
-  exchangeCodeForToken,
-  getAuthorizeUrl,
-  getOperationHistory,
   getOperationDetails,
+  getOperationHistory,
   getYoomoneyConfig,
-  verifyWebhookSignature,
 } from '../../lib/yoomoney'
+
+import { yoomoneyEndpoints } from './yoomoney-endpoints'
 
 /**
  * In-process rate-limit: last timestamp (ms) we called getOperationHistory for
@@ -18,15 +17,17 @@ import {
 const lastCheckMap = new Map<string, number>()
 
 /**
- * Event contribution endpoints:
+ * Event contribution endpoints (payment flows owned by this site):
  *
- *   POST   /api/event-contributions/submit              — create pending contribution
- *   GET    /api/event-contributions/summary/:eventSlug  — public confirmed list + total
- *   GET    /api/event-contributions/by-secret/:secretKey— admin/debug lookup
- *   POST   /api/event-contributions/check-payments      — cron fallback
- *   GET    /api/event-contributions/yoomoney-auth       — initiate OAuth
- *   GET    /api/event-contributions/yoomoney-callback   — finish OAuth, show token
- *   POST   /api/event-contributions/yoomoney-notification — YooMoney webhook
+ *   POST /api/event-contributions/submit              — create pending contribution
+ *   GET  /api/event-contributions/summary/:eventSlug  — public confirmed list + total
+ *   GET  /api/event-contributions/by-secret/:secretKey— owner status lookup
+ *                                        (id/status/amount/confirmedAt ONLY)
+ *   POST /api/event-contributions/check-by-secret     — on-demand payment check
+ *   POST /api/event-contributions/check-payments      — cron fallback
+ *
+ * The YooMoney OAuth + webhook endpoints live in ./yoomoney-endpoints.ts and
+ * are appended below.
  */
 
 const SubmitSchema = z.object({
@@ -211,7 +212,27 @@ export const eventContributionEndpoints: Endpoint[] = [
       if (!res.docs[0]) {
         return Response.json({ error: 'not_found' }, { status: 404 })
       }
-      return Response.json(res.docs[0])
+
+      // Deliberately NOT returning the whole document. This endpoint is
+      // unauthenticated — the secretKey in the URL is the only credential, and
+      // URLs land in Caddy access logs, browser history and Referer headers.
+      // Returning the full record leaked the contributor's name, message and
+      // payer name to anyone who obtained the key.
+      //
+      // ContributionWidget.reconcileStatus only ever reads id/status/amount,
+      // so this is a strict subset — no client change needed.
+      const doc = res.docs[0] as unknown as {
+        id: string | number
+        status: string
+        amount: number
+        confirmedAt?: string | null
+      }
+      return Response.json({
+        id: doc.id,
+        status: doc.status,
+        amount: doc.amount,
+        confirmedAt: doc.confirmedAt ?? null,
+      })
     },
   },
 
@@ -357,7 +378,18 @@ export const eventContributionEndpoints: Endpoint[] = [
 
       let processed = 0
       let confirmed = 0
+      let skippedForTime = 0
+      // The CI job that calls this has a 5 minute budget (timeout-minutes: 5
+      // in check-payments.yml) and a 20s HTTP timeout on top of it. Budget
+      // most of that locally so the loop stops cleanly and reports what it
+      // skipped, instead of being killed mid-run and reporting nothing.
+      const deadline = Date.now() + 240_000
+
       for (const raw of pending.docs as Pending[]) {
+        if (Date.now() >= deadline) {
+          skippedForTime = (pending.docs as Pending[]).length - processed
+          break
+        }
         processed++
         try {
           const ops = await getOperationHistory(token, {
@@ -384,176 +416,17 @@ export const eventContributionEndpoints: Endpoint[] = [
         }
       }
 
-      return Response.json({ ok: true, processed, confirmed })
-    },
-  },
-
-  // ─── GET /yoomoney-auth ──────────────────────────────────────────────────
-  {
-    path: '/yoomoney-auth',
-    method: 'get',
-    handler: async () => {
-      const cfg = getYoomoneyConfig()
-      if (!cfg) {
-        return Response.json({ error: 'yoomoney_not_configured' }, { status: 503 })
-      }
-      const url = getAuthorizeUrl(cfg)
-      return Response.redirect(url, 302)
-    },
-  },
-
-  // ─── GET /yoomoney-callback ──────────────────────────────────────────────
-  {
-    path: '/yoomoney-callback',
-    method: 'get',
-    handler: async (req) => {
-      const url = new URL(req.url || 'http://localhost', 'http://localhost')
-      const code = url.searchParams.get('code')
-      if (!code) {
-        return new Response(
-          `<html><body><h1>Ошибка</h1><p>Не получен authorization code.</p></body></html>`,
-          { status: 400, headers: { 'Content-Type': 'text/html; charset=utf-8' } },
-        )
-      }
-      const cfg = getYoomoneyConfig()
-      if (!cfg) {
-        return new Response('yoomoney_not_configured', { status: 503 })
-      }
-      try {
-        const token = await exchangeCodeForToken(cfg, code)
-        // Return the token as plain HTML for manual copy into .env.
-        // Show only once — never log the token.
-        return new Response(
-          `<!doctype html><html><head><meta charset="utf-8"><title>ЮMoney токен</title></head>
-<body style="font-family:system-ui;max-width:640px;margin:2rem auto;padding:0 1rem">
-<h1>Токен получен</h1>
-<p>Скопируйте значение ниже и добавьте в <code>.env</code> как <code>YOOMONEY_ACCESS_TOKEN</code>.</p>
-<p style="background:#f4f4f5;padding:1rem;border-radius:.5rem;word-break:break-all;font-family:monospace">${token}</p>
-<p><strong>Важно:</strong> перезапустите сервер после обновления <code>.env</code>.</p>
-<p><a href="/admin">В админку</a></p>
-</body></html>`,
-          { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } },
-        )
-      } catch (err) {
-        req.payload.logger.error({ err }, 'yoomoney_token_exchange_failed')
-        return new Response('token_exchange_failed', { status: 500 })
-      }
-    },
-  },
-
-  // ─── POST /yoomoney-notification ─────────────────────────────────────────
-  {
-    path: '/yoomoney-notification',
-    method: 'post',
-    handler: async (req) => {
-      const secret = process.env.YOOMONEY_NOTIFICATION_SECRET
-      if (!secret) {
-        return Response.json({ error: 'not_configured' }, { status: 503 })
-      }
-
-      // Read both form-encoded and JSON bodies — YooMoney sends form-encoded.
-      const rawText = await req.text?.().catch(() => '')
-      const body: Record<string, string> = {}
-      if (rawText) {
-        const params = new URLSearchParams(rawText)
-        for (const [k, v] of params) body[k] = v
-      }
-      // Fallback: try JSON
-      if (Object.keys(body).length === 0) {
-        try {
-          Object.assign(body, await req.json?.())
-        } catch {
-          // ignore
-        }
-      }
-
-      const ok = await verifyWebhookSignature(body, secret)
-      if (!ok) {
-        return Response.json({ error: 'bad_signature' }, { status: 403 })
-      }
-
-      const notificationType = body.notification_type
-      const codepro = body.codepro === 'true'
-      const testNotification = body.test_notification === 'true'
-      const unaccepted = body.unaccepted === 'true'
-      const label = body.label
-      const amountStr = body.amount
-      const operationId = body.operation_id
-      const firstname = body.firstname ?? null
-      const lastname = body.lastname ?? null
-
-      // Only handle real incoming transfers.
-      if (notificationType !== 'p2p-incoming' && notificationType !== 'card-incoming') {
-        return Response.json({ ok: true, skipped: 'unknown_type' })
-      }
-      if (codepro || unaccepted) {
-        return Response.json({ ok: true, skipped: 'frozen_or_protected' })
-      }
-      if (testNotification) {
-        return Response.json({ ok: true, skipped: 'test_notification' })
-      }
-      if (!label || !amountStr || !operationId) {
-        return Response.json({ ok: true, skipped: 'missing_fields' })
-      }
-
-      const amount = Number(amountStr)
-      if (!Number.isFinite(amount)) {
-        return Response.json({ ok: true, skipped: 'bad_amount' })
-      }
-
-      const match = await req.payload.find({
-        collection: 'event-contributions',
-        where: { secretKey: { equals: label } },
-        limit: 1,
-        depth: 0,
-        overrideAccess: true,
-      })
-
-      const doc = match.docs[0] as
-        | {
-            id: string | number
-            amount: number
-            status: string
-          }
-        | undefined
-
-      if (!doc) {
-        // Stray transfer to our wallet that doesn't match any pending contribution.
-        // YooMoney retries up to 3 times — we must always return 200 OK to stop retries.
-        return Response.json({ ok: true, skipped: 'no_matching_contribution' })
-      }
-      if (doc.status === 'confirmed') {
-        return Response.json({ ok: true, skipped: 'already_confirmed' })
-      }
-
-      if (doc.amount !== amount) {
-        await req.payload.update({
-          collection: 'event-contributions',
-          id: doc.id,
-          data: { status: 'rejected' },
-          overrideAccess: true,
-        })
+      if (skippedForTime > 0) {
+        // Left pending on purpose — the next cron run picks them up.
         req.payload.logger.warn(
-          { id: doc.id, expected: doc.amount, got: amount },
-          'yoomoney_amount_mismatch',
+          { skipped: skippedForTime, processed },
+          'check_payments_time_budget_reached',
         )
-        return Response.json({ ok: true, rejected: 'amount_mismatch' })
       }
 
-      await req.payload.update({
-        collection: 'event-contributions',
-        id: doc.id,
-        data: {
-          status: 'confirmed',
-          yoomoneyOperationId: operationId,
-          confirmedAt: new Date().toISOString(),
-          senderFirstname: firstname || undefined,
-          senderLastname: lastname || undefined,
-        },
-        overrideAccess: true,
-      })
-
-      return Response.json({ ok: true, confirmed: doc.id })
+      return Response.json({ ok: true, processed, confirmed, skipped: skippedForTime })
     },
   },
+
+  ...yoomoneyEndpoints,
 ]

@@ -24,6 +24,10 @@ bot/node_modules/
 .next/
 **/.next/
 tsconfig.tsbuildinfo
+vitest.config.ts
+
+# Tests run in CI, not in the production container
+tests/
 
 # Secrets — must never enter the image.
 # `.env` is gitignored so CI builds never see it, but `just docker-build` /

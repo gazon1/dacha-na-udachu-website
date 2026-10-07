@@ -110,7 +110,24 @@ export const eventsRsvpEndpoints: Endpoint[] = [
       if (!rsvp.docs[0]) {
         return Response.json({ error: 'not_found' }, { status: 404 })
       }
-      return Response.json(rsvp.docs[0])
+
+      // Unauthenticated endpoint — the secretKey in the URL is the only
+      // credential, and URLs reach Caddy access logs, browser history and
+      // Referer headers. Return only what the RSVP widget actually renders
+      // (ExistingRsvp: id/name/status/guestsCount), and notably NOT the
+      // `user` relationship, which exposes another account's identity.
+      const doc = rsvp.docs[0] as unknown as {
+        id: string | number
+        name: string
+        status: string
+        guestsCount: number
+      }
+      return Response.json({
+        id: doc.id,
+        name: doc.name,
+        status: doc.status,
+        guestsCount: doc.guestsCount,
+      })
     },
   },
 

@@ -162,7 +162,7 @@ export const script = async (config: SanitizedConfig) => {
   process.exit(0)
 }
 
-function readSeedConfig(): SeedConfig {
+export function readSeedConfig(): SeedConfig {
   const adminEmail = process.env.PAYLOAD_SEED_ADMIN_EMAIL
   const adminPassword = process.env.PAYLOAD_SEED_ADMIN_PASSWORD
 
