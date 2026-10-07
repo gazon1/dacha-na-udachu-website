@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from 'react'
 
+import {
+  buildContributionBySecretBody,
+  SECRET_ENDPOINTS,
+} from '@/lib/api-requests'
+
 type ConfirmedContribution = {
   name: string
   amount: number
@@ -95,10 +100,10 @@ export function ContributionWidget({
 
   async function reconcileStatus(secretKey: string, fallback: MyContribution) {
     try {
-      const r = await fetch('/api/event-contributions/by-secret', {
+      const r = await fetch(SECRET_ENDPOINTS.contributionBySecret, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ secretKey }),
+        body: JSON.stringify(buildContributionBySecretBody(secretKey)),
       })
       if (!r.ok) return
       const data = (await r.json()) as {

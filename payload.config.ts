@@ -27,6 +27,10 @@ import { Users } from "./collections/Users";
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
 
+// GraphQL is disabled in production unless explicitly opted back in — see the
+// `graphQL` block below for why.
+const graphQLEnabled = process.env.GRAPHQL_ENABLED === "true";
+
 // Email adapter — only register when SMTP_HOST is set. Avoids
 // "ECONNREFUSED 127.0.0.1:587" errors during `payload generate:types`
 // in dev where SMTP isn't running.
@@ -142,9 +146,21 @@ export default buildConfig({
   },
 
   // --- GraphQL ---
+  // Off by default in production: nothing in this codebase queries GraphQL (the
+  // Payload admin UI and all our pages use REST/Local API), while the endpoint
+  // and its playground expose the entire schema to anyone who asks — a free
+  // reconnaissance pass listing every collection, field and relationship,
+  // including the ones holding personal and payment data.
+  //
+  // Set GRAPHQL_ENABLED=true to re-enable it (development, or debugging).
   graphQL: {
-    disable: false,
+    disable: !graphQLEnabled,
   },
+
+  // Maximum relation-population depth, application-wide (REST and GraphQL
+  // alike). Payload's documented default is 10; we pin it explicitly so a
+  // dependency bump cannot silently relax it. Well above what the UI needs.
+  maxDepth: 6,
 
   // --- Logging ---
   logger: {

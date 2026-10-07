@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from 'react'
 
+import {
+  buildRsvpSubmitBody,
+  buildRsvpUpdateBody,
+  SECRET_ENDPOINTS,
+} from '@/lib/api-requests'
+
 type Status = 'going' | 'maybe' | 'not_going' | 'waiting'
 
 const STATUS_LABEL: Record<Status, string> = {
@@ -66,7 +72,7 @@ export function RsvpWidget({ eventId, eventSlug }: Props) {
       return
     }
     let cancelled = false
-    fetch('/api/event-rsvps/by-secret', {
+    fetch(SECRET_ENDPOINTS.rsvpBySecret, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ secretKey }),
@@ -183,11 +189,11 @@ function RsvpForm({
     setError(null)
     try {
       const isUpdate = existing != null
-      const url = isUpdate ? '/api/event-rsvps/cancel' : '/api/event-rsvps/submit'
-      // secretKey rides in the body, never the URL — see the note above.
+      const url = isUpdate ? SECRET_ENDPOINTS.rsvpCancel : SECRET_ENDPOINTS.rsvpSubmit
+      // secretKey rides in the body, never the URL — see lib/api-requests.ts.
       const body = isUpdate
-        ? { secretKey: existing!.secretKey, status, guestsCount: guests, name }
-        : { event: eventSlug, name, guestsCount: guests, status }
+        ? buildRsvpUpdateBody(existing!.secretKey, { status, guestsCount: guests, name })
+        : buildRsvpSubmitBody({ eventSlug, name, guestsCount: guests, status })
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

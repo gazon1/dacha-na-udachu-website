@@ -53,10 +53,14 @@ export function verifyTelegramAuth(
     return { ok: false, reason: 'auth_date_expired' }
   }
 
-  // 2. Build data_check_string from sorted non-empty fields except `hash`
+  // 2. Build data_check_string from sorted non-empty fields except `hash`.
+  // Telegram requires plain byte/ASCII ordering of the keys. `localeCompare`
+  // must NOT be used here: its result depends on the runtime locale, so the
+  // same payload could hash differently on two machines and login would fail
+  // intermittently once a field name sorts differently under collation.
   const fields = Object.entries(data)
     .filter(([key, value]) => key !== 'hash' && value !== undefined && value !== null && value !== '')
-    .sort(([a], [b]) => a.localeCompare(b))
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
     .map(([key, value]) => `${key}=${value}`)
   const dataCheckString = fields.join('\n')
 
