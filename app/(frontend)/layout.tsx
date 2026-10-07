@@ -22,8 +22,26 @@ const playfair = Playfair_Display({
 
 export const metadata: Metadata = defaultMetadata
 
-// Re-fetch on every request — admin edits to SiteSettings should show immediately.
-// `revalidate = 0` + `dynamic = 'force-dynamic'` covers the public layout.
+// The public site is intentionally fully dynamic — there is NO ISR / no page
+// cache anywhere. Admin edits to SiteSettings (footer contacts, brand, social
+// links) must appear immediately, and with a small catalogue (a handful of
+// houses, dozens of events) the DB round-trip per request costs far less than
+// the complexity of a cache-invalidation strategy.
+//
+// `force-dynamic` here cascades to every nested route, which is what we want.
+// `booking/page.tsx` additionally uses searchParams, so it could not be cached
+// regardless.
+//
+// Why there are no `revalidatePath()` calls in the collection hooks: they were
+// removed along with lib/revalidate.ts. They were pure no-ops — invalidating a
+// path that is re-rendered on every request — and their presence suggested a
+// caching layer that did not exist.
+//
+// Revisit this when either becomes true: the catalogue grows to hundreds of
+// entries, TTFB shows up in monitoring, or edit-visibility stops needing to be
+// immediate. Then convert pages to `export const revalidate = 60` and add
+// targeted invalidation back — measuring first, since Payload's caching
+// requires every data dependency to be cache-safe.
 export const dynamic = 'force-dynamic'
 
 async function loadFooterSettings(): Promise<FooterSettings> {

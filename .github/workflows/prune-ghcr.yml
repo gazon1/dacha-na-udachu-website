@@ -1,0 +1,121 @@
+name: Cleanup GHCR images
+
+# One image per commit accumulates forever in the registry. Container
+# registry storage is currently free for public packages, but GitHub reserves
+# the right to change that with a month of notice — so old images are pruned
+# proactively rather than waiting for a bill.
+#
+# Keeps: `latest`, the `main` branch tag, and the N most recent SHA tags
+# (KEEP_SHA_TAGS). Everything else is deleted.
+
+on:
+  schedule:
+    # Weekly, Monday 04:17 UTC — off the hour to avoid the scheduling spike.
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+    inputs:
+      keep_sha_tags:
+        description: 'How many recent SHA tags to keep'
+        required: false
+        default: '10'
+
+permissions:
+  packages: write
+  contents: read
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Configure gh CLI
+        run: |
+          echo "GH_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_ENV"
+          # Needs read access to packages to list tags of the container package.
+          gh auth setup-git
+
+      - name: List image tags
+        id: list
+        run: |
+          set -euo pipefail
+          IMAGE="ghcr.io/${{ github.repository_owner }}/dacha-app"
+          gh api --paginate \
+            "/users/${{ github.repository_owner }}/packages/container/dacha-app/versions" \
+            --jq '.[] | .metadata.container.tags[]? // empty' \
+            > all_tags_raw.txt || {
+              echo "::error::Could not list tags for $IMAGE — is the package named 'dacha-app' and is GITHUB_TOKEN scoped to packages?"
+              exit 1
+            }
+          sort -u all_tags_raw.txt > all_tags.txt
+          echo "Total tags: $(wc -l < all_tags.txt)"
+          cat all_tags.txt
+
+      - name: Compute tags to delete
+        id: plan
+        env:
+          KEEP: ${{ github.event.inputs.keep_sha_tags || '10' }}
+        run: |
+          set -euo pipefail
+          # Always-protected tags: never delete these.
+          : > protected.txt
+          echo "latest" >> protected.txt
+          echo "${{ github.event.repository.default_branch }}" >> protected.txt
+          # pr-* tags are cheap to rebuild and only useful while a PR is open.
+          grep -E '^pr-[0-9]+$' all_tags.txt >> protected.txt || true
+          sort -u protected.txt -o protected.txt
+
+          # SHA tags are 7-hex-char prefixes, as produced by
+          # docker/metadata-action `type=sha,format=short`.
+          grep -E '^[0-9a-f]{7,40}$' all_tags.txt | sort -r > sha_tags.txt || true
+          head -n "$KEEP" sha_tags.txt > keep_sha.txt
+          echo "→ Keeping $KEEP most recent SHA tags of $(wc -l < sha_tags.txt)"
+
+          # Delete = everything not protected and not in the SHA keep-list.
+          cat all_tags.txt | sort > candidates.txt
+          cat protected.txt keep_sha.txt | sort -u > keep_all.txt
+          comm -23 candidates.txt keep_all.txt > delete.txt
+
+          echo "→ Will keep: $(wc -l < keep_all.txt)"
+          echo "→ Will delete: $(wc -l < delete.txt)"
+          cat delete.txt
+
+          # Write a null-delimited list for the delete step.
+          tr '\n' '\0' < delete.txt > delete_z.nul
+
+      - name: Delete stale tags
+        env:
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && 'false' || 'false' }}
+        run: |
+          set -euo pipefail
+          if [ ! -s delete_z.nul ]; then
+            echo "Nothing to delete."
+            exit 0
+          fi
+
+          # A tag maps to a package version via its own API. Deleting the
+          # version removes every tag pointing at it, so resolve ids first and
+          # deduplicate.
+          xargs -0 -n1 < delete_z.nul | while read -r tag; do
+            echo "Resolving version for tag: $tag"
+            version_id=$(gh api \
+              "/users/${{ github.repository_owner }}/packages/container/dacha-app/versions" \
+              --jq ".[] | select(.metadata.container.tags[]? | contains(\"$tag\")) | .id" \
+              | head -n1)
+            if [ -z "$version_id" ]; then
+              echo "::warning::No version found for tag $tag — skipping"
+              continue
+            fi
+            echo "Deleting version $version_id (tag $tag)"
+            gh api --method DELETE \
+              "/users/${{ github.repository_owner }}/packages/container/dacha-app/versions/$version_id"
+          done
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### GHCR cleanup"
+            echo ""
+            echo "- Deleted tags: $(wc -l < delete.txt 2>/dev/null || echo 0)"
+            echo "- Remaining SHA tags kept: $(wc -l < sha_tags.txt 2>/dev/null || echo 0)"
+          } >> "$GITHUB_STEP_SUMMARY"

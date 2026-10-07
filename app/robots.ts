@@ -1,7 +1,9 @@
 import type { MetadataRoute } from 'next'
+import { resolveSiteUrlSafe } from '@/lib/site-url'
 
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+// Centralised — see lib/site-url.ts. Safe variant because robots.ts is a
+// static route that also runs during build.
+const SITE_URL = resolveSiteUrlSafe()
 
 /**
  * /robots.txt — disallow admin/api, allow everything else.

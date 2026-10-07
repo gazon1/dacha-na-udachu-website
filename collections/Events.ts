@@ -1,6 +1,5 @@
 import type { CollectionConfig } from 'payload'
 import { adminOrPublished, isAdmin } from '../lib/access'
-import { revalidateAfter } from '../lib/revalidate'
 import {
   HeadingBlock,
   ParagraphBlock,
@@ -63,9 +62,6 @@ export const Events: CollectionConfig = {
   hooks: {
     afterChange: [
       async ({ doc, previousDoc, req }) => {
-        revalidateAfter('/events')
-        revalidateAfter(`/events/${doc.slug}`)
-
         // Broadcast нового опубликованного события подписчикам Telegram-бота.
         // Только при создании (previousDoc === null) — чтобы не спамить при правках.
         // Бот слушает POST на /internal/broadcast-event, защищён INTERNAL_API_SECRET.
@@ -95,12 +91,6 @@ export const Events: CollectionConfig = {
             }
           }
         }
-      },
-    ],
-    afterDelete: [
-      ({ doc }) => {
-        revalidateAfter('/events')
-        revalidateAfter(`/events/${doc.slug}`)
       },
     ],
   },

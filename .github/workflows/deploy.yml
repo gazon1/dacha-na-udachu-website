@@ -1,0 +1,138 @@
+name: Deploy to VPS
+
+# Manual production deploy. Push to `main` only builds and publishes an
+# image to GHCR (see ci.yml); getting that image onto the VPS is always a
+# deliberate action, because `docker compose up` runs `payload migrate`
+# before the app starts and DB migrations are not reversible.
+#
+# Required repository secrets:
+#   VPS_HOST, VPS_USER, VPS_PORT, VPS_APP_DIR, VPS_SSH_KEY
+on:
+  workflow_dispatch:
+
+# Two manual runs must never interleave — a half-finished
+# migrate/seed sequence from one would race the other.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/dacha-app
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Set the `production` environment (Settings → Environments) to restrict
+    # which maintainers may run this workflow.
+    environment: production
+
+    steps:
+      # workflow_dispatch lets you pick any ref in the UI. Only main is
+      # deployable — otherwise you could ship an arbitrary branch.
+      - name: Refuse to deploy a non-default branch
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Deploy only from main. Refusing to deploy ${{ github.ref_name }}."
+          exit 1
+
+      - name: Resolve image tag
+        id: meta
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          # docker/metadata-action in ci.yml publishes `type=sha,format=short`,
+          # which is a 7-character prefix. Match that exactly.
+          echo "tag=${SHA:0:7}" >> "$GITHUB_OUTPUT"
+          echo "Deploying $IMAGE:${SHA:0:7} (commit $SHA)"
+
+      # Fails here with a clear message rather than midway through a deploy
+      # on the VPS. Public package → no registry login required.
+      - name: Verify image exists in GHCR
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          if ! docker manifest inspect "$IMAGE:$TAG" >/dev/null 2>&1; then
+            echo "::error::Image $IMAGE:$TAG not found in GHCR. Run the CI build for this commit first (or check the tag format)."
+            exit 1
+          fi
+          echo "Found $IMAGE:$TAG"
+
+      # ssh-agent (not a bare openssh-client install) keeps host-key
+      # verification on, so a MITM cannot silently intercept the deploy.
+      - name: Configure SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+
+      - name: Deploy to VPS
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+          APP_DIR: ${{ secrets.VPS_APP_DIR }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" bash -s <<EOF
+          set -euo pipefail
+          cd "$APP_DIR"
+          export TAG="$TAG"
+
+          echo "→ Current state before deploy:"
+          docker compose images || true
+
+          # Record the running image first so a rollback is one command
+          # (see runbook in the plan). Best-effort: there may be no
+          # container yet on a first deploy.
+          docker inspect dacha-app --format '{{index .Config.Image}}' 2>/dev/null \
+            > /tmp/dacha-prev-image || echo "unknown" > /tmp/dacha-prev-image
+          echo "Previous image: \$(cat /tmp/dacha-prev-image)"
+
+          # Pull BEFORE recreating anything: if the image is unreachable the
+          # deploy stops here with the old stack still running.
+          docker compose pull
+
+          # `up -d` (not `down`) recreates only changed services, avoiding a
+          # full outage. migrate/seed are one-shot jobs with
+          # restart: "no" — they run to completion on this same \$TAG before
+          # app is created, and a failed migration stops app from starting.
+          docker compose up -d --remove-orphans
+
+          echo "→ Waiting for healthchecks (timeout 300s)..."
+          timeout 300 docker compose wait || echo "compose wait returned non-zero — inspect 'docker compose ps' below"
+          echo "→ Final state:"
+          docker compose ps
+          EOF
+
+      # Runs from the runner through the public domain, so it also proves
+      # Caddy, TLS and the network path are healthy — not just the container.
+      - name: Smoke test
+        env:
+          SMOKE_URL: https://dacha.maxdrobin.ru
+        run: |
+          for i in $(seq 1 10); do
+            if curl -fsS --max-time 15 "$SMOKE_URL/api/health" | grep -q '"ok"'; then
+              echo "✅ Site healthy after ${i} attempt(s)"
+              exit 0
+            fi
+            echo "Attempt $i: not healthy yet, retrying in 15s"
+            sleep 15
+          done
+          echo "::error::Site did not become healthy after 10 attempts"
+          echo "Rollback: cd \$VPS_APP_DIR && export TAG=<prev-sha-from /tmp/dacha-prev-image> && docker compose up -d"
+          exit 1
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Deployed"
+            echo ""
+            echo "- Commit: \`${{ github.sha }}\`"
+            echo "- Image: \`$IMAGE:${{ steps.meta.outputs.tag }}\`"
+            echo "- Ref: \`${{ github.ref_name }}\`"
+            echo "- Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          } >> "$GITHUB_STEP_SUMMARY"

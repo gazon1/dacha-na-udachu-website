@@ -14,9 +14,50 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Trigger /check-payments
+      # PAYLOAD_PUBLIC_SERVER_URL — публичный адрес сайта, а не секрет,
+      # поэтому живёт в variables, а не в secrets.
+      # CRON_SECRET — общий секрет с endpoint'ом; должен посимвольно
+      # совпадать с CRON_SECRET в .env на VPS.
+      #
+      # Без этой проверки пустые подстановки дают URL без хоста
+      # и непонятную ошибку `curl: (3) URL rejected: No host part`.
+      - name: Validate configuration
+        env:
+          BASE_URL: ${{ vars.PAYLOAD_PUBLIC_SERVER_URL }}
+          CRON: ${{ secrets.CRON_SECRET }}
         run: |
-          response=$(curl -fsS -X POST \
-            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.PAYLOAD_PUBLIC_SERVER_URL }}/api/event-contributions/check-payments")
-          echo "$response"
+          if [ -z "$BASE_URL" ]; then
+            echo "::error::Repository variable PAYLOAD_PUBLIC_SERVER_URL is not set (Settings → Secrets and variables → Actions → Variables). Expected e.g. https://dacha.maxdrobin.ru"
+            exit 1
+          fi
+          if [ -z "$CRON" ]; then
+            echo "::error::Repository secret CRON_SECRET is not set (Settings → Secrets and variables → Actions → Secrets). It must match CRON_SECRET in the VPS .env."
+            exit 1
+          fi
+
+      - name: Trigger /check-payments
+        env:
+          BASE_URL: ${{ vars.PAYLOAD_PUBLIC_SERVER_URL }}
+          CRON: ${{ secrets.CRON_SECRET }}
+        run: |
+          # Без -f: HTTP-код выводим явно, чтобы 401/503 были диагностируемы,
+          # а не молчаливым ненулевым кодом.
+          code=$(curl -sS -o /tmp/resp.json -w '%{http_code}' --max-time 20 \
+            -X POST \
+            -H "x-cron-secret: $CRON" \
+            "$BASE_URL/api/event-contributions/check-payments") || {
+              echo "::error::Request to $BASE_URL failed — site unreachable or timed out"
+              exit 1
+            }
+
+          echo "HTTP $code: $(cat /tmp/resp.json)"
+
+          case "$code" in
+            200) exit 0 ;;
+            401) echo "::error::CRON_SECRET does not match CRON_SECRET in the VPS .env"
+                 exit 1 ;;
+            503) echo "::error::Endpoint reports misconfiguration — check that CRON_SECRET is set in the VPS .env (endpoint returns 503 cron_not_configured when absent)"
+                 exit 1 ;;
+            *)   echo "::error::Unexpected status $code from $BASE_URL"
+                 exit 1 ;;
+          esac

@@ -1,24 +1,13 @@
-# Git
+# Build context exclusions for the Next.js + Payload image.
+# Scoped to this project only — legacy rules for WebCrawler/Clojure/ASP.NET/
+# Python projects were removed (none of those paths exist here, they made
+# the real rules invisible).
+
+# Git / CI
 .git/
 .gitattributes
-
-# Build outputs
-bin/
-obj/
-out/
-publish/
-
-# IDE
-.vscode/
-.vscode-server/
-.idea/
-.vs/
-*.suo
-*.user
-
-# OS
-.DS_Store
-Thumbs.db
+.github/
+.beads/
 
 # Docker
 .dockerignore
@@ -26,90 +15,44 @@ Dockerfile*
 docker-compose*.yml
 docker-compose*.yaml
 
-# Beads (issue tracking)
-.beads/
-
-# Logs
-logs/
-*.log
-
-# Backup
-Crawler.backup
-*.backup
-
-# Test results
-TestResults/
-coverage/
-
-# Node
+# Dependencies — installed inside the image, must not come from the host
 node_modules/
-npm-debug.log*
+**/node_modules/
+bot/node_modules/
 
-# Project-specific — not part of the build context for the Next.js image
-backend/         # Python (legacy Wagtail/Django)
-media/           # Runtime uploads — should be a volume, not in image
-tests/           # Test suite — not used by production build
-# src/ is kept in the image so `payload migrate` can find src/migrations/
-# at runtime. payload-types.ts is small and harmless to ship.
-Caddyfile        # Reverse proxy config — host-level concern
-justfile         # Local dev task runner
-pytest.ini       # Python test config
+# Build outputs — produced inside the image by `next build`
+.next/
+**/.next/
+tsconfig.tsbuildinfo
 
-# Temporary files
-tmp/
-temp/
-*.tmp
+# Secrets — must never enter the image.
+# `.env` is gitignored so CI builds never see it, but `just docker-build` /
+# `just docker-push` run on a workstation that DOES have one; without these
+# rules the secrets get baked into the image and pushed to GHCR.
+.env
+.env.*
+!.env.example
+
+# Runtime uploads — must stay in a volume, never baked into the image
+media/
+**/media/
+
+# Host-level / local-dev concerns
+justfile          # local task runner
+deploy/           # Caddy routing snippets, applied on the VPS
+scripts/.gitignore
+*.log
+logs/
+
+# Editor / OS noise
+.vscode/
+.vs/
+.idea/
 *.swp
 *.swo
+.DS_Store
+Thumbs.db
 
-# Documentation
-README.md
-docs/
+# Docs
 *.md
-
-# Large cache directories (can be GB each)
-.npm/
-.nuget/
-.cache/
-.claude/
-.clj-kondo/
-.omnisharp/
-.aspnet/
-.bun/
-.dolt/
-.doltcfg/
-.lein/
-.local/
-.lsp/
-.microsoft/
-.mongodb/
-.python/
-.ssh/
-.templateengine/
-.zgenom/
-.angeldoc/
-.github/
-
-# Temporary / clone directories (workspace/tmp can be 20GB+)
-tmp/
-_site/
-
-# Admin UI (not needed for worker image)
-WebCrawler.Admin/bin/
-WebCrawler.Admin/obj/
-WebCrawler.Tests/
-
-# Generated files
-**/WebCrawler.Generators/bin/
-**/WebCrawler.Generators/obj/
-
-**/bin/
-**/obj/
-**/.vs/
-**/.vscode/
-**/.git/
-**/node_modules/
-**/.next/
-frontend/node_modules/
-frontend/.next/
-backend/.venv/
+docs/

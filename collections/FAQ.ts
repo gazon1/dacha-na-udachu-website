@@ -1,6 +1,5 @@
 import type { CollectionConfig } from 'payload'
 import { adminOrPublished, isAdmin } from '../lib/access'
-import { revalidateAfter } from '../lib/revalidate'
 import { ParagraphBlock, FAQItemBlock } from './blocks'
 
 /**
@@ -27,13 +26,6 @@ export const FAQ: CollectionConfig = {
   versions: {
     drafts: { autosave: true },
     maxPerDoc: 5,
-  },
-  hooks: {
-    afterChange: [
-      () => {
-        revalidateAfter('/faq')
-      },
-    ],
   },
   fields: [
     { name: 'slug', type: 'text', required: true, unique: true, defaultValue: 'faq', index: true },

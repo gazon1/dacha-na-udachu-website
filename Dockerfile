@@ -13,7 +13,8 @@ COPY package*.json ./
 RUN npm ci --prefer-offline --no-audit --no-fund
 
 # Build Payload types + Next.js build.
-# --no-lint skips the slow ESLint pass (run `npm run lint` separately in CI).
+# --no-lint skips the slow ESLint pass; the `typecheck` job in ci.yml is the
+# gate that runs first (there is no `lint` script in package.json).
 # NODE_OPTIONS limits memory to prevent OOM hangs.
 COPY . .
 RUN NODE_OPTIONS="--max-old-space-size=2048" \
@@ -75,4 +76,6 @@ COPY --from=builder /app ./
 USER node
 
 # Port and command are managed in docker-compose.yml.
-# Defaults here for `docker run` outside compose.
+# Defaults here for `docker run` outside compose — without a CMD the image
+# would exit immediately when run standalone (e.g. pulled from GHCR).
+CMD ["node_modules/next/dist/bin/next", "start"]

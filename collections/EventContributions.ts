@@ -1,6 +1,5 @@
 import type { CollectionConfig } from 'payload'
 import { eventContributionEndpoints } from './endpoints/event-contributions'
-import { revalidateAfter } from '../lib/revalidate'
 
 /**
  * EventContributions — voluntary contributions ("скинуться на дачу") for events.
@@ -36,9 +35,7 @@ export const EventContributions: CollectionConfig = {
   hooks: {
     afterChange: [
       async ({ doc, req, operation, previousDoc }) => {
-        // Revalidate the event page when a contribution is confirmed, so the
-        // public widget shows the new total without a full page reload.
-        // Also notify the admin via Telegram.
+        // When a contribution is confirmed, notify the admin via Telegram.
         const wasConfirmed = previousDoc?.status !== 'confirmed' && doc.status === 'confirmed'
         if (wasConfirmed && doc.event) {
           try {
@@ -48,9 +45,6 @@ export const EventContributions: CollectionConfig = {
               depth: 0,
               overrideAccess: true,
             })
-            if (event?.slug) {
-              revalidateAfter(`/events/${event.slug}`)
-            }
 
             // Telegram admin notification (no-op if TELEGRAM_ADMIN_CHAT_ID unset).
             // Dynamic import keeps this off the cold-start path when the

@@ -1,6 +1,5 @@
 import type { CollectionConfig } from 'payload'
 import { adminOrPublished, isAdmin } from '../lib/access'
-import { revalidateAfter } from '../lib/revalidate'
 import { HeadingBlock, ParagraphBlock, ImageBlock } from './blocks'
 
 /**
@@ -39,20 +38,6 @@ export const News: CollectionConfig = {
   versions: {
     drafts: { autosave: true },
     maxPerDoc: 25,
-  },
-  hooks: {
-    afterChange: [
-      ({ doc }) => {
-        revalidateAfter('/news')
-        revalidateAfter(`/news/${doc.slug}`)
-      },
-    ],
-    afterDelete: [
-      ({ doc }) => {
-        revalidateAfter('/news')
-        revalidateAfter(`/news/${doc.slug}`)
-      },
-    ],
   },
   fields: [
     { name: 'slug', type: 'text', required: true, unique: true, index: true, maxLength: 100 },

@@ -131,16 +131,20 @@ deploy-caddy-config:
 # Variable used above
 deploy_caddy_confd := env("CADDY_CONF_D", "/opt/caddy/conf.d")
 
-[doc("Step 4: Rebuild and restart project containers gracefully")]
+[doc("Step 4: Pull the released image and restart containers gracefully")]
 compose-up:
     #!/usr/bin/env bash
     set -euo pipefail
     source {{ DEPLOY_COMMON }}/lib/shared-functions.sh
     log "🔨 Deploying containers..."
-    log "🧹 Freeing disk space before build..."
+    log "🧹 Freeing disk space before pull..."
     docker system prune -f
-    TAG={{TAG}} docker compose down --remove-orphans 2>/dev/null || true
-    TAG={{TAG}} docker compose up -d --build
+    export TAG={{TAG}}
+    # Images are built and pushed by CI to GHCR; the VPS pulls instead of
+    # building. `up` (not `up --build`) keeps the manual path identical to
+    # the CI deploy path.
+    docker compose pull
+    docker compose up -d --remove-orphans
     log "⏳ Waiting for app healthchecks..."
     docker compose wait || echo "Compose wait finished (verify app logs if failed)"
 

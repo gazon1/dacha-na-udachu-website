@@ -9,15 +9,22 @@ import payload from 'payload'
  * Safe to re-run: every entry is checked by slug before creation.
  *
  * Required env vars:
- *   PAYLOAD_SEED_ADMIN_EMAIL       — admin email
- *   PAYLOAD_SEED_ADMIN_PASSWORD    — admin password (min 8 chars)
- * Optional but recommended:
  *   DATABASE_URI                    — DB connection string
+ * Optional:
+ *   PAYLOAD_SEED_ADMIN_EMAIL       — admin email; when BOTH admin vars are
+ *   PAYLOAD_SEED_ADMIN_PASSWORD    — admin password (min 8 chars)
+ *
+ * Admin credentials are optional on purpose. This script runs on EVERY
+ * deploy as a blocking `depends_on` step in docker-compose.yml, so making
+ * them mandatory would mean every production deploy fails whenever they are
+ * absent from .env — the content seed would never get a chance to run.
+ * When they are unset the content (extra-services, FAQ, sample house) is
+ * still seeded and only the admin user is skipped.
  */
 
 type SeedConfig = {
-  adminEmail: string
-  adminPassword: string
+  adminEmail?: string
+  adminPassword?: string
 }
 
 const extras = [
@@ -119,29 +126,36 @@ export const script = async (config: SanitizedConfig) => {
     payload.logger.info('Created sample house: main-house')
   }
 
-  // Admin user — from env vars
+  // Admin user — created only when credentials are configured.
+  // Content above is always seeded; this is the only optional part.
   const adminEmail = seedConfig.adminEmail
-  const adminExists = await payload.find({
-    collection: 'users',
-    where: { email: { equals: adminEmail } },
-    limit: 1,
-  })
-  if (adminExists.totalDocs === 0) {
-    await payload.create({
-      collection: 'users',
-      data: {
-        email: adminEmail,
-        password: seedConfig.adminPassword,
-        // synthetic telegramId — must be unique; prefix admin- so it's clear
-        telegramId: `admin-${adminEmail}`,
-        firstName: 'Admin',
-        lastName: 'User',
-        role: 'admin',
-      },
-    })
-    payload.logger.info(`Created admin user: ${adminEmail}`)
+  if (!adminEmail) {
+    payload.logger.warn(
+      'Skipping admin user creation: PAYLOAD_SEED_ADMIN_EMAIL / PAYLOAD_SEED_ADMIN_PASSWORD not set. Create the first admin via the Payload admin UI.',
+    )
   } else {
-    payload.logger.info(`Admin user already exists: ${adminEmail}`)
+    const adminExists = await payload.find({
+      collection: 'users',
+      where: { email: { equals: adminEmail } },
+      limit: 1,
+    })
+    if (adminExists.totalDocs === 0) {
+      await payload.create({
+        collection: 'users',
+        data: {
+          email: adminEmail,
+          password: seedConfig.adminPassword,
+          // synthetic telegramId — must be unique; prefix admin- so it's clear
+          telegramId: `admin-${adminEmail}`,
+          firstName: 'Admin',
+          lastName: 'User',
+          role: 'admin',
+        },
+      })
+      payload.logger.info(`Created admin user: ${adminEmail}`)
+    } else {
+      payload.logger.info(`Admin user already exists: ${adminEmail}`)
+    }
   }
 
   payload.logger.info('Seed complete.')
@@ -151,11 +165,17 @@ export const script = async (config: SanitizedConfig) => {
 function readSeedConfig(): SeedConfig {
   const adminEmail = process.env.PAYLOAD_SEED_ADMIN_EMAIL
   const adminPassword = process.env.PAYLOAD_SEED_ADMIN_PASSWORD
+
+  // Both or neither: a half-configured pair is a mistake worth reporting.
+  if (!adminEmail && !adminPassword) return {}
+
   if (!adminEmail || !adminPassword) {
+    const missing = adminEmail ? 'PAYLOAD_SEED_ADMIN_PASSWORD' : 'PAYLOAD_SEED_ADMIN_EMAIL'
     throw new Error(
-      'Missing required env vars: PAYLOAD_SEED_ADMIN_EMAIL and PAYLOAD_SEED_ADMIN_PASSWORD',
+      `Missing ${missing}: set both PAYLOAD_SEED_ADMIN_EMAIL and PAYLOAD_SEED_ADMIN_PASSWORD, or remove both to skip admin creation.`,
     )
   }
+
   if (adminPassword.length < 8) {
     throw new Error('PAYLOAD_SEED_ADMIN_PASSWORD must be at least 8 characters')
   }

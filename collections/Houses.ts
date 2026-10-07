@@ -1,6 +1,5 @@
 import type { CollectionConfig } from 'payload'
 import { adminOrPublished, isAdmin } from '../lib/access'
-import { revalidateAfter } from '../lib/revalidate'
 import { HeadingBlock, ParagraphBlock, ImageBlock } from './blocks'
 
 /**
@@ -52,20 +51,6 @@ export const Houses: CollectionConfig = {
   versions: {
     drafts: { autosave: true },
     maxPerDoc: 25,
-  },
-  hooks: {
-    afterChange: [
-      ({ doc }) => {
-        revalidateAfter('/houses')
-        revalidateAfter(`/houses/${doc.slug}`)
-      },
-    ],
-    afterDelete: [
-      ({ doc }) => {
-        revalidateAfter('/houses')
-        revalidateAfter(`/houses/${doc.slug}`)
-      },
-    ],
   },
   fields: [
     { name: 'slug', type: 'text', required: true, unique: true, index: true, maxLength: 100 },

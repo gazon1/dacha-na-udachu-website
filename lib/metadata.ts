@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { resolveSiteUrlSafe } from '@/lib/site-url'
 
 /**
  * Shared metadata defaults. Used by the root layout and any page-level
@@ -6,12 +7,12 @@ import type { Metadata } from 'next'
  * requires `metadataBase` on every `metadata` export that resolves
  * social/twitter images — even when not explicitly set).
  *
- * Override `NEXT_PUBLIC_SERVER_URL` per environment to point OG/Twitter
- * images at the right host. Falls back to the production domain.
+ * The URL comes from lib/site-url.ts, which resolves
+ * PAYLOAD_PUBLIC_SERVER_URL / NEXT_PUBLIC_SERVER_URL and falls back to the
+ * production domain. Safe (non-throwing) because metadata.ts is imported by
+ * the root layout and evaluated during build.
  */
-export const metadataBase = new URL(
-  process.env.NEXT_PUBLIC_SERVER_URL || 'https://dacha.maxdrobin.ru',
-)
+export const metadataBase = new URL(resolveSiteUrlSafe())
 
 export const defaultMetadata: Metadata = {
   metadataBase,

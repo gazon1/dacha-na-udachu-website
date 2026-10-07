@@ -1,10 +1,18 @@
+# Single image for the whole stack: the Next.js app, the Telegram bot,
+# and the one-shot `migrate` / `seed` jobs all come from this build.
+# Images are published by CI (.github/workflows/ci.yml) to GHCR and pulled
+# here — the VPS does NOT build locally anymore.
+#
+# TAG is REQUIRED (no default). Silently falling back to `latest` would
+# deploy an arbitrary commit, so compose must fail loudly instead:
+#   TAG=$(git rev-parse --short HEAD) docker compose up -d
+x-app-image: &app-image ghcr.io/gazon1/dacha-app:${TAG:?TAG must be set — use a commit SHA tag from GHCR, e.g. TAG=$(git rev-parse --short HEAD)}
+
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: *app-image
+    pull_policy: missing
     container_name: dacha-app
-    image: dacha-app:${TAG:-latest}
     restart: always
     networks:
       - default
@@ -38,16 +46,47 @@ services:
     expose:
       - "${PORT}"
 
-  migrate:
-    image: dacha-app:${TAG:-latest}
-    pull_policy: never
+  # Schema backup taken BEFORE `migrate` runs.
+  # `payload migrate` is not reversible, so rolling back the image without
+  # rolling back the schema only works for additive migrations. This gives a
+  # way back when it does not.
+  #
+  # Uses the official postgres image because the Next.js image ships no
+  # pg_dump. DATABASE_URI is a full postgres:// URL, which pg_dump accepts
+  # directly as its positional argument — so no host/user/db splitting and no
+  # risk of echoing the password in the command line.
+  backup:
+    image: postgres:16-alpine
     restart: "no"
     env_file: .env
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        set -eu
+        ts="$$(date -u +%Y%m%dT%H%M%S)"
+        mkdir -p /backups
+        echo "→ pg_dump → /backups/pre-$$ts.sql.gz"
+        pg_dump "$$DATABASE_URI" --clean --if-exists --no-owner --no-privileges \
+          | gzip > "/backups/pre-$$ts.sql.gz"
+        # Keep the 10 most recent dumps so the volume cannot fill the disk.
+        ls -1t /backups/pre-*.sql.gz 2>/dev/null | tail -n +11 | xargs -r rm --
+        echo "→ backup written"
+    volumes:
+      - backup_data:/backups
+
+  migrate:
+    image: *app-image
+    pull_policy: missing
+    restart: "no"
+    env_file: .env
+    depends_on:
+      backup:
+        condition: service_completed_successfully
     command: ["node_modules/.bin/payload", "migrate"]
 
   seed:
-    image: dacha-app:${TAG:-latest}
-    pull_policy: never
+    image: *app-image
+    pull_policy: missing
     restart: "no"
     env_file: .env
     depends_on:
@@ -56,9 +95,9 @@ services:
     command: ["node_modules/.bin/payload", "seed"]
 
   bot:
-    image: dacha-app:${TAG:-latest}
+    image: *app-image
     container_name: dacha-bot
-    pull_policy: never
+    pull_policy: missing
     restart: always
     env_file: .env
     environment:
@@ -85,6 +124,11 @@ services:
 volumes:
   media_data:
     name: dacha_media_v2
+  # Pre-migration schema dumps, rotated to the 10 most recent by the
+  # `backup` service. Restore with:
+  #   gunzip < /backups/pre-<ts>.sql.gz | docker compose exec -T db psql ...
+  backup_data:
+    name: dacha_backup
 
 networks:
   caddy_net:
