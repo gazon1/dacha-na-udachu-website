@@ -103,9 +103,10 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_PORT: ${{ secrets.VPS_PORT }}
         run: |
-          # NOT ${{ hashFiles(...) }}: despite being documented as a SHA-256
-          # of the file, it returned a different digest than sha256sum for a
-          # byte-identical file, so every deploy failed this check while the
+          # NOT the hashFiles() context function: it is documented as a
+          # SHA-256 of the matched file, but for a byte-identical
+          # deploy/caddy.conf.caddy it returned 586899c6... while sha256sum
+          # returned e7fa4a68..., so every deploy failed this check while the
           # two sides actually matched. Both sides are hashed here with the
           # same command instead.
           local_sum=$(sha256sum deploy/caddy.conf.caddy | cut -d' ' -f1)
