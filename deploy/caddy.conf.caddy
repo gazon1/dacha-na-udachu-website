@@ -1,5 +1,13 @@
-# Caddy route configuration for Dacha — deployed to /opt/caddy/conf.d/dacha.caddy
-# by deploy/deploy.sh. Do not edit by hand; changes will be overwritten on deploy.
+# Caddy route configuration for Dacha — installed at
+# /opt/caddy/conf.d/dacha.caddy by the Caddy-vps Ansible role (repo
+# gazon1/Caddy-vps), never by this repository. To change it: edit this file,
+# commit, then run `just caddy-route` from a machine with that repo checked
+# out. The Ansible role backs the file up, validates the resulting config and
+# rolls back on failure.
+#
+# CI compares this file's checksum against the copy on the VPS before every
+# deploy and refuses to ship when they differ, so a forgotten `just
+# caddy-route` fails the deploy instead of producing a 502.
 #
 # Next.js + Payload CMS:  dacha.maxdrobin.ru  →  dacha-app:3000
 # Telegram bot webhook:     jellyfin.maxdrobin.ru → dacha-bot:3001

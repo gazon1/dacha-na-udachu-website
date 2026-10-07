@@ -8,9 +8,8 @@ set export
 set positional-arguments
 set quiet
 
-# ---- DEPLOY-COMMON -----------------------------------------------------------
+# ---- GLOBAL -----------------------------------------------------------------
 TAG := `git rev-parse --short HEAD`
-DEPLOY_COMMON := justfile_directory() / "lib" / "deploy-common"
 PROJECT_CADDY_SNIPPET := "dacha"
 SMOKE_URL := "https://dacha.maxdrobin.ru/"
 
@@ -94,85 +93,145 @@ docker-push:
     docker push ghcr.io/$OWNER/dacha-app:$TAG
 
 
-# ---- PRODUCTION DEPLOY (delegates to deploy-common) --------------------------
-[doc("Deploy to VPS: full pipeline via shared Caddy")]
-prod-deploy: deploy-git-pull deploy-caddy-bootstrap deploy-caddy-config compose-up caddy-reload smoke-test clean
-    @echo "✅ Deploy pipeline completed successfully."
+# ---- PRODUCTION DEPLOY -------------------------------------------------------
+# The shared reverse proxy is NOT this project's business any more. It is
+# provisioned by the Caddy-vps Ansible repository (gazon1/Caddy-vps), which
+# backs the snippet up, validates the result and rolls back on failure. Nothing
+# here touches caddy_global.
+#
+#   just caddy-route   apply deploy/caddy.conf.caddy as the "dacha" route
+#   just prod-deploy   pull + compose up + wait for health + smoke test
+#
+# The image is built and published by CI; the server only pulls.
+#
+# CADDY_REPO points at a checkout of Caddy-vps and defaults to a sibling
+# directory, which is where it sits on a developer machine.
+CADDY_REPO := env("CADDY_REPO", justfile_directory() / ".." / "Caddy-vps")
 
-[doc("Step 1: Pull latest repository state + init submodules")]
-deploy-git-pull:
+[doc("Apply this project's route to the global Caddy proxy (via Ansible)")]
+caddy-route *args:
     #!/usr/bin/env bash
     set -euo pipefail
-    source {{ DEPLOY_COMMON }}/lib/shared-functions.sh
-    log "📦 Pulling latest from main..."
+    if [ ! -f "{{ CADDY_REPO }}/site.yml" ]; then
+      echo "error: no Caddy-vps checkout at {{ CADDY_REPO }}" >&2
+      echo "       git clone git@github.com:gazon1/Caddy-vps.git, or set" >&2
+      echo "       CADDY_REPO=/path/to/Caddy-vps and re-run." >&2
+      exit 1
+    fi
+    just --justfile "{{ CADDY_REPO }}/justfile" route dacha \
+      "{{ justfile_directory() }}/deploy/caddy.conf.caddy" {{ args }}
+
+[doc("Compare this repo's route snippet with the copy installed on the VPS")]
+route-drift host="" user="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    local_file="deploy/caddy.conf.caddy"
+    if [ -z "{{ host }}" ]; then
+      echo "usage: just route-drift <host> [user]"
+      echo "  compares $local_file against /opt/caddy/conf.d/dacha.caddy"
+      exit 0
+    fi
+    target="{{ user }}"
+    [ -n "$target" ] || target="root"
+    local_sum=$(sha256sum "$local_file" | cut -d' ' -f1)
+    remote_sum=$(ssh "$target@{{ host }}" \
+      "sha256sum /opt/caddy/conf.d/dacha.caddy 2>/dev/null | cut -d' ' -f1" \
+      || echo "<unreadable>")
+    echo "repo      $local_sum"
+    echo "installed $remote_sum"
+    if [ "$local_sum" = "$remote_sum" ]; then
+      echo "in sync"
+    else
+      echo "OUT OF SYNC — apply it with: just caddy-route"
+      exit 1
+    fi
+
+[doc("Deploy to VPS: pull + compose up + wait for health + smoke test")]
+prod-deploy:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    echo "📦 Pulling latest from main..."
     git pull origin main
-    log "📦 Updating deploy-common submodule..."
-    git submodule update --init --recursive
 
-[doc("Step 2: Idempotent initialization of global Caddy infrastructure")]
-deploy-caddy-bootstrap:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    source {{ DEPLOY_COMMON }}/scripts/caddy-bootstrap.sh
-    bootstrap_caddy
-
-[doc("Step 3: Update routing config (validates without touching state)")]
-deploy-caddy-config:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    source {{ DEPLOY_COMMON }}/lib/shared-functions.sh
-    SNIPPET_SOURCE="deploy/caddy.conf.caddy"
-    SNIPPET_TARGET="{{ deploy_caddy_confd }}/dacha.caddy"
-    BACKUP="${SNIPPET_TARGET}.bak.$(date +%Y%m%d-%H%M%S)"
-    log "📝 Updating project routing rules..."
-    cp "$SNIPPET_SOURCE" "{{ deploy_caddy_confd }}/dacha.caddy"
-    docker exec caddy_global caddy validate --config /etc/caddy/Caddyfile
-
-# Variable used above
-deploy_caddy_confd := env("CADDY_CONF_D", "/opt/caddy/conf.d")
-
-[doc("Step 4: Pull the released image and restart containers gracefully")]
-compose-up:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    source {{ DEPLOY_COMMON }}/lib/shared-functions.sh
-    log "🔨 Deploying containers..."
-    log "🧹 Freeing disk space before pull..."
-    docker system prune -f
-    export TAG={{TAG}}
-    # Images are built and pushed by CI to GHCR; the VPS pulls instead of
-    # building. `up` (not `up --build`) keeps the manual path identical to
-    # the CI deploy path.
+    # The image is published by CI under an immutable commit-SHA tag; the server
+    # pulls it instead of building. Compose recreates only the services whose
+    # configuration changed, so the stack is not taken down.
+    echo "⤓️  Pulling images..."
     docker compose pull
     docker compose up -d --remove-orphans
-    log "⏳ Waiting for app healthchecks..."
-    docker compose wait || echo "Compose wait finished (verify app logs if failed)"
 
-[doc("Step 5: Apply new routes with zero downtime")]
-caddy-reload:
+    # Wait for the app's own healthcheck. NOT `docker compose wait`: that
+    # blocks until containers STOP, so against a long-running service it would
+    # burn the whole timeout on every deploy.
+    #
+    # docker ps --filter is used instead of docker inspect -f on purpose: a Go
+    # template contains doubled braces, which just tries to interpolate.
+    # Quoting them does not help (they are emitted verbatim) and a backtick
+    # string is evaluated as a shell command instead.
+    #
+    # The name filter is anchored (^/dacha-app) so dacha-bot cannot match.
+    echo "⏳ Waiting for dacha-app to become healthy (timeout 300s)..."
+    state=missing
+    deadline=$(( $(date +%s) + 300 ))
+    while [ "$(date +%s)" -lt "$deadline" ]; do
+      # Order matters. health=none is checked BEFORE the plain "is it
+      # running" test, otherwise a container without a healthcheck would
+      # look like a perfectly normal starting one and we would sit here for
+      # the full timeout.
+      if docker ps --filter "name=^/dacha-app$" --filter "health=healthy" -q | grep -q .; then
+        state=healthy
+      elif docker ps --filter "name=^/dacha-app$" --filter "health=unhealthy" -q | grep -q .; then
+        state=unhealthy
+      elif docker ps --filter "name=^/dacha-app$" --filter "health=none" -q | grep -q .; then
+        state=no-healthcheck
+      elif docker ps --filter "name=^/dacha-app$" -q | grep -q .; then
+        state=starting
+      elif docker ps -a --filter "name=^/dacha-app$" -q | grep -q .; then
+        # Exists but is not running. Keep waiting — a restart policy may
+        # still bring it back — but say so, so the timeout message is useful.
+        state=exited
+      else
+        state=missing
+      fi
+
+      case "$state" in
+        healthy)
+          echo "✅ dacha-app is healthy"
+          break
+          ;;
+        unhealthy)
+          echo "❌ dacha-app reported unhealthy" >&2
+          docker logs --tail 50 dacha-app >&2 || true
+          exit 1
+          ;;
+        no-healthcheck)
+          echo "❌ dacha-app is running but has no healthcheck — check docker-compose.yml" >&2
+          exit 1
+          ;;
+      esac
+      sleep 5
+    done
+
+    if [ "$state" != "healthy" ]; then
+      echo "❌ dacha-app did not become healthy within 300s (last state: $state)" >&2
+      docker compose ps >&2 || true
+      docker logs --tail 50 dacha-app >&2 || true
+      exit 1
+    fi
+
+    # Smoke test through the public domain: this proves Caddy, TLS and the
+    # network path are healthy — not just the container.
+    echo "🚦 Smoke testing {{ SMOKE_URL }}..."
+    curl -fsSI --max-time 15 "{{ SMOKE_URL }}" > /dev/null
+    echo "✅ Deploy completed successfully."
+
+[doc("Remove unused Docker assets (NOT part of a deploy)")]
+docker-clean:
     #!/usr/bin/env bash
     set -euo pipefail
-    source {{ DEPLOY_COMMON }}/lib/shared-functions.sh
-    log "🔄 Reloading Caddy routes..."
-    docker exec caddy_global caddy reload --config /etc/caddy/Caddyfile
-
-[doc("Step 6: Verify endpoint connectivity")]
-smoke-test:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    source {{ DEPLOY_COMMON }}/lib/shared-functions.sh
-    log "🚦 Running smoke tests..."
-    curl -fsSI --max-time 10 "{{ SMOKE_URL }}" > /dev/null
-    log "✅ Deploy pipeline completed successfully."
-
-[doc("Step 7: Free up disk space by removing unused Docker assets")]
-clean:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    source {{ DEPLOY_COMMON }}/lib/shared-functions.sh
-    log "🧹 Removing stopped containers and dangling build cache..."
+    echo "🧹 Removing stopped containers and dangling build cache..."
     docker system prune -f
-    log "🗑️  Removing unused images older than 7 days..."
+    echo "🗑️  Removing unused images older than 7 days..."
     docker image prune -a -f --filter "until=168h"
-    log "✨ System cleanup complete. Current disk space:"
     df -h / | tail -n 1

@@ -9,6 +9,11 @@ name: Deploy to VPS
 #   VPS_HOST, VPS_USER, VPS_PORT, VPS_APP_DIR, VPS_SSH_KEY
 on:
   workflow_dispatch:
+    inputs:
+      skip_route_check:
+        description: "Deploy even if the Caddy route differs from the one on the VPS"
+        type: boolean
+        default: false
 
 # Two manual runs must never interleave — a half-finished
 # migrate/seed sequence from one would race the other.
@@ -28,6 +33,10 @@ jobs:
     environment: production
 
     steps:
+      # Only needed for the route check below — the deploy itself runs on the
+      # VPS, not on the runner.
+      - uses: actions/checkout@v4
+
       # workflow_dispatch lets you pick any ref in the UI. Only main is
       # deployable — otherwise you could ship an arbitrary branch.
       - name: Refuse to deploy a non-default branch
@@ -68,6 +77,30 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
 
+      # The route snippet in this repo and the one Caddy actually serves can
+      # drift apart: the snippet is applied by Ansible from a developer
+      # machine, the image is deployed from here. Shipping a version whose
+      # route was never applied is how you get a 502 that "the deploy
+      # succeeded". Compare the checksums and fail loudly.
+      - name: Check the Caddy route matches this commit
+        if: ${{ !inputs.skip_route_check }}
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          LOCAL_SUM: ${{ hashFiles('deploy/caddy.conf.caddy') }}
+        run: |
+          remote_sum=$(ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" \
+            "sha256sum /opt/caddy/conf.d/dacha.caddy 2>/dev/null | cut -d' ' -f1" \
+            || echo "<missing>")
+          echo "repo      $LOCAL_SUM"
+          echo "installed $remote_sum"
+          if [ "$remote_sum" != "$LOCAL_SUM" ]; then
+            echo "::error::The Caddy route on the VPS differs from deploy/caddy.conf.caddy (or is absent). Apply it first: just caddy-route"
+            exit 1
+          fi
+          echo "Route is in sync."
+
       - name: Deploy to VPS
         env:
           TAG: ${{ steps.meta.outputs.tag }}
@@ -80,6 +113,18 @@ jobs:
           set -euo pipefail
           cd "$APP_DIR"
           export TAG="$TAG"
+
+          # The compose file and migrations live in this directory, so they
+          # must match the commit being deployed. `pull --ff-only` refuses to
+          # merge or rebase, so a dirty checkout stops the deploy instead of
+          # silently rewriting local work.
+          if [ -d .git ]; then
+            echo "→ Updating deploy checkout..."
+            git pull --ff-only
+            echo "Deploy checkout is now at \$(git rev-parse --short HEAD) on \$(git rev-parse --abbrev-ref HEAD)"
+          else
+            echo "::warning::$APP_DIR is not a git checkout — deploying the files as they are on disk."
+          fi
 
           echo "→ Current state before deploy:"
           docker compose images || true
@@ -101,8 +146,42 @@ jobs:
           # app is created, and a failed migration stops app from starting.
           docker compose up -d --remove-orphans
 
-          echo "→ Waiting for healthchecks (timeout 300s)..."
-          timeout 300 docker compose wait || echo "compose wait returned non-zero — inspect 'docker compose ps' below"
+          # `docker compose wait` blocks until containers STOP, which a
+          # long-running service never does — it would burn the whole
+          # timeout on every deploy and then continue as if nothing were
+          # wrong. Wait for the app's own healthcheck instead, which is what
+          # actually says "this version serves traffic".
+          echo "→ Waiting for dacha-app healthcheck (timeout 300s)..."
+          state=missing
+          deadline=\$(( \$(date +%s) + 300 ))
+          while [ "\$(date +%s)" -lt "\$deadline" ]; do
+            state=\$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' dacha-app 2>/dev/null || echo missing)
+            case "\$state" in
+              healthy)
+                echo "dacha-app is healthy"
+                break
+                ;;
+              unhealthy)
+                echo "dacha-app reports unhealthy:"
+                docker logs --tail 50 dacha-app || true
+                exit 1
+                ;;
+              none)
+                echo "dacha-app is running but has no healthcheck — check docker-compose.yml:"
+                docker compose config | grep -A3 healthcheck || echo "(no healthcheck block found)"
+                exit 1
+                ;;
+            esac
+            sleep 5
+          done
+
+          if [ "\$state" != "healthy" ]; then
+            echo "dacha-app did not become healthy within 300s (last state: \$state)"
+            docker compose ps || true
+            docker logs --tail 50 dacha-app || true
+            exit 1
+          fi
+
           echo "→ Final state:"
           docker compose ps
           EOF

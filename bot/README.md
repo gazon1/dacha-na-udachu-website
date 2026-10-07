@@ -14,7 +14,10 @@ Telegram-бот для сайта [dacha.maxdrobin.ru](https://dacha.maxdrobin.r
 
 ## Архитектура
 
-- **Webhook** на `https://bot.maxdrobin.ru/webhook` — Caddy проксирует на `:3001`
+- **Webhook** на `https://jellyfin.maxdrobin.ru/webhook` — глобальный Caddy
+  проксирует на `dacha-bot:3001` (сниппет `deploy/caddy.conf.caddy`;
+  применяется через `just caddy-route`). Обрабатывается только путь `/webhook`,
+  остальное — 404.
 - Express на 3001: `POST /webhook` (Telegram), `POST /internal/broadcast-event`
   (от основного app при создании события), `GET /healthz` (Docker healthcheck)
 - БД — `getPayload({ config })` из `lib/payload.ts`, та же конфигурация, что у `app`
