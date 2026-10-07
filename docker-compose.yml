@@ -55,22 +55,43 @@ services:
   # pg_dump. DATABASE_URI is a full postgres:// URL, which pg_dump accepts
   # directly as its positional argument — so no host/user/db splitting and no
   # risk of echoing the password in the command line.
+  #
+  # The tag MUST match the major version of the database server. pg_dump
+  # refuses to dump a newer server than it was built for:
+  #   pg_dump: error: aborting because of server version mismatch
+  # Production runs Postgres 17.5, so this is `postgres:17-alpine`. Bumping the
+  # database means bumping this line too.
   backup:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     restart: "no"
     env_file: .env
     entrypoint: ["sh", "-c"]
     command:
       - |
-        set -eu
+        # `-o pipefail` is load-bearing. The pipeline below ends in `gzip`, and a
+        # POSIX pipeline returns the exit status of its LAST command — so a
+        # pg_dump that dies (wrong password, server version mismatch, disk
+        # full) still exits 0 and the script happily reports "backup written"
+        # while leaving a valid-looking empty gzip on disk. Every real backup
+        # so far was exactly that: a 20-byte empty archive.
+        set -eu -o pipefail
         ts="$$(date -u +%Y%m%dT%H%M%S)"
         mkdir -p /backups
-        echo "→ pg_dump → /backups/pre-$$ts.sql.gz"
+        out="/backups/pre-$$ts.sql.gz"
+        echo "→ pg_dump → $$out"
         pg_dump "$$DATABASE_URI" --clean --if-exists --no-owner --no-privileges \
-          | gzip > "/backups/pre-$$ts.sql.gz"
+          | gzip > "$$out"
+        # An empty dump is never valid, but pipefail only catches a non-zero
+        # exit — a dump that succeeds against an empty database would still be
+        # a few KB. Anything under 1 KB of gzip means the dump had no content.
+        size=$$(wc -c < "$$out")
+        if [ "$$size" -lt 1024 ]; then
+          echo "::error pg_dump produced only $$size bytes at $$out — treating as a failed backup"
+          exit 1
+        fi
         # Keep the 10 most recent dumps so the volume cannot fill the disk.
         ls -1t /backups/pre-*.sql.gz 2>/dev/null | tail -n +11 | xargs -r rm --
-        echo "→ backup written"
+        echo "→ backup written ($$size bytes)"
     volumes:
       - backup_data:/backups
 

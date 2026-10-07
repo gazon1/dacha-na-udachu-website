@@ -194,6 +194,28 @@ local-up:
     echo "   stop:   docker compose down"
 
 
+[doc("Verify a DB backup restores, without touching production (usage: just db-check <dump>)")]
+db-check dump:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Runs inside the backup service because that is where pg_dump/psql and
+    # DATABASE_URI live. Checked, not restored: the scratch database is
+    # dropped again, so this is safe to run against a live database.
+    docker compose run --rm -v "$(pwd)/scripts/restore-db.sh:/restore-db.sh:ro" \
+      --entrypoint sh backup -c "sh /restore-db.sh --check /backups/{{dump}}"
+
+
+[doc("Restore a DB backup over production (usage: just db-restore <dump>)")]
+db-restore dump:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "⚠️  This overwrites the production database '{{dump}}'."
+    docker compose stop app
+    docker compose run --rm -v "$(pwd)/scripts/restore-db.sh:/restore-db.sh:ro" \
+      --entrypoint sh backup -c "sh /restore-db.sh --restore /backups/{{dump}} --yes"
+    docker compose up -d app
+
+
 [doc("Remove unused Docker assets (NOT part of a deploy)")]
 docker-clean:
     #!/usr/bin/env bash
